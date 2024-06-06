@@ -1,4 +1,4 @@
-use bevy::{prelude::*, transform::commands};
+use bevy::prelude::*;
 use print_analyzer::{Parsed, Uuid, Pos};
 
 #[derive(Resource)]
@@ -34,9 +34,8 @@ fn draw_extrustions(gcode: Res<GCode>, mut commands: Commands) {
     }
 }
 fn main() {
-    let gcode = Parsed::new();
     App::new()
-        .insert_resource(GCode(gcode))
+        .insert_resource(GCode(print_analyzer::read("../test.gcode", false).expect("failed to read")))
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, load_gcode)
         .add_systems(Update, draw_extrustions)
