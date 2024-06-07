@@ -1,11 +1,10 @@
-use std::f32::EPSILON;
-use bevy::input::mouse::{MouseMotion, MouseWheel, MouseButton};
+use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
+use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_egui::{EguiPlugin, EguiContexts};
+use bevy_egui::{EguiContexts, EguiPlugin};
 use print_analyzer::{Parsed, Pos, Uuid};
-use bevy::math::primitives::Cylinder;
-
+use std::f32::EPSILON;
 
 /// Tags an entity as capable of panning and orbiting.
 #[derive(Component)]
@@ -28,12 +27,11 @@ impl Default for PanOrbitCamera {
 
 /// Pan the camera with middle mouse click, zoom with scroll wheel, orbit with right mouse click.
 fn pan_orbit_camera(
-
     mut ev_motion: EventReader<MouseMotion>,
     mut ev_scroll: EventReader<MouseWheel>,
     input_mouse: Res<ButtonInput<MouseButton>>,
     mut query: Query<(&mut PanOrbitCamera, &mut Transform, &Projection)>,
-    primary_query: Query<&Window, With<PrimaryWindow>>
+    primary_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     // change input mapping for orbit and panning here
     let orbit_button = MouseButton::Right;
@@ -72,10 +70,16 @@ fn pan_orbit_camera(
         let mut any = false;
         if rotation_move.length_squared() > 0.0 {
             any = true;
-            let Ok(window) = primary_query.get_single() else {panic!()};
+            let Ok(window) = primary_query.get_single() else {
+                panic!()
+            };
             let delta_x = {
                 let delta = rotation_move.x / window.width() * std::f32::consts::PI * 2.0;
-                if pan_orbit.upside_down { -delta } else { delta }
+                if pan_orbit.upside_down {
+                    -delta
+                } else {
+                    delta
+                }
             };
             let delta_y = rotation_move.y / window.height() * std::f32::consts::PI;
             let yaw = Quat::from_rotation_y(-delta_x);
@@ -85,9 +89,12 @@ fn pan_orbit_camera(
         } else if pan.length_squared() > 0.0 {
             any = true;
             // make panning distance independent of resolution and FOV,
-            let Ok(window) = primary_query.get_single() else {panic!()}; //get_primary_window_size(&windows);
+            let Ok(window) = primary_query.get_single() else {
+                panic!()
+            }; //get_primary_window_size(&windows);
             if let Projection::Perspective(projection) = projection {
-                pan *= Vec2::new(projection.fov * projection.aspect_ratio, projection.fov) / (window.height() * window.width());
+                pan *= Vec2::new(projection.fov * projection.aspect_ratio, projection.fov)
+                    / (window.height() * window.width());
             }
             // translate by local axes
             let right = transform.rotation * Vec3::X * -pan.x;
@@ -107,7 +114,8 @@ fn pan_orbit_camera(
             // parent = x and y rotation
             // child = z-offset
             let rot_matrix = Mat3::from_quat(transform.rotation);
-            transform.translation = pan_orbit.focus + rot_matrix.mul_vec3(Vec3::new(0.0, 0.0, pan_orbit.radius));
+            transform.translation =
+                pan_orbit.focus + rot_matrix.mul_vec3(Vec3::new(0.0, 0.0, pan_orbit.radius));
         }
     }
 
@@ -121,7 +129,7 @@ struct GCode(Parsed);
 
 #[derive(Component)]
 struct Extrusion {
-    _id: Uuid,
+    count: u32,
     xi: f32,
     yi: f32,
     zi: f32,
@@ -152,7 +160,7 @@ impl Extrusion {
             ..
         } = v.to;
         Extrusion {
-            _id: v.id,
+            count: v.count,
             xi,
             yi,
             zi,
@@ -178,7 +186,9 @@ fn draw_cylinders(
     query: Query<&Extrusion>,
 ) {
     for extrusion in query.iter() {
-        if extrusion.e < EPSILON { continue; }
+        if extrusion.e < EPSILON {
+            continue;
+        }
         let start = Vec3::new(extrusion.xi, extrusion.yi, extrusion.zi);
         let end = Vec3::new(extrusion.xf, extrusion.yf, extrusion.zf);
 
@@ -214,6 +224,7 @@ fn draw_cylinders(
             },
             ..Default::default()
         });
+        println!("drawn");
     }
 }
 fn setup(mut commands: Commands) {
@@ -236,13 +247,12 @@ fn setup(mut commands: Commands) {
         ..default()
     });
     let zoom = 35.0;
-    let translation = Vec3::new(5.0*zoom, 5.0*zoom, 5.0*zoom);
+    let translation = Vec3::new(5.0 * zoom, 5.0 * zoom, 5.0 * zoom);
     let radius = translation.length();
 
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_translation(translation)
-                .looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_translation(translation).looking_at(Vec3::ZERO, Vec3::Y),
             ..Default::default()
         },
         PanOrbitCamera {
@@ -255,39 +265,48 @@ fn setup(mut commands: Commands) {
 #[derive(Resource)]
 struct VertexCounter {
     count: u32,
-    max: u32
+    max: u32,
 }
 
 impl VertexCounter {
     fn build(gcode: &Parsed) -> VertexCounter {
         let max = gcode.vertices.keys().len() as u32;
-        VertexCounter {
-            count: 0,
-            max
-        }
+        VertexCounter { count: 0, max }
     }
 }
 
-fn ui_example_system(mut contexts: EguiContexts, mut vertex: ResMut<VertexCounter>) {
+#[derive(Resource)]
+struct SecretCount(u32);
+
+fn ui_example_system(mut contexts: EguiContexts, vertex: Res<VertexCounter>, mut counter: ResMut<SecretCount>) {
     let max = vertex.max;
     egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
-        ui.add(egui::Slider::new(&mut vertex.count, 0..=max));
+        ui.add(egui::Slider::new(&mut counter.0, 0..=max));
         if ui.button("asdf").clicked() {
             println!("asdf")
         }
     });
 }
+fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
+    if secret.0 != counter.count {
+        counter.count = secret.0;
+    }
+}
 fn main() {
-    let gcode = print_analyzer::read("../print_analyzer/test.gcode", false).expect("failed to read");
+    let gcode =
+        print_analyzer::read("../print_analyzer/test.gcode", false).expect("failed to read");
     App::new()
         .insert_resource(VertexCounter::build(&gcode))
+        .insert_resource(SecretCount(0))
         .insert_resource(GCode(gcode))
         .add_plugins((DefaultPlugins, EguiPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, (pan_orbit_camera, ui_example_system).chain())
-        //.add_systems(Update, ui_example_system)
+        .add_systems(Update, (ui_example_system, pan_orbit_camera, update_count).chain())
         .add_systems(Startup, draw_extrustions)
-        .add_systems(PostStartup, draw_cylinders)
+        .add_systems(
+            Update,
+            draw_cylinders.run_if(resource_changed::<VertexCounter>),
+        )
         .run();
 }
