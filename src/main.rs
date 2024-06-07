@@ -3,6 +3,7 @@ use bevy::input::mouse::{MouseMotion, MouseWheel, MouseButton};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use print_analyzer::{Parsed, Pos, Uuid};
+use bevy::math::primitives::Cylinder;
 
 
 /// Tags an entity as capable of panning and orbiting.
@@ -36,7 +37,7 @@ fn pan_orbit_camera(
     // change input mapping for orbit and panning here
     let orbit_button = MouseButton::Right;
     let pan_button = MouseButton::Middle;
-
+    let zoom = 35.0;
     let mut pan = Vec2::ZERO;
     let mut rotation_move = Vec2::ZERO;
     let mut scroll = 0.0;
@@ -49,7 +50,7 @@ fn pan_orbit_camera(
     } else if input_mouse.pressed(pan_button) {
         // Pan only if we're not rotating at the moment
         for ev in ev_motion.read() {
-            pan += ev.delta;
+            pan += ev.delta * zoom;
         }
     }
     for ev in ev_scroll.read() {
@@ -70,7 +71,7 @@ fn pan_orbit_camera(
         let mut any = false;
         if rotation_move.length_squared() > 0.0 {
             any = true;
-            let Ok(window) = primary_query.get_single() else {panic!()};//get_primary_window_size(&windows);
+            let Ok(window) = primary_query.get_single() else {panic!()};
             let delta_x = {
                 let delta = rotation_move.x / window.width() * std::f32::consts::PI * 2.0;
                 if pan_orbit.upside_down { -delta } else { delta }
@@ -114,39 +115,12 @@ fn pan_orbit_camera(
     ev_motion.clear();
 }
 
-fn get_primary_window_size(primary_query: Query<&Window, With<PrimaryWindow>>) -> Vec2 {
-    let Ok(window) = primary_query.get_single() else {panic!()};
-    let window = Vec2::new(window.width() as f32, window.height() as f32);
-    window
-}
-
-/// Spawn a camera like this
-fn spawn_camera(mut commands: Commands) {
-    let zoom = 35.0;
-    let translation = Vec3::new(5.0*zoom, 5.0*zoom, 5.0*zoom);
-    let radius = translation.length();
-
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_translation(translation)
-                .looking_at(Vec3::ZERO, Vec3::Y),
-            ..Default::default()
-        },
-        PanOrbitCamera {
-            radius,
-            ..Default::default()
-        },
-    ));
-}
-
-
-
 #[derive(Resource)]
 struct GCode(Parsed);
 
 #[derive(Component)]
 struct Extrusion {
-    id: Uuid,
+    _id: Uuid,
     xi: f32,
     yi: f32,
     zi: f32,
@@ -154,7 +128,7 @@ struct Extrusion {
     yf: f32,
     zf: f32,
     e: f32,
-    selected: bool,
+    _selected: bool,
 }
 impl Extrusion {
     fn from_vertex(gcode: &Parsed, vertex: &Uuid) -> Extrusion {
@@ -177,7 +151,7 @@ impl Extrusion {
             ..
         } = v.to;
         Extrusion {
-            id: v.id,
+            _id: v.id,
             xi,
             yi,
             zi,
@@ -185,7 +159,7 @@ impl Extrusion {
             yf,
             zf,
             e,
-            selected: false,
+            _selected: false,
         }
     }
 }
@@ -210,9 +184,9 @@ fn draw_cylinders(
         // Create a cylinder mesh
         let radius = 0.1;
         let length = start.distance(end);
-        let cylinder = shape::Cylinder {
+        let cylinder = Cylinder {
             radius,
-            height: length,
+            half_height: length / 2.0,
             ..Default::default()
         };
 
@@ -260,6 +234,21 @@ fn setup(mut commands: Commands) {
         },
         ..default()
     });
+    let zoom = 35.0;
+    let translation = Vec3::new(5.0*zoom, 5.0*zoom, 5.0*zoom);
+    let radius = translation.length();
+
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_translation(translation)
+                .looking_at(Vec3::ZERO, Vec3::Y),
+            ..Default::default()
+        },
+        PanOrbitCamera {
+            radius,
+            ..Default::default()
+        },
+    ));
 }
 fn main() {
     App::new()
@@ -268,9 +257,8 @@ fn main() {
         ))
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(Startup, pan_orbit_camera)
-        .add_systems(Startup, spawn_camera)
+        .add_systems(Update, pan_orbit_camera)
         .add_systems(Startup, draw_extrustions)
-        .add_systems(Update, draw_cylinders)
+        .add_systems(PostStartup, draw_cylinders)
         .run();
 }
