@@ -183,10 +183,11 @@ fn draw_cylinders(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    count: Res<VertexCounter>,
     query: Query<&Extrusion>,
 ) {
     for extrusion in query.iter() {
-        if extrusion.e < EPSILON {
+        if extrusion.e < EPSILON || extrusion.count > count.count {
             continue;
         }
         let start = Vec3::new(extrusion.xi, extrusion.yi, extrusion.zi);
