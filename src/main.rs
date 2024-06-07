@@ -178,6 +178,8 @@ fn draw_extrustions(gcode: Res<GCode>, mut commands: Commands) {
         commands.spawn(Extrusion::from_vertex(&gcode, vertex));
     }
 }
+#[derive(Component)]
+struct Tag;
 
 fn draw_cylinders(
     mut commands: Commands,
@@ -185,7 +187,12 @@ fn draw_cylinders(
     mut materials: ResMut<Assets<StandardMaterial>>,
     count: Res<VertexCounter>,
     query: Query<&Extrusion>,
+    cylinders: Query<Entity, With<Tag>>
 ) {
+    for cylinder in cylinders.iter() {
+        commands.entity(cylinder).despawn();
+    }
+    
     for extrusion in query.iter() {
         if extrusion.e < EPSILON || extrusion.count > count.count {
             continue;
@@ -215,7 +222,7 @@ fn draw_cylinders(
         let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
 
         // Add the cylinder to the scene
-        commands.spawn(PbrBundle {
+        commands.spawn((PbrBundle {
             mesh: mesh_handle,
             material: material_handle,
             transform: Transform {
@@ -224,7 +231,7 @@ fn draw_cylinders(
                 ..Default::default()
             },
             ..Default::default()
-        });
+        }, Tag));
         println!("drawn");
     }
 }
