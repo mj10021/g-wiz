@@ -2,6 +2,7 @@ use std::f32::EPSILON;
 use bevy::input::mouse::{MouseMotion, MouseWheel, MouseButton};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use bevy_egui::{EguiPlugin, EguiContexts};
 use print_analyzer::{Parsed, Pos, Uuid};
 use bevy::math::primitives::Cylinder;
 
@@ -250,14 +251,21 @@ fn setup(mut commands: Commands) {
         },
     ));
 }
+
+fn ui_example_system(mut contexts: EguiContexts) {
+    egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
+        ui.label("world");
+    });
+}
 fn main() {
     App::new()
         .insert_resource(GCode(
             print_analyzer::read("../print_analyzer/test.gcode", false).expect("failed to read"),
         ))
-        .add_plugins(DefaultPlugins)
+        .add_plugins((DefaultPlugins, EguiPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, pan_orbit_camera)
+        .add_systems(Update, (pan_orbit_camera, ui_example_system).chain())
+        //.add_systems(Update, ui_example_system)
         .add_systems(Startup, draw_extrustions)
         .add_systems(PostStartup, draw_cylinders)
         .run();

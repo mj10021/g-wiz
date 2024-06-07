@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 bevy = "0.13.2"
 bevy_egui = "0.27.1"
+egui = "0.27.2"
 print_analyzer = {path = "../print_analyzer"}
 
 
