@@ -252,16 +252,37 @@ fn setup(mut commands: Commands) {
     ));
 }
 
-fn ui_example_system(mut contexts: EguiContexts) {
+#[derive(Resource)]
+struct VertexCounter {
+    count: u32,
+    max: u32
+}
+
+impl VertexCounter {
+    fn build(gcode: &Parsed) -> VertexCounter {
+        let max = gcode.vertices.keys().len() as u32;
+        VertexCounter {
+            count: 0,
+            max
+        }
+    }
+}
+
+fn ui_example_system(mut contexts: EguiContexts, mut vertex: ResMut<VertexCounter>) {
+    let max = vertex.max;
     egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
+        ui.add(egui::Slider::new(&mut vertex.count, 0..=max));
+        if ui.button("asdf").clicked() {
+            println!("asdf")
+        }
     });
 }
 fn main() {
+    let gcode = print_analyzer::read("../print_analyzer/test.gcode", false).expect("failed to read");
     App::new()
-        .insert_resource(GCode(
-            print_analyzer::read("../print_analyzer/test.gcode", false).expect("failed to read"),
-        ))
+        .insert_resource(VertexCounter::build(&gcode))
+        .insert_resource(GCode(gcode))
         .add_plugins((DefaultPlugins, EguiPlugin))
         .add_systems(Startup, setup)
         .add_systems(Update, (pan_orbit_camera, ui_example_system).chain())
