@@ -1,3 +1,4 @@
+use bevy::input::keyboard::Key;
 use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
@@ -286,19 +287,36 @@ impl VertexCounter {
 #[derive(Resource)]
 struct SecretCount(u32);
 
+fn key_system(mut counter: ResMut<SecretCount>, keys: Res<ButtonInput<KeyCode>>) {
+    if keys.pressed(KeyCode::ArrowLeft) {
+        counter.0 -= 10;
+    }
+    else if keys.pressed(KeyCode::ArrowRight) {
+        counter.0 += 10;
+    }
+}
+
 fn ui_example_system(mut contexts: EguiContexts, vertex: Res<VertexCounter>, mut counter: ResMut<SecretCount>) {
     let max = vertex.max;
     egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
         ui.add(egui::Slider::new(&mut counter.0, 0..=max));
-        if ui.button("asdf").clicked() {
-            println!("asdf")
+        let steps = [1,10,100];
+        for i in 0..steps.len() {
+            let pos_string = format!("Vertex +{}", steps[i]);
+            let neg_string = format!("Vertex -{}", steps[i]);
+            if ui.button(pos_string).clicked() {
+                counter.0 += steps[i];
+            }
+            if ui.button(neg_string).clicked() {
+                counter.0 -= steps[i];
+            }
         }
     });
 }
 fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
-    if secret.0 != counter.count {
-        counter.count = secret.0;
+    if secret.0 as u32 != counter.count {
+        counter.count = secret.0 as u32;
     }
 }
 fn main() {
@@ -310,7 +328,7 @@ fn main() {
         .insert_resource(GCode(gcode))
         .add_plugins((DefaultPlugins, EguiPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, (ui_example_system, pan_orbit_camera, update_count).chain())
+        .add_systems(Update, (key_system, ui_example_system, pan_orbit_camera, update_count).chain())
         .add_systems(Startup, draw_extrustions)
         .add_systems(
             Update,
