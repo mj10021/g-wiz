@@ -1,4 +1,3 @@
-use bevy::input::keyboard::Key;
 use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
@@ -129,57 +128,6 @@ fn pan_orbit_camera(
 struct GCode(Parsed);
 
 #[derive(Component)]
-struct Extrusion {
-    count: u32,
-    xi: f32,
-    yi: f32,
-    zi: f32,
-    xf: f32,
-    yf: f32,
-    zf: f32,
-    e: f32,
-    _selected: bool,
-}
-impl Extrusion {
-    fn from_vertex(gcode: &Parsed, vertex: &Uuid) -> Extrusion {
-        let v = gcode.vertices.get(vertex).unwrap();
-        let Pos {
-            x: xi,
-            y: yi,
-            z: zi,
-            ..
-        } = if let Some(prev) = v.prev {
-            gcode.vertices.get(&prev).unwrap().to
-        } else {
-            Pos::unhomed()
-        };
-        let Pos {
-            x: xf,
-            y: yf,
-            z: zf,
-            e,
-            ..
-        } = v.to;
-        Extrusion {
-            count: v.count,
-            xi,
-            yi,
-            zi,
-            xf,
-            yf,
-            zf,
-            e,
-            _selected: false,
-        }
-    }
-}
-fn draw_extrustions(gcode: Res<GCode>, mut commands: Commands) {
-    let gcode = &gcode.0;
-    for vertex in gcode.vertices.keys() {
-        commands.spawn(Extrusion::from_vertex(&gcode, vertex));
-    }
-}
-#[derive(Component)]
 struct Tag;
 
 fn draw_cylinders(
@@ -187,19 +135,29 @@ fn draw_cylinders(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     count: Res<VertexCounter>,
-    query: Query<&Extrusion>,
+    gcode: Res<GCode>,
     cylinders: Query<Entity, With<Tag>>,
 ) {
     for cylinder in cylinders.iter() {
         commands.entity(cylinder).despawn();
     }
+    let gcode = &gcode.0;
 
-    for extrusion in query.iter() {
-        if extrusion.e < EPSILON || extrusion.count > count.count {
+    for (id, vertex) in gcode.vertices.iter() {
+
+        let Pos {x: xf, y: yf, z: zf, e, ..} = vertex.to;
+        let (xi, yi, zi) = {
+            if let Some(prev) = vertex.prev {
+                let p = gcode.vertices.get(&prev).unwrap();
+                (p.to.x, p.to.y, p.to.z)
+            } else {(0.0, 0.0, 0.0)}
+        };
+
+        if e < EPSILON || vertex.count > count.count {
             continue;
         }
-        let start = Vec3::new(extrusion.xi, extrusion.yi, extrusion.zi);
-        let end = Vec3::new(extrusion.xf, extrusion.yf, extrusion.zf);
+        let start = Vec3::new(xi, yi, zi);
+        let end = Vec3::new(xf, yf, zf);
 
         // Create a cylinder mesh
         let radius = 0.1;
@@ -236,7 +194,6 @@ fn draw_cylinders(
             },
             Tag,
         ));
-        println!("drawn");
     }
 }
 fn setup(mut commands: Commands) {
@@ -303,6 +260,9 @@ struct SecretCount(u32);
 
 #[derive(Resource)]
 struct SecretLayerCount(u32);
+
+#[derive(Resource)]
+struct Selection(Uuid);
 
 fn key_system(
     mut counter: ResMut<SecretCount>,
@@ -373,6 +333,7 @@ fn main() {
         .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(SecretCount(0))
         .insert_resource(SecretLayerCount(0))
+        .insert_resource(Selection(Uuid::nil()))
         .insert_resource(GCode(gcode))
         .add_plugins((DefaultPlugins, EguiPlugin))
         .add_systems(Startup, setup)
@@ -386,7 +347,6 @@ fn main() {
             )
                 .chain(),
         )
-        .add_systems(Startup, draw_extrustions)
         .add_systems(
             Update,
             draw_cylinders.run_if(resource_changed::<VertexCounter>),
