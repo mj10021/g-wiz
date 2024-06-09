@@ -283,35 +283,65 @@ impl VertexCounter {
         VertexCounter { count: 0, max }
     }
 }
+#[derive(Resource)]
+struct LayerCounter {
+    count: u32,
+    max: u32,
+}
 
+impl LayerCounter {
+    fn build(gcode: &Parsed) -> LayerCounter {
+        let max = gcode.layers.len() as u32;
+        LayerCounter { count: 0, max }
+    }
+}
 #[derive(Resource)]
 struct SecretCount(u32);
 
-fn key_system(mut counter: ResMut<SecretCount>, keys: Res<ButtonInput<KeyCode>>) {
+#[derive(Resource)]
+struct SecretLayerCount(u32);
+
+
+
+fn key_system(mut counter: ResMut<SecretCount>, mut layer_counter: ResMut<SecretLayerCount>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.pressed(KeyCode::ArrowLeft) {
-        counter.0 -= 10;
+        counter.0 -= 1;
     }
     else if keys.pressed(KeyCode::ArrowRight) {
-        counter.0 += 10;
+        counter.0 += 1;
+    }
+    else if keys.pressed(KeyCode::ArrowUp) {
+        layer_counter.0 += 1;
+    }
+    else if  keys.pressed(KeyCode::ArrowDown) {
+        layer_counter.0 -= 1;        
     }
 }
 
-fn ui_example_system(mut contexts: EguiContexts, vertex: Res<VertexCounter>, mut counter: ResMut<SecretCount>) {
+fn ui_example_system(mut contexts: EguiContexts, vertex: Res<VertexCounter>, layer: Res<LayerCounter>, mut counter: ResMut<SecretCount>, mut layer_counter: ResMut<SecretLayerCount>) {
     let max = vertex.max;
+    let layer_max = layer.max;
     egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
         ui.add(egui::Slider::new(&mut counter.0, 0..=max));
-        let steps = [1,10,100];
-        for i in 0..steps.len() {
-            let pos_string = format!("Vertex +{}", steps[i]);
-            let neg_string = format!("Vertex -{}", steps[i]);
-            if ui.button(pos_string).clicked() {
-                counter.0 += steps[i];
+        ui.add(egui::Slider::new(&mut layer_counter.0, 0..=layer_max).vertical());
+        let steps = [(100, "<<<"),(10, "<<"),(1, "<"),(1, ">"), (10, ">>"),(100, ">>>")];
+        let mut i = 0;
+        egui::Grid::new("vertex stepper").show(ui, |ui| {
+            for (num, str) in steps {
+                let neg = i < steps.len() / 2;
+                if ui.button(str).clicked() {
+                    if neg {
+                        counter. 0 -= num;
+                    } else {
+                        counter.0 += num;
+                    }
+                }
+                i += 1;
             }
-            if ui.button(neg_string).clicked() {
-                counter.0 -= steps[i];
-            }
-        }
+            ui.end_row();
+        });
+        
     });
 }
 fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
@@ -324,7 +354,9 @@ fn main() {
         print_analyzer::read("../print_analyzer/test.gcode", false).expect("failed to read");
     App::new()
         .insert_resource(VertexCounter::build(&gcode))
+        .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(SecretCount(0))
+        .insert_resource(SecretLayerCount(0))
         .insert_resource(GCode(gcode))
         .add_plugins((DefaultPlugins, EguiPlugin))
         .add_systems(Startup, setup)
