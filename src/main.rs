@@ -188,12 +188,12 @@ fn draw_cylinders(
     mut materials: ResMut<Assets<StandardMaterial>>,
     count: Res<VertexCounter>,
     query: Query<&Extrusion>,
-    cylinders: Query<Entity, With<Tag>>
+    cylinders: Query<Entity, With<Tag>>,
 ) {
     for cylinder in cylinders.iter() {
         commands.entity(cylinder).despawn();
     }
-    
+
     for extrusion in query.iter() {
         if extrusion.e < EPSILON || extrusion.count > count.count {
             continue;
@@ -223,16 +223,19 @@ fn draw_cylinders(
         let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
 
         // Add the cylinder to the scene
-        commands.spawn((PbrBundle {
-            mesh: mesh_handle,
-            material: material_handle,
-            transform: Transform {
-                translation: middle,
-                rotation,
+        commands.spawn((
+            PbrBundle {
+                mesh: mesh_handle,
+                material: material_handle,
+                transform: Transform {
+                    translation: middle,
+                    rotation,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        }, Tag));
+            Tag,
+        ));
         println!("drawn");
     }
 }
@@ -301,47 +304,60 @@ struct SecretCount(u32);
 #[derive(Resource)]
 struct SecretLayerCount(u32);
 
-
-
-fn key_system(mut counter: ResMut<SecretCount>, mut layer_counter: ResMut<SecretLayerCount>, keys: Res<ButtonInput<KeyCode>>) {
+fn key_system(
+    mut counter: ResMut<SecretCount>,
+    mut layer_counter: ResMut<SecretLayerCount>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
     if keys.pressed(KeyCode::ArrowLeft) {
         counter.0 -= 1;
-    }
-    else if keys.pressed(KeyCode::ArrowRight) {
+    } else if keys.pressed(KeyCode::ArrowRight) {
         counter.0 += 1;
-    }
-    else if keys.pressed(KeyCode::ArrowUp) {
+    } else if keys.pressed(KeyCode::ArrowUp) {
         layer_counter.0 += 1;
-    }
-    else if  keys.pressed(KeyCode::ArrowDown) {
-        layer_counter.0 -= 1;        
+    } else if keys.pressed(KeyCode::ArrowDown) {
+        layer_counter.0 -= 1;
     }
 }
 
-fn ui_example_system(mut contexts: EguiContexts, vertex: Res<VertexCounter>, layer: Res<LayerCounter>, mut counter: ResMut<SecretCount>, mut layer_counter: ResMut<SecretLayerCount>) {
+fn ui_example_system(
+    mut contexts: EguiContexts,
+    vertex: Res<VertexCounter>,
+    layer: Res<LayerCounter>,
+    mut counter: ResMut<SecretCount>,
+    mut layer_counter: ResMut<SecretLayerCount>,
+) {
     let max = vertex.max;
     let layer_max = layer.max;
     egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
         ui.add(egui::Slider::new(&mut counter.0, 0..=max));
         ui.add(egui::Slider::new(&mut layer_counter.0, 0..=layer_max).vertical());
-        let steps = [(100, "<<<"),(10, "<<"),(1, "<"),(1, ">"), (10, ">>"),(100, ">>>")];
+        let steps = [
+            (100, "<<<"),
+            (10, "<<"),
+            (1, "<"),
+            (1, ">"),
+            (10, ">>"),
+            (100, ">>>"),
+        ];
         let mut i = 0;
-        egui::Grid::new("vertex stepper").show(ui, |ui| {
-            for (num, str) in steps {
-                let neg = i < steps.len() / 2;
-                if ui.button(str).clicked() {
-                    if neg {
-                        counter. 0 -= num;
-                    } else {
-                        counter.0 += num;
+        egui::Grid::new("vertex stepper")
+            .min_col_width(4.0)
+            .show(ui, |ui| {
+                for (num, str) in steps {
+                    let neg = i < steps.len() / 2;
+                    if ui.button(str).clicked() {
+                        if neg {
+                            counter.0 -= num;
+                        } else {
+                            counter.0 += num;
+                        }
                     }
+                    i += 1;
                 }
-                i += 1;
-            }
-            ui.end_row();
-        });
-        
+                ui.end_row();
+            });
     });
 }
 fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
@@ -360,7 +376,16 @@ fn main() {
         .insert_resource(GCode(gcode))
         .add_plugins((DefaultPlugins, EguiPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, (key_system, ui_example_system, pan_orbit_camera, update_count).chain())
+        .add_systems(
+            Update,
+            (
+                key_system,
+                ui_example_system,
+                pan_orbit_camera,
+                update_count,
+            )
+                .chain(),
+        )
         .add_systems(Startup, draw_extrustions)
         .add_systems(
             Update,
