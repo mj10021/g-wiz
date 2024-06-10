@@ -2,7 +2,9 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use print_analyzer::Parsed;
 
-#[derive(PartialEq)]
+use crate::{GCode, Selection};
+
+#[derive(PartialEq, Clone, Copy)]
 enum Choice {
     Vertex,
     Shape,
@@ -18,6 +20,15 @@ impl Default for Enum {
     }
 }
 
+#[derive(Resource)]
+pub struct Function(String);
+
+impl Default for Function {
+    fn default() -> Self {
+        Function(String::new())
+    }
+}
+
 pub fn ui_example_system(
     mut contexts: EguiContexts,
     vertex: Res<VertexCounter>,
@@ -25,9 +36,12 @@ pub fn ui_example_system(
     mut counter: ResMut<SecretCount>,
     mut layer_counter: ResMut<SecretLayerCount>,
     mut enu: ResMut<Enum>,
-    window: Query<&Window, With<PrimaryWindow>>
+    window: Query<&Window, With<PrimaryWindow>>,
+    mut func: ResMut<Function>,
+    mut gcode: ResMut<GCode>,
+    selection: Res<Selection>
 ) {
-    let window = window.get_single().expect("no window found");
+    let Ok(window) = window.get_single() else {return; };
     let width = window.width();
     let height = window.height();
     let spacing = height / 50.0;
@@ -71,12 +85,55 @@ pub fn ui_example_system(
         ui.add_space(spacing);
         ui.horizontal(|ui| {
             if ui.button("Merge Delete").clicked() {
-
+                todo!();
             }
             else if ui.button("Hole Delete").clicked() {
-                
+                todo!();
             }
-        })
+        });
+        ui.horizontal(|ui| {
+            if ui.button("Subdivide").clicked() {
+                todo!();
+            }
+
+        });
+        ui.horizontal(|ui| {
+            let _response = ui.text_edit_singleline(&mut func.0);
+
+            let enu = enu.0;
+            if ui.button("Translate").clicked() {
+                let mut params = func.0.split_whitespace();
+                let x = params.next().unwrap().parse::<f32>().unwrap();
+                let y = params.next().unwrap().parse::<f32>().unwrap();
+                let z = params.next().unwrap().parse::<f32>().unwrap();
+                match enu {
+                    Choice::Vertex => {
+                        let v = gcode.0.vertices.get_mut(&selection.0).unwrap();
+                        v.to.x += x;
+                        v.to.y += y;
+                        v.to.z += z;
+                    },
+                    Choice::Shape => {
+                        let shapes = gcode.0.get_shape(&selection.0);
+                        for vertex in shapes.iter() {
+                            let v = gcode.0.vertices.get_mut(vertex).unwrap();
+                            v.to.x += x;
+                            v.to.y += y;
+                            v.to.z += z;
+                        }
+                    },
+                    Choice::Layer => {
+                        let layer = gcode.0.get_layer(&selection.0);
+                        for vertex in layer.iter() {
+                            let v = gcode.0.vertices.get_mut(vertex).unwrap();
+                            v.to.x += x;
+                            v.to.y += y;
+                            v.to.z += z;
+                        }
+                    }
+                }
+            }
+        });
     });
 }
 pub fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {

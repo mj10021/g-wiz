@@ -1,19 +1,24 @@
 mod pan_orbit;
 mod ui;
-use bevy::math::primitives::Cylinder;
+use bevy::{ecs::query::QueryData, math::primitives::Cylinder};
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Parsed, Pos, Uuid};
 use std::f32::EPSILON;
+use std::env;
 use ui::*;
 
 #[derive(Resource)]
 struct GCode(Parsed);
 
 #[derive(Component)]
-struct Tag(Uuid);
+struct Tag{
+    id: Uuid
+}
+
+
 
 fn draw(
     mut commands: Commands,
@@ -21,7 +26,8 @@ fn draw(
     mut materials: ResMut<Assets<StandardMaterial>>,
     count: Res<VertexCounter>,
     gcode: Res<GCode>,
-    cylinders: Query<Entity, With<Tag>>,
+    cylinders: Query<Entity>,
+    mut selection: ResMut<Selection>
 ) {
     for cylinder in cylinders.iter() {
         commands.entity(cylinder).despawn();
@@ -91,10 +97,7 @@ fn draw(
                 ..Default::default()
             },
             PickableBundle::default(),
-            Tag(id.clone()),
-            On::<Pointer<Click>>::target_component_mut::<Visibility>(|_click, visibility| {
-                *visibility = Visibility::Hidden;
-            }),
+            Tag {id: id.clone()},
         ));
         commands.spawn((
             PbrBundle {
@@ -108,12 +111,17 @@ fn draw(
                 ..Default::default()
             },
             PickableBundle::default(),
-            Tag(id.clone()),
-            On::<Pointer<Click>>::target_component_mut::<Visibility>(|_click, visibility| {
-                *visibility = Visibility::Hidden;
-            }),
+            Tag{id: id.clone()},
         ));
     }
+}
+fn selection_query (mut commands: Commands, mut s_query: Query<(&PickSelection, &mut Tag)>, mut selection: ResMut<Selection>) {
+    for (s, tag) in s_query.iter_mut() {
+        if !s.is_selected { continue; } else {
+            selection.0 = tag.id;
+        }
+    }
+
 }
 fn setup(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
@@ -135,6 +143,7 @@ fn setup(mut commands: Commands) {
         },
     ));
 }
+
 #[derive(Resource)]
 struct Selection(Uuid);
 impl Default for Selection {
@@ -143,8 +152,12 @@ impl Default for Selection {
     }
 }
 fn main() {
+    // let args: Vec<String> = env::args().collect();
+    let path = {
+            "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode"
+        };
     let gcode = print_analyzer::read(
-        "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
+        path,
         false,
     )
     .expect("failed to read");
@@ -154,6 +167,7 @@ fn main() {
         .init_resource::<SecretLayerCount>()
         .init_resource::<Selection>()
         .init_resource::<Enum>()
+        .init_resource::<Function>()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(GCode(gcode))
