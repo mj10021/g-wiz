@@ -1,0 +1,133 @@
+use bevy::prelude::*;
+use bevy_egui::EguiContexts;
+use print_analyzer::Parsed;
+
+#[derive(PartialEq)]
+enum Choice { Vertex, Shape, Layer }
+
+#[derive(Resource)]
+pub struct Enum(Choice);
+
+impl Default for Enum {
+    fn default() -> Self {
+        Enum(Choice::Vertex)
+    }
+}
+
+
+pub fn ui_example_system(
+    mut contexts: EguiContexts,
+    vertex: Res<VertexCounter>,
+    layer: Res<LayerCounter>,
+    mut counter: ResMut<SecretCount>,
+    mut layer_counter: ResMut<SecretLayerCount>,
+    mut enu: ResMut<Enum>
+) {
+    let max = vertex.max;
+    let layer_max = layer.max;
+    egui::SidePanel::new(egui::panel::Side::Left, "panel").show(contexts.ctx_mut(), |ui| {
+        ui.label("world");
+        ui.add(egui::Slider::new(&mut counter.0, 0..=max));
+        ui.add(egui::Slider::new(&mut layer_counter.0, 0..=layer_max).vertical());
+        let steps = [
+            (100, "<<<"),
+            (10, "<<"),
+            (1, "<"),
+            (1, ">"),
+            (10, ">>"),
+            (100, ">>>"),
+        ];
+        let mut i = 0;
+        egui::Grid::new("vertex stepper")
+            .min_col_width(4.0)
+            .show(ui, |ui| {
+                for (num, str) in steps {
+                    let neg = i < steps.len() / 2;
+                    if ui.button(str).clicked() {
+                        if neg {
+                            counter.0 -= num;
+                        } else {
+                            counter.0 += num;
+                        }
+                    }
+                    i += 1;
+                }
+                ui.end_row();
+            });
+
+        ui.horizontal(|ui| {
+            ui.radio_value(&mut enu.0, Choice::Vertex, "Vertex");
+            ui.radio_value(&mut enu.0, Choice::Shape, "Shape");
+            ui.radio_value(&mut enu.0, Choice::Layer, "Layer");
+        });
+
+    });
+}
+pub fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
+    if secret.0 as u32 != counter.count {
+        counter.count = secret.0 as u32;
+    }
+}
+
+
+
+#[derive(Resource)]
+pub struct VertexCounter {
+    pub count: u32,
+    max: u32,
+}
+
+impl VertexCounter {
+    pub fn build(gcode: &Parsed) -> VertexCounter {
+        let max = gcode.vertices.keys().len() as u32;
+        VertexCounter { count: 0, max }
+    }
+}
+#[derive(Resource)]
+pub struct LayerCounter {
+    count: u32,
+    max: u32,
+}
+
+impl LayerCounter {
+    pub fn build(gcode: &Parsed) -> LayerCounter {
+        let max = gcode.layers.len() as u32;
+        LayerCounter { count: 0, max }
+    }
+}
+#[derive(Resource)]
+pub struct SecretCount(pub u32);
+impl Default for SecretCount {
+    fn default() -> Self {
+        SecretCount(0)
+    }
+}
+
+#[derive(Resource)]
+pub struct SecretLayerCount(pub u32);
+impl Default for SecretLayerCount {
+    fn default() -> Self {
+        SecretLayerCount(0)
+    }
+}
+
+
+pub fn key_system(
+    mut counter: ResMut<SecretCount>,
+    mut layer_counter: ResMut<SecretLayerCount>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
+    if keys.pressed(KeyCode::ArrowLeft) {
+        counter.0 -= 1;
+    } else if keys.pressed(KeyCode::ArrowRight) {
+        counter.0 += 1;
+    } else if keys.pressed(KeyCode::ArrowUp) {
+        layer_counter.0 += 1;
+    } else if keys.pressed(KeyCode::ArrowDown) {
+        layer_counter.0 -= 1;
+    }
+}
+
+
+
+

@@ -1,10 +1,12 @@
 mod pan_orbit;
+mod ui;
+use ui::*;
 use pan_orbit::{PanOrbitCamera, pan_orbit_camera};
 use bevy_mod_picking::prelude::*;
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_egui::{EguiContexts, EguiPlugin};
+use bevy_egui::EguiPlugin;
 use print_analyzer::{Parsed, Pos, Uuid};
 use std::f32::EPSILON;
 
@@ -123,164 +125,25 @@ fn setup(mut commands: Commands) {
         },
     ));
 }
-
-#[derive(Resource)]
-struct VertexCounter {
-    count: u32,
-    max: u32,
-}
-
-impl VertexCounter {
-    fn build(gcode: &Parsed) -> VertexCounter {
-        let max = gcode.vertices.keys().len() as u32;
-        VertexCounter { count: 0, max }
-    }
-}
-#[derive(Resource)]
-struct LayerCounter {
-    count: u32,
-    max: u32,
-}
-
-impl LayerCounter {
-    fn build(gcode: &Parsed) -> LayerCounter {
-        let max = gcode.layers.len() as u32;
-        LayerCounter { count: 0, max }
-    }
-}
-#[derive(Resource)]
-struct SecretCount(u32);
-
-#[derive(Resource)]
-struct SecretLayerCount(u32);
-
 #[derive(Resource)]
 struct Selection(Uuid);
-
-fn key_system(
-    mut counter: ResMut<SecretCount>,
-    mut layer_counter: ResMut<SecretLayerCount>,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
-    if keys.pressed(KeyCode::ArrowLeft) {
-        counter.0 -= 1;
-    } else if keys.pressed(KeyCode::ArrowRight) {
-        counter.0 += 1;
-    } else if keys.pressed(KeyCode::ArrowUp) {
-        layer_counter.0 += 1;
-    } else if keys.pressed(KeyCode::ArrowDown) {
-        layer_counter.0 -= 1;
+impl Default for Selection {
+    fn default() -> Self {
+        Selection(Uuid::nil())
     }
 }
-#[derive(PartialEq)]
-enum Choice { Vertex, Shape, Layer }
-
-#[derive(Resource)]
-struct Enum(Choice);
-
-
-fn ui_example_system(
-    mut contexts: EguiContexts,
-    vertex: Res<VertexCounter>,
-    layer: Res<LayerCounter>,
-    mut counter: ResMut<SecretCount>,
-    mut layer_counter: ResMut<SecretLayerCount>,
-    mut enu: ResMut<Enum>
-) {
-    let max = vertex.max;
-    let layer_max = layer.max;
-    egui::SidePanel::new(egui::panel::Side::Left, "panel").show(contexts.ctx_mut(), |ui| {
-        ui.label("world");
-        ui.add(egui::Slider::new(&mut counter.0, 0..=max));
-        ui.add(egui::Slider::new(&mut layer_counter.0, 0..=layer_max).vertical());
-        let steps = [
-            (100, "<<<"),
-            (10, "<<"),
-            (1, "<"),
-            (1, ">"),
-            (10, ">>"),
-            (100, ">>>"),
-        ];
-        let mut i = 0;
-        egui::Grid::new("vertex stepper")
-            .min_col_width(4.0)
-            .show(ui, |ui| {
-                for (num, str) in steps {
-                    let neg = i < steps.len() / 2;
-                    if ui.button(str).clicked() {
-                        if neg {
-                            counter.0 -= num;
-                        } else {
-                            counter.0 += num;
-                        }
-                    }
-                    i += 1;
-                }
-                ui.end_row();
-            });
-
-        ui.horizontal(|ui| {
-            ui.radio_value(&mut enu.0, Choice::Vertex, "Vertex");
-            ui.radio_value(&mut enu.0, Choice::Shape, "Shape");
-            ui.radio_value(&mut enu.0, Choice::Layer, "Layer");
-        });
-
-    });
-}
-fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
-    if secret.0 as u32 != counter.count {
-        counter.count = secret.0 as u32;
-    }
-}
-
-fn draw_cursor(
-    camera_query: Query<(&Camera, &Transform, &GlobalTransform)>,
-    gcode: Res<GCode>,
-    mut selection: ResMut<Selection>,
-    mut counter: ResMut<VertexCounter>,
-    spheres: Query<(&Transform, &Tag)>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-) {
-    let (camera, pos,camera_transform) = camera_query.single();
-    let Some(cursor_position) = windows.single().cursor_position() else {
-        return;
-    };
-    // Calculate a ray pointing from the camera into the world based on the cursor's position.
-    let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
-        return;
-    };
-    let mut hits = Vec::new();
-    let pos = pos.translation;
-    for sphere in spheres.iter() {
-        let dist = sphere.0.translation.distance(pos);
-        if ray.get_point(dist).distance(pos) < 10.0 {
-            hits.push((sphere.1.0, dist));
-        }
-    }
-    if hits.len() > 0 {
-        hits.sort_by_key(|v| v.1 as i32);
-        if selection.0 != hits[0].0 {
-            selection.0 = hits[0].0;
-            counter.count = counter.count.clone();
-            println!("HIT");
-        }
-    }
-}
-
-
 fn main() {
     let gcode =
         print_analyzer::read("../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode", false).expect("failed to read");
     App::new()
+        .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
+        .init_resource::<SecretCount>()
+        .init_resource::<SecretLayerCount>()
+        .init_resource::<Selection>()
+        .init_resource::<Enum>()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
-        .insert_resource(Enum(Choice::Vertex))
-        .insert_resource(SecretCount(0))
-        .insert_resource(SecretLayerCount(0))
-        .insert_resource(Selection(Uuid::nil()))
         .insert_resource(GCode(gcode))
-        .add_plugins((DefaultPlugins, EguiPlugin))
-        .add_plugins(DefaultPickingPlugins)
         .add_systems(Startup, setup)
         .add_systems(
             Update,
