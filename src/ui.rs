@@ -20,6 +20,8 @@ impl Default for Enum {
     }
 }
 
+#[derive(Resource)]
+pub struct Function(pub String);
 
 pub fn ui_example_system(
     mut contexts: EguiContexts,
@@ -29,6 +31,9 @@ pub fn ui_example_system(
     mut layer_counter: ResMut<SecretLayerCount>,
     mut enu: ResMut<Enum>,
     window: Query<&Window, With<PrimaryWindow>>,
+    selection: Res<Selection>,
+    mut gcode: ResMut<GCode>,
+    mut func: ResMut<Function>,
 ) {
     let Ok(window) = window.get_single() else {panic!(); };
     let height = window.height();
@@ -85,43 +90,43 @@ pub fn ui_example_system(
             }
 
         });
-        // ui.horizontal(|ui| {
-        //     let _response = ui.text_edit_singleline(&mut func.0);
+        ui.horizontal(|ui| {
+            let _response = ui.text_edit_singleline(&mut func.0);
 
-        //     let enu = enu.0;
-        //     if ui.button("Translate").clicked() {
-        //         let mut params = func.0.split_whitespace();
-        //         let x = params.next().unwrap().parse::<f32>().unwrap();
-        //         let y = params.next().unwrap().parse::<f32>().unwrap();
-        //         let z = params.next().unwrap().parse::<f32>().unwrap();
-        //         match enu {
-        //             Choice::Vertex => {
-        //                 let v = gcode.0.vertices.get_mut(&selection.0).unwrap();
-        //                 v.to.x += x;
-        //                 v.to.y += y;
-        //                 v.to.z += z;
-        //             },
-        //             Choice::Shape => {
-        //                 let shapes = gcode.0.get_shape(&selection.0);
-        //                 for vertex in shapes.iter() {
-        //                     let v = gcode.0.vertices.get_mut(vertex).unwrap();
-        //                     v.to.x += x;
-        //                     v.to.y += y;
-        //                     v.to.z += z;
-        //                 }
-        //             },
-        //             Choice::Layer => {
-        //                 let layer = gcode.0.get_layer(&selection.0);
-        //                 for vertex in layer.iter() {
-        //                     let v = gcode.0.vertices.get_mut(vertex).unwrap();
-        //                     v.to.x += x;
-        //                     v.to.y += y;
-        //                     v.to.z += z;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // });
+            let enu = enu.0;
+            if ui.button("Translate").clicked() {
+                let mut params = func.0.split_whitespace();
+                let x = params.next().unwrap().parse::<f32>().unwrap();
+                let y = params.next().unwrap().parse::<f32>().unwrap();
+                let z = params.next().unwrap().parse::<f32>().unwrap();
+                match enu {
+                    Choice::Vertex => {
+                        let v = gcode.0.vertices.get_mut(&selection.0).unwrap();
+                        v.to.x += x;
+                        v.to.y += y;
+                        v.to.z += z;
+                    },
+                    Choice::Shape => {
+                        let shapes = gcode.0.get_shape(&selection.0);
+                        for vertex in shapes.iter() {
+                            let v = gcode.0.vertices.get_mut(vertex).unwrap();
+                            v.to.x += x;
+                            v.to.y += y;
+                            v.to.z += z;
+                        }
+                    },
+                    Choice::Layer => {
+                        let layer = gcode.0.get_layer(&selection.0);
+                        for vertex in layer.iter() {
+                            let v = gcode.0.vertices.get_mut(vertex).unwrap();
+                            v.to.x += x;
+                            v.to.y += y;
+                            v.to.z += z;
+                        }
+                    }
+                }
+            }
+        });
     });
 }
 pub fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {

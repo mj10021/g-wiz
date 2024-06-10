@@ -161,6 +161,7 @@ fn main() {
         .init_resource::<SecretLayerCount>()
         .init_resource::<Selection>()
         .init_resource::<Enum>()
+        .insert_resource(Function(String::new()))
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(GCode(gcode))
