@@ -1,13 +1,12 @@
 mod pan_orbit;
 mod ui;
-use bevy::{ecs::query::QueryData, math::primitives::Cylinder};
+use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Parsed, Pos, Uuid};
 use std::f32::EPSILON;
-use std::env;
 use ui::*;
 
 #[derive(Resource)]
@@ -27,7 +26,6 @@ fn draw(
     count: Res<VertexCounter>,
     gcode: Res<GCode>,
     cylinders: Query<Entity>,
-    mut selection: ResMut<Selection>
 ) {
     for cylinder in cylinders.iter() {
         commands.entity(cylinder).despawn();
