@@ -1,6 +1,83 @@
-use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
+/*use bevy::math::primitives::Direction3d;
+use bevy::prelude::*;
+
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_systems(Startup, setup)
+        .add_systems(Update, draw_cursor)
+        .run();
+}
+
+fn draw_cursor(
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    ground_query: Query<&GlobalTransform, With<Ground>>,
+    windows: Query<&Window>,
+    mut gizmos: Gizmos,
+) {
+    let (camera, camera_transform) = camera_query.single();
+    //let ground = ground_query.single();
+
+    let Some(cursor_position) = windows.single().cursor_position() else {
+        return;
+    };
+
+    // Calculate a ray pointing from the camera into the world based on the cursor's position.
+    let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
+        return;
+    };
+
+    // Calculate if and where the ray is hitting the ground plane.
+    let Some(distance) = ray.intersect_plane(ground.translation(), Plane3d::new(ground.up()))
+    else {
+        return;
+    };
+    let point = ray.get_point(distance);
+
+    // Draw a circle just above the ground plane at that position.
+    gizmos.circle(
+        point + ground.up() * 0.01,
+        Direction3d::new_unchecked(ground.up()), // Up vector is already normalized.
+        0.2,
+        Color::WHITE,
+    );
+}
+
+#[derive(Component)]
+struct Ground;
+
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    // plane
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(Plane3d::default().mesh().size(20., 20.)),
+            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
+            ..default()
+        },
+        Ground,
+    ));
+
+    // light
+    commands.spawn(DirectionalLightBundle {
+        transform: Transform::from_translation(Vec3::ONE).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });
+
+    // camera
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(15.0, 5.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });
+}
+
+*/use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
+use bevy::render::view::window;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContexts, EguiPlugin};
 use print_analyzer::{Parsed, Pos, Uuid};
@@ -35,7 +112,7 @@ fn pan_orbit_camera(
 ) {
     // change input mapping for orbit and panning here
     let orbit_button = MouseButton::Right;
-    let pan_button = MouseButton::Middle;
+    let pan_button = MouseButton::Left;
     let zoom = 35.0;
     let mut pan = Vec2::ZERO;
     let mut rotation_move = Vec2::ZERO;
@@ -49,7 +126,7 @@ fn pan_orbit_camera(
     } else if input_mouse.pressed(pan_button) {
         // Pan only if we're not rotating at the moment
         for ev in ev_motion.read() {
-            pan += ev.delta * zoom;
+            pan += ev.delta * zoom * zoom;
         }
     }
     for ev in ev_scroll.read() {
@@ -128,9 +205,9 @@ fn pan_orbit_camera(
 struct GCode(Parsed);
 
 #[derive(Component)]
-struct Tag;
+struct Tag(Uuid);
 
-fn draw_cylinders(
+fn draw(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -165,13 +242,20 @@ fn draw_cylinders(
         let cylinder = Cylinder {
             radius,
             half_height: length / 2.0,
-            ..Default::default()
+        };
+        let sphere = Sphere {
+            radius,
         };
 
         // Create the mesh and material
         let mesh_handle = meshes.add(cylinder);
+        let sphere_handle = meshes.add(sphere);
         let material_handle = materials.add(StandardMaterial {
             base_color: Color::rgb(0.8, 0.2, 0.2),
+            ..Default::default()
+        });
+        let sphere_material = materials.add( StandardMaterial {
+            base_color: Color::rgb(0.0,0.8,0.0),
             ..Default::default()
         });
 
@@ -179,7 +263,6 @@ fn draw_cylinders(
         let middle = (start + end) / 2.0;
         let direction = end - start;
         let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
-
         // Add the cylinder to the scene
         commands.spawn((
             PbrBundle {
@@ -192,31 +275,29 @@ fn draw_cylinders(
                 },
                 ..Default::default()
             },
-            Tag,
+
+        ));
+        commands.spawn((
+            PbrBundle {
+                mesh: sphere_handle,
+                material: sphere_material,
+                transform: Transform {
+                    translation: end,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            Tag(id.clone()),
         ));
     }
 }
 fn setup(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
-        color: Color::ORANGE_RED,
-        brightness: 0.02,
-    });
-    // Add a light source
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: light_consts::lux::OVERCAST_DAY,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform {
-            translation: Vec3::new(0.0, 2.0, 0.0),
-            rotation: Quat::from_rotation_x(-std::f32::consts::PI / 4.),
-            ..default()
-        },
-        ..default()
+        color: Color::WHITE,
+        brightness: 100.0,
     });
     let zoom = 35.0;
-    let translation = Vec3::new(5.0 * zoom, 5.0 * zoom, 5.0 * zoom);
+    let translation = Vec3::new(5.0 * zoom, -5.0 * zoom, 5.0 * zoom);
     let radius = translation.length();
 
     commands.spawn((
@@ -325,9 +406,45 @@ fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
         counter.count = secret.0 as u32;
     }
 }
+
+fn draw_cursor(
+    camera_query: Query<(&Camera, &Transform, &GlobalTransform)>,
+    gcode: Res<GCode>,
+    mut selection: ResMut<Selection>,
+    mut counter: ResMut<VertexCounter>,
+    spheres: Query<(&Transform, &Tag)>,
+    windows: Query<&Window>,
+) {
+    let (camera, pos,camera_transform) = camera_query.single();
+    let Some(cursor_position) = windows.single().cursor_position() else {
+        return;
+    };
+    // Calculate a ray pointing from the camera into the world based on the cursor's position.
+    let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
+        return;
+    };
+    let mut hits = Vec::new();
+    let pos = pos.translation;
+    for sphere in spheres.iter() {
+        let dist = sphere.0.translation.distance(pos);
+        if dist < 500.0 {
+            hits.push((sphere.1.0, dist));
+        }
+    }
+    if hits.len() > 0 {
+        hits.sort_by_key(|v| v.1 as i32);
+        if selection.0 != hits[0].0 {
+            selection.0 = hits[0].0;
+            counter.count = counter.count.clone();
+            println!("HIT");
+        }
+    }
+}
+
+
 fn main() {
     let gcode =
-        print_analyzer::read("../print_analyzer/test.gcode", false).expect("failed to read");
+        print_analyzer::read("../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode", false).expect("failed to read");
     App::new()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
@@ -344,12 +461,14 @@ fn main() {
                 ui_example_system,
                 pan_orbit_camera,
                 update_count,
+                draw_cursor
             )
                 .chain(),
         )
+        .add_systems(Update, draw_cursor)
         .add_systems(
             Update,
-            draw_cylinders.run_if(resource_changed::<VertexCounter>),
+            draw.run_if(resource_changed::<VertexCounter>),
         )
         .run();
 }
