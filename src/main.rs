@@ -1,205 +1,12 @@
-/*use bevy::math::primitives::Direction3d;
-use bevy::prelude::*;
-
-fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_systems(Startup, setup)
-        .add_systems(Update, draw_cursor)
-        .run();
-}
-
-fn draw_cursor(
-    camera_query: Query<(&Camera, &GlobalTransform)>,
-    ground_query: Query<&GlobalTransform, With<Ground>>,
-    windows: Query<&Window>,
-    mut gizmos: Gizmos,
-) {
-    let (camera, camera_transform) = camera_query.single();
-    //let ground = ground_query.single();
-
-    let Some(cursor_position) = windows.single().cursor_position() else {
-        return;
-    };
-
-    // Calculate a ray pointing from the camera into the world based on the cursor's position.
-    let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
-        return;
-    };
-
-    // Calculate if and where the ray is hitting the ground plane.
-    let Some(distance) = ray.intersect_plane(ground.translation(), Plane3d::new(ground.up()))
-    else {
-        return;
-    };
-    let point = ray.get_point(distance);
-
-    // Draw a circle just above the ground plane at that position.
-    gizmos.circle(
-        point + ground.up() * 0.01,
-        Direction3d::new_unchecked(ground.up()), // Up vector is already normalized.
-        0.2,
-        Color::WHITE,
-    );
-}
-
-#[derive(Component)]
-struct Ground;
-
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    // plane
-    commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(Plane3d::default().mesh().size(20., 20.)),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
-            ..default()
-        },
-        Ground,
-    ));
-
-    // light
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_translation(Vec3::ONE).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
-
-    // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(15.0, 5.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
-}
-
-*/use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
+mod pan_orbit;
+use pan_orbit::{PanOrbitCamera, pan_orbit_camera};
+use bevy_mod_picking::prelude::*;
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
-use bevy::render::view::window;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContexts, EguiPlugin};
 use print_analyzer::{Parsed, Pos, Uuid};
 use std::f32::EPSILON;
-
-/// Tags an entity as capable of panning and orbiting.
-#[derive(Component)]
-struct PanOrbitCamera {
-    /// The "focus point" to orbit around. It is automatically updated when panning the camera
-    pub focus: Vec3,
-    pub radius: f32,
-    pub upside_down: bool,
-}
-
-impl Default for PanOrbitCamera {
-    fn default() -> Self {
-        PanOrbitCamera {
-            focus: Vec3::ZERO,
-            radius: 5.0,
-            upside_down: false,
-        }
-    }
-}
-
-/// Pan the camera with middle mouse click, zoom with scroll wheel, orbit with right mouse click.
-fn pan_orbit_camera(
-    mut ev_motion: EventReader<MouseMotion>,
-    mut ev_scroll: EventReader<MouseWheel>,
-    input_mouse: Res<ButtonInput<MouseButton>>,
-    mut query: Query<(&mut PanOrbitCamera, &mut Transform, &Projection)>,
-    primary_query: Query<&Window, With<PrimaryWindow>>,
-) {
-    // change input mapping for orbit and panning here
-    let orbit_button = MouseButton::Right;
-    let pan_button = MouseButton::Left;
-    let zoom = 35.0;
-    let mut pan = Vec2::ZERO;
-    let mut rotation_move = Vec2::ZERO;
-    let mut scroll = 0.0;
-    let mut orbit_button_changed = false;
-
-    if input_mouse.pressed(orbit_button) {
-        for ev in ev_motion.read() {
-            rotation_move += ev.delta;
-        }
-    } else if input_mouse.pressed(pan_button) {
-        // Pan only if we're not rotating at the moment
-        for ev in ev_motion.read() {
-            pan += ev.delta * zoom * zoom;
-        }
-    }
-    for ev in ev_scroll.read() {
-        scroll += ev.y;
-    }
-    if input_mouse.just_released(orbit_button) || input_mouse.just_pressed(orbit_button) {
-        orbit_button_changed = true;
-    }
-
-    for (mut pan_orbit, mut transform, projection) in query.iter_mut() {
-        if orbit_button_changed {
-            // only check for upside down when orbiting started or ended this frame
-            // if the camera is "upside" down, panning horizontally would be inverted, so invert the input to make it correct
-            let up = transform.rotation * Vec3::Y;
-            pan_orbit.upside_down = up.y <= 0.0;
-        }
-
-        let mut any = false;
-        if rotation_move.length_squared() > 0.0 {
-            any = true;
-            let Ok(window) = primary_query.get_single() else {
-                panic!()
-            };
-            let delta_x = {
-                let delta = rotation_move.x / window.width() * std::f32::consts::PI * 2.0;
-                if pan_orbit.upside_down {
-                    -delta
-                } else {
-                    delta
-                }
-            };
-            let delta_y = rotation_move.y / window.height() * std::f32::consts::PI;
-            let yaw = Quat::from_rotation_y(-delta_x);
-            let pitch = Quat::from_rotation_x(-delta_y);
-            transform.rotation = yaw * transform.rotation; // rotate around global y axis
-            transform.rotation = transform.rotation * pitch; // rotate around local x axis
-        } else if pan.length_squared() > 0.0 {
-            any = true;
-            // make panning distance independent of resolution and FOV,
-            let Ok(window) = primary_query.get_single() else {
-                panic!()
-            }; //get_primary_window_size(&windows);
-            if let Projection::Perspective(projection) = projection {
-                pan *= Vec2::new(projection.fov * projection.aspect_ratio, projection.fov)
-                    / (window.height() * window.width());
-            }
-            // translate by local axes
-            let right = transform.rotation * Vec3::X * -pan.x;
-            let up = transform.rotation * Vec3::Y * pan.y;
-            // make panning proportional to distance away from focus point
-            let translation = (right + up) * pan_orbit.radius;
-            pan_orbit.focus += translation;
-        } else if scroll.abs() > 0.0 {
-            any = true;
-            pan_orbit.radius -= scroll * pan_orbit.radius * 0.2;
-            // dont allow zoom to reach zero or you get stuck
-            pan_orbit.radius = f32::max(pan_orbit.radius, 0.05);
-        }
-
-        if any {
-            // emulating parent/child to make the yaw/y-axis rotation behave like a turntable
-            // parent = x and y rotation
-            // child = z-offset
-            let rot_matrix = Mat3::from_quat(transform.rotation);
-            transform.translation =
-                pan_orbit.focus + rot_matrix.mul_vec3(Vec3::new(0.0, 0.0, pan_orbit.radius));
-        }
-    }
-
-    // consume any remaining events, so they don't pile up if we don't need them
-    // (and also to avoid Bevy warning us about not checking events every frame update)
-    ev_motion.clear();
-}
 
 #[derive(Resource)]
 struct GCode(Parsed);
@@ -237,25 +44,25 @@ fn draw(
         let end = Vec3::new(xf, yf, zf);
 
         // Create a cylinder mesh
-        let radius = 0.1;
+        let radius = 0.05;
         let length = start.distance(end);
         let cylinder = Cylinder {
             radius,
             half_height: length / 2.0,
         };
         let sphere = Sphere {
-            radius,
+            radius: radius * 1.618,
         };
 
         // Create the mesh and material
         let mesh_handle = meshes.add(cylinder);
-        let sphere_handle = meshes.add(sphere);
+        let sphere = meshes.add(sphere);
         let material_handle = materials.add(StandardMaterial {
-            base_color: Color::rgb(0.8, 0.2, 0.2),
+            base_color: Color::ORANGE_RED,
             ..Default::default()
         });
-        let sphere_material = materials.add( StandardMaterial {
-            base_color: Color::rgb(0.0,0.8,0.0),
+        let material_handle2 = materials.add(StandardMaterial {
+            base_color: Color::BLUE,
             ..Default::default()
         });
 
@@ -275,19 +82,24 @@ fn draw(
                 },
                 ..Default::default()
             },
-
+            PickableBundle::default(),
+            Tag(id.clone()),
+            On::<Pointer<Click>>::target_component_mut::<Visibility>(|click, visibility| {*visibility = Visibility::Hidden;})
         ));
         commands.spawn((
             PbrBundle {
-                mesh: sphere_handle,
-                material: sphere_material,
+                mesh: sphere,
+                material: material_handle2,
                 transform: Transform {
-                    translation: end,
+                    translation: middle,
+                    rotation,
                     ..Default::default()
                 },
                 ..Default::default()
             },
+            PickableBundle::default(),
             Tag(id.clone()),
+            On::<Pointer<Click>>::target_component_mut::<Visibility>(|click, visibility| {*visibility = Visibility::Hidden;})
         ));
     }
 }
@@ -360,6 +172,12 @@ fn key_system(
         layer_counter.0 -= 1;
     }
 }
+#[derive(PartialEq)]
+enum Choice { Vertex, Shape, Layer }
+
+#[derive(Resource)]
+struct Enum(Choice);
+
 
 fn ui_example_system(
     mut contexts: EguiContexts,
@@ -367,10 +185,11 @@ fn ui_example_system(
     layer: Res<LayerCounter>,
     mut counter: ResMut<SecretCount>,
     mut layer_counter: ResMut<SecretLayerCount>,
+    mut enu: ResMut<Enum>
 ) {
     let max = vertex.max;
     let layer_max = layer.max;
-    egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
+    egui::SidePanel::new(egui::panel::Side::Left, "panel").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
         ui.add(egui::Slider::new(&mut counter.0, 0..=max));
         ui.add(egui::Slider::new(&mut layer_counter.0, 0..=layer_max).vertical());
@@ -399,6 +218,13 @@ fn ui_example_system(
                 }
                 ui.end_row();
             });
+
+        ui.horizontal(|ui| {
+            ui.radio_value(&mut enu.0, Choice::Vertex, "Vertex");
+            ui.radio_value(&mut enu.0, Choice::Shape, "Shape");
+            ui.radio_value(&mut enu.0, Choice::Layer, "Layer");
+        });
+
     });
 }
 fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
@@ -413,7 +239,7 @@ fn draw_cursor(
     mut selection: ResMut<Selection>,
     mut counter: ResMut<VertexCounter>,
     spheres: Query<(&Transform, &Tag)>,
-    windows: Query<&Window>,
+    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let (camera, pos,camera_transform) = camera_query.single();
     let Some(cursor_position) = windows.single().cursor_position() else {
@@ -427,7 +253,7 @@ fn draw_cursor(
     let pos = pos.translation;
     for sphere in spheres.iter() {
         let dist = sphere.0.translation.distance(pos);
-        if dist < 500.0 {
+        if ray.get_point(dist).distance(pos) < 10.0 {
             hits.push((sphere.1.0, dist));
         }
     }
@@ -448,11 +274,13 @@ fn main() {
     App::new()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
+        .insert_resource(Enum(Choice::Vertex))
         .insert_resource(SecretCount(0))
         .insert_resource(SecretLayerCount(0))
         .insert_resource(Selection(Uuid::nil()))
         .insert_resource(GCode(gcode))
         .add_plugins((DefaultPlugins, EguiPlugin))
+        .add_plugins(DefaultPickingPlugins)
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -460,12 +288,10 @@ fn main() {
                 key_system,
                 ui_example_system,
                 pan_orbit_camera,
-                update_count,
-                draw_cursor
+                update_count
             )
                 .chain(),
         )
-        .add_systems(Update, draw_cursor)
         .add_systems(
             Update,
             draw.run_if(resource_changed::<VertexCounter>),
