@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
+use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 /// Tags an entity as capable of panning and orbiting.
 #[derive(Component)]
@@ -118,4 +118,3 @@ pub fn pan_orbit_camera(
     // (and also to avoid Bevy warning us about not checking events every frame update)
     ev_motion.clear();
 }
-

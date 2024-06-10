@@ -1,14 +1,13 @@
 mod pan_orbit;
 mod ui;
-use ui::*;
-use pan_orbit::{PanOrbitCamera, pan_orbit_camera};
-use bevy_mod_picking::prelude::*;
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 use bevy_egui::EguiPlugin;
+use bevy_mod_picking::prelude::*;
+use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Parsed, Pos, Uuid};
 use std::f32::EPSILON;
+use ui::*;
 
 #[derive(Resource)]
 struct GCode(Parsed);
@@ -30,13 +29,20 @@ fn draw(
     let gcode = &gcode.0;
 
     for (id, vertex) in gcode.vertices.iter() {
-
-        let Pos {x: xf, y: yf, z: zf, e, ..} = vertex.to;
+        let Pos {
+            x: xf,
+            y: yf,
+            z: zf,
+            e,
+            ..
+        } = vertex.to;
         let (xi, yi, zi) = {
             if let Some(prev) = vertex.prev {
                 let p = gcode.vertices.get(&prev).unwrap();
                 (p.to.x, p.to.y, p.to.z)
-            } else {(0.0, 0.0, 0.0)}
+            } else {
+                (0.0, 0.0, 0.0)
+            }
         };
 
         if e < EPSILON || vertex.count > count.count {
@@ -86,7 +92,9 @@ fn draw(
             },
             PickableBundle::default(),
             Tag(id.clone()),
-            On::<Pointer<Click>>::target_component_mut::<Visibility>(|click, visibility| {*visibility = Visibility::Hidden;})
+            On::<Pointer<Click>>::target_component_mut::<Visibility>(|_click, visibility| {
+                *visibility = Visibility::Hidden;
+            }),
         ));
         commands.spawn((
             PbrBundle {
@@ -101,7 +109,9 @@ fn draw(
             },
             PickableBundle::default(),
             Tag(id.clone()),
-            On::<Pointer<Click>>::target_component_mut::<Visibility>(|click, visibility| {*visibility = Visibility::Hidden;})
+            On::<Pointer<Click>>::target_component_mut::<Visibility>(|_click, visibility| {
+                *visibility = Visibility::Hidden;
+            }),
         ));
     }
 }
@@ -133,8 +143,11 @@ impl Default for Selection {
     }
 }
 fn main() {
-    let gcode =
-        print_analyzer::read("../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode", false).expect("failed to read");
+    let gcode = print_analyzer::read(
+        "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
+        false,
+    )
+    .expect("failed to read");
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .init_resource::<SecretCount>()
@@ -151,13 +164,10 @@ fn main() {
                 key_system,
                 ui_example_system,
                 pan_orbit_camera,
-                update_count
+                update_count,
             )
                 .chain(),
         )
-        .add_systems(
-            Update,
-            draw.run_if(resource_changed::<VertexCounter>),
-        )
+        .add_systems(Update, draw.run_if(resource_changed::<VertexCounter>))
         .run();
 }

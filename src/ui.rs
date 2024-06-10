@@ -3,7 +3,11 @@ use bevy_egui::EguiContexts;
 use print_analyzer::Parsed;
 
 #[derive(PartialEq)]
-enum Choice { Vertex, Shape, Layer }
+enum Choice {
+    Vertex,
+    Shape,
+    Layer,
+}
 
 #[derive(Resource)]
 pub struct Enum(Choice);
@@ -14,14 +18,13 @@ impl Default for Enum {
     }
 }
 
-
 pub fn ui_example_system(
     mut contexts: EguiContexts,
     vertex: Res<VertexCounter>,
     layer: Res<LayerCounter>,
     mut counter: ResMut<SecretCount>,
     mut layer_counter: ResMut<SecretLayerCount>,
-    mut enu: ResMut<Enum>
+    mut enu: ResMut<Enum>,
 ) {
     let max = vertex.max;
     let layer_max = layer.max;
@@ -60,7 +63,6 @@ pub fn ui_example_system(
             ui.radio_value(&mut enu.0, Choice::Shape, "Shape");
             ui.radio_value(&mut enu.0, Choice::Layer, "Layer");
         });
-
     });
 }
 pub fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
@@ -68,8 +70,6 @@ pub fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>
         counter.count = secret.0 as u32;
     }
 }
-
-
 
 #[derive(Resource)]
 pub struct VertexCounter {
@@ -111,7 +111,6 @@ impl Default for SecretLayerCount {
     }
 }
 
-
 pub fn key_system(
     mut counter: ResMut<SecretCount>,
     mut layer_counter: ResMut<SecretLayerCount>,
@@ -127,7 +126,3 @@ pub fn key_system(
         layer_counter.0 -= 1;
     }
 }
-
-
-
-
