@@ -29,11 +29,8 @@ pub fn ui_example_system(
     mut layer_counter: ResMut<SecretLayerCount>,
     mut enu: ResMut<Enum>,
     window: Query<&Window, With<PrimaryWindow>>,
-    mut gcode: ResMut<GCode>,
-    selection: Res<Selection>
 ) {
-    let Ok(window) = window.get_single() else {return; };
-    let width = window.width();
+    let Ok(window) = window.get_single() else {panic!(); };
     let height = window.height();
     let spacing = height / 50.0;
     let max = vertex.max;
