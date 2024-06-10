@@ -25,7 +25,7 @@ fn draw(
     mut materials: ResMut<Assets<StandardMaterial>>,
     count: Res<VertexCounter>,
     gcode: Res<GCode>,
-    cylinders: Query<Entity>,
+    cylinders: Query<Entity, With<Tag>>,
 ) {
     for cylinder in cylinders.iter() {
         commands.entity(cylinder).despawn();
@@ -113,14 +113,14 @@ fn draw(
         ));
     }
 }
-fn selection_query (mut commands: Commands, mut s_query: Query<(&PickSelection, &mut Tag)>, mut selection: ResMut<Selection>) {
-    for (s, tag) in s_query.iter_mut() {
-        if !s.is_selected { continue; } else {
-            selection.0 = tag.id;
-        }
-    }
-
-}
+// fn selection_query (mut commands: Commands, mut s_query: Query<(&PickSelection, &mut Tag)>, mut selection: ResMut<Selection>) {
+//     for (s, tag) in s_query.iter_mut() {
+//         if !s.is_selected { continue; } else {
+//             selection.0 = tag.id;
+//         }
+//     }
+// 
+// }
 fn setup(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
@@ -150,10 +150,8 @@ impl Default for Selection {
     }
 }
 fn main() {
-    // let args: Vec<String> = env::args().collect();
-    let path = "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode";
     let gcode = print_analyzer::read(
-        path,
+        "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
         false,
     )
     .expect("failed to read");
