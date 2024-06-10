@@ -151,9 +151,7 @@ impl Default for Selection {
 }
 fn main() {
     // let args: Vec<String> = env::args().collect();
-    let path = {
-            "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode"
-        };
+    let path = "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode";
     let gcode = print_analyzer::read(
         path,
         false,
@@ -165,7 +163,6 @@ fn main() {
         .init_resource::<SecretLayerCount>()
         .init_resource::<Selection>()
         .init_resource::<Enum>()
-        .init_resource::<Function>()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(GCode(gcode))
