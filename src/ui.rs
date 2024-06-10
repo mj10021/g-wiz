@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use print_analyzer::Parsed;
 
@@ -25,12 +25,19 @@ pub fn ui_example_system(
     mut counter: ResMut<SecretCount>,
     mut layer_counter: ResMut<SecretLayerCount>,
     mut enu: ResMut<Enum>,
+    window: Query<&Window, With<PrimaryWindow>>
 ) {
+    let window = window.get_single().expect("no window found");
+    let width = window.width();
+    let height = window.height();
+    let spacing = height / 50.0;
     let max = vertex.max;
     let layer_max = layer.max;
     egui::SidePanel::new(egui::panel::Side::Left, "panel").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
+        ui.add_space(spacing);
         ui.add(egui::Slider::new(&mut counter.0, 0..=max));
+        ui.add_space(spacing);
         ui.add(egui::Slider::new(&mut layer_counter.0, 0..=layer_max).vertical());
         let steps = [
             (100, "<<<"),
@@ -41,9 +48,8 @@ pub fn ui_example_system(
             (100, ">>>"),
         ];
         let mut i = 0;
-        egui::Grid::new("vertex stepper")
-            .min_col_width(4.0)
-            .show(ui, |ui| {
+        ui.add_space(spacing);
+        ui.horizontal(|ui| {
                 for (num, str) in steps {
                     let neg = i < steps.len() / 2;
                     if ui.button(str).clicked() {
@@ -55,14 +61,22 @@ pub fn ui_example_system(
                     }
                     i += 1;
                 }
-                ui.end_row();
             });
-
+        ui.add_space(spacing);
         ui.horizontal(|ui| {
             ui.radio_value(&mut enu.0, Choice::Vertex, "Vertex");
             ui.radio_value(&mut enu.0, Choice::Shape, "Shape");
             ui.radio_value(&mut enu.0, Choice::Layer, "Layer");
         });
+        ui.add_space(spacing);
+        ui.horizontal(|ui| {
+            if ui.button("Merge Delete").clicked() {
+
+            }
+            else if ui.button("Hole Delete").clicked() {
+                
+            }
+        })
     });
 }
 pub fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
