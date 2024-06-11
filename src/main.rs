@@ -4,7 +4,7 @@ use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_egui::{EguiContextQuery, EguiPlugin};
+use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Parsed, Pos, Uuid};
@@ -119,11 +119,14 @@ fn draw(
     commands.remove_resource::<ForceRefresh>();
 }
 fn selection_query(
-    mut s_query: Query<(&PickSelection, &mut Tag)>,
+    mut s_query: Query<(&mut PickSelection, &mut Tag)>,
     mut selection: ResMut<Selection>,
 ) {
-    for (s, tag) in s_query.iter_mut() {
+    for (mut s, tag) in s_query.iter_mut() {
         if !s.is_selected {
+            if selection.0.contains(&tag.id) {
+                s.is_selected = true;
+            }
             continue;
         } else {
             if !selection.0.contains(&tag.id) {
