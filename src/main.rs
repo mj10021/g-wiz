@@ -119,7 +119,7 @@ fn draw(
 }
 fn selection_query(
     mut s_query: Query<(&mut PickSelection, &mut Tag)>,
-    ui_res: Res<UIResource>,
+    ui_res: Res<UiResource>,
     gcode: Res<GCode>,
     mut selection: ResMut<Selection>,
 ) {
@@ -167,7 +167,7 @@ fn setup(mut commands: Commands) {
     ));
 }
 fn mouse_input_system(
-    egui_context_q: Res<UIResource>,
+    egui_context_q: Res<UiResource>,
     primary_query: Query<&Window, With<PrimaryWindow>>,
     mut mouse_button_input_events: ResMut<ButtonInput<MouseButton>>,
     mut mouse_motion_events: EventReader<MouseMotion>,
@@ -205,7 +205,7 @@ fn main() {
         .insert_resource(DebugPickingMode::Normal)
         .init_resource::<ForceRefresh>()
         .init_resource::<Selection>()
-        .init_resource::<UIResource>()
+        .init_resource::<UiResource>()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(GCode(gcode))

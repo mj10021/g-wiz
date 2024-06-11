@@ -12,7 +12,7 @@ pub enum Choice {
 }
 
 #[derive(Resource)]
-pub struct UIResource {
+pub struct UiResource {
     layer_counter: u32,
     vertex_counter: u32,
     pub selection_enum: Choice,
@@ -21,9 +21,9 @@ pub struct UIResource {
     pub panel_size: (f32, f32),
 }
 
-impl Default for UIResource {
+impl Default for UiResource {
     fn default() -> Self {
-        UIResource {
+        UiResource {
             layer_counter: 0,
             vertex_counter: 0,
             selection_enum: Choice::Vertex,
@@ -39,7 +39,7 @@ pub fn ui_example_system(
     mut commands: Commands,
     vertex: Res<VertexCounter>,
     layer: Res<LayerCounter>,
-    mut ui_res: ResMut<UIResource>,
+    mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
     mut selection: ResMut<Selection>,
     mut gcode: ResMut<GCode>,
@@ -167,7 +167,7 @@ pub fn ui_example_system(
 }
 pub fn update_counts(
     mut commands: Commands,
-    mut ui_res: ResMut<UIResource>,
+    mut ui_res: ResMut<UiResource>,
     mut counter: ResMut<VertexCounter>,
 ) {
     if ui_res.vertex_counter as u32 != counter.count {
@@ -205,7 +205,7 @@ impl LayerCounter {
     }
 }
 
-pub fn key_system(mut ui_res: ResMut<UIResource>, keys: Res<ButtonInput<KeyCode>>) {
+pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.pressed(KeyCode::ArrowLeft) {
         ui_res.vertex_counter -= 1;
     } else if keys.pressed(KeyCode::ArrowRight) {
