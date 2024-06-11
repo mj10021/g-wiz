@@ -1,11 +1,14 @@
 mod pan_orbit;
 mod ui;
+use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
-use bevy_egui::EguiPlugin;
+use bevy::window::PrimaryWindow;
+use bevy_egui::{EguiContextQuery, EguiPlugin};
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Parsed, Pos, Uuid};
+use std::collections::HashSet;
 use ui::*;
 
 #[derive(Resource)]
@@ -15,11 +18,9 @@ struct GCode(Parsed);
 struct ForceRefresh;
 
 #[derive(Component)]
-struct Tag{
-    id: Uuid
+struct Tag {
+    id: Uuid,
 }
-
-
 
 fn draw(
     mut commands: Commands,
@@ -98,7 +99,7 @@ fn draw(
             },
             PickableBundle::default(),
             NoDeselect,
-            Tag {id: id.clone()},
+            Tag { id: id.clone() },
         ));
         commands.spawn((
             PbrBundle {
@@ -112,16 +113,21 @@ fn draw(
             },
             PickableBundle::default(),
             NoDeselect,
-            Tag{id: id.clone()},
+            Tag { id: id.clone() },
         ));
     }
     commands.remove_resource::<ForceRefresh>();
 }
-fn selection_query (mut s_query: Query<(&PickSelection, &mut Tag)>, mut selection: ResMut<Selection>) {
+fn selection_query(
+    mut s_query: Query<(&PickSelection, &mut Tag)>,
+    mut selection: ResMut<Selection>,
+) {
     for (s, tag) in s_query.iter_mut() {
-        if !s.is_selected { continue; } else {
-            if selection.0 != tag.id {
-                selection.0 = tag.id;
+        if !s.is_selected {
+            continue;
+        } else {
+            if !selection.0.contains(&tag.id) {
+                selection.0.insert(tag.id);
                 println!("{:?}", selection.0);
             }
         }
@@ -147,12 +153,32 @@ fn setup(mut commands: Commands) {
         },
     ));
 }
-
+fn mouse_input_system(
+    egui_context_q: Res<UIResource>,
+    primary_query: Query<&Window, With<PrimaryWindow>>,
+    mut mouse_button_input_events: ResMut<ButtonInput<MouseButton>>,
+    mut mouse_motion_events: EventReader<MouseMotion>,
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+) {
+    let (width, height) = egui_context_q.panel_size;
+    let Ok(window) = primary_query.get_single() else {
+        return;
+    };
+    let Some(Vec2 { x, y }) = window.cursor_position() else {
+        return;
+    };
+    if x < width && y < height {
+        // Clear mouse input events if egui is handling them
+        mouse_button_input_events.clear();
+        mouse_motion_events.clear();
+        mouse_wheel_events.clear();
+    }
+}
 #[derive(Resource)]
-struct Selection(Uuid);
+struct Selection(HashSet<Uuid>);
 impl Default for Selection {
     fn default() -> Self {
-        Selection(Uuid::nil())
+        Selection(HashSet::new())
     }
 }
 fn main() {
@@ -165,11 +191,8 @@ fn main() {
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .insert_resource(DebugPickingMode::Normal)
         .init_resource::<ForceRefresh>()
-        .init_resource::<SecretCount>()
-        .init_resource::<SecretLayerCount>()
         .init_resource::<Selection>()
-        .init_resource::<Enum>()
-        .insert_resource(Function(String::new()))
+        .init_resource::<UIResource>()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(GCode(gcode))
@@ -179,8 +202,9 @@ fn main() {
             (
                 key_system,
                 ui_example_system,
+                mouse_input_system,
                 pan_orbit_camera,
-                update_count,
+                update_counts,
                 selection_query,
             )
                 .chain(),
