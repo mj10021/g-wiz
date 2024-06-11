@@ -165,6 +165,9 @@ fn setup(mut commands: Commands) {
             ..Default::default()
         },
     ));
+    commands.init_resource::<ForceRefresh>();
+    commands.init_resource::<Selection>();
+    commands.init_resource::<UiResource>()
 }
 fn mouse_input_system(
     egui_context_q: Res<UiResource>,
@@ -202,10 +205,6 @@ fn main() {
     .expect("failed to read");
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
-        .insert_resource(DebugPickingMode::Normal)
-        .init_resource::<ForceRefresh>()
-        .init_resource::<Selection>()
-        .init_resource::<UiResource>()
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(GCode(gcode))
