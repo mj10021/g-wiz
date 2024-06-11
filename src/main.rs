@@ -40,7 +40,6 @@ fn draw(
             x: xf,
             y: yf,
             z: zf,
-            e,
             ..
         } = vertex.to;
         let (xi, yi, zi) = {
@@ -52,7 +51,7 @@ fn draw(
             }
         };
 
-        if e < 0.0 || vertex.count > count.count {
+        if !vertex.is_extrusion() || vertex.count > count.count {
             continue;
         }
         let start = Vec3::new(xi, yi, zi);
@@ -120,6 +119,8 @@ fn draw(
 }
 fn selection_query(
     mut s_query: Query<(&mut PickSelection, &mut Tag)>,
+    ui_res: Res<UIResource>,
+    gcode: Res<GCode>,
     mut selection: ResMut<Selection>,
 ) {
     for (mut s, tag) in s_query.iter_mut() {
@@ -130,8 +131,17 @@ fn selection_query(
             continue;
         } else {
             if !selection.0.contains(&tag.id) {
-                selection.0.insert(tag.id);
-                println!("{:?}", selection.0);
+                match ui_res.selection_enum {
+                    Choice::Vertex => {
+                        selection.0.insert(tag.id);
+                    }
+                    Choice::Shape => {
+                        selection.0.extend(gcode.0.get_shape(&tag.id));
+                    }
+                    Choice::Layer => {
+                        selection.0.extend(gcode.0.get_shape(&tag.id));
+                    }
+                };
             }
         }
     }

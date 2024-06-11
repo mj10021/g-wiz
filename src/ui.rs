@@ -5,7 +5,7 @@ use print_analyzer::Parsed;
 use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]
-enum Choice {
+pub enum Choice {
     Vertex,
     Shape,
     Layer,
@@ -15,7 +15,7 @@ enum Choice {
 pub struct UIResource {
     layer_counter: u32,
     vertex_counter: u32,
-    selection_enum: Choice,
+    pub selection_enum: Choice,
     subdivide_slider: f32,
     translation_input: String,
     pub panel_size: (f32, f32),
@@ -194,14 +194,14 @@ impl VertexCounter {
 }
 #[derive(Resource)]
 pub struct LayerCounter {
-    count: u32,
+    _count: u32,
     max: u32,
 }
 
 impl LayerCounter {
     pub fn build(gcode: &Parsed) -> LayerCounter {
         let max = gcode.layers.len() as u32;
-        LayerCounter { count: 0, max }
+        LayerCounter { _count: 0, max }
     }
 }
 
