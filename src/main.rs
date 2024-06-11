@@ -49,7 +49,7 @@ fn draw(
             }
         };
 
-        if e < EPSILON || vertex.count > count.count {
+        if e < 0.0 || vertex.count > count.count {
             continue;
         }
         let start = Vec3::new(xi, yi, zi);
@@ -95,6 +95,7 @@ fn draw(
                 ..Default::default()
             },
             PickableBundle::default(),
+            NoDeselect,
             Tag {id: id.clone()},
         ));
         commands.spawn((
@@ -102,25 +103,27 @@ fn draw(
                 mesh: sphere,
                 material: material_handle2,
                 transform: Transform {
-                    translation: middle,
-                    rotation,
+                    translation: end,
                     ..Default::default()
                 },
                 ..Default::default()
             },
             PickableBundle::default(),
+            NoDeselect,
             Tag{id: id.clone()},
         ));
     }
 }
-// fn selection_query (mut commands: Commands, mut s_query: Query<(&PickSelection, &mut Tag)>, mut selection: ResMut<Selection>) {
-//     for (s, tag) in s_query.iter_mut() {
-//         if !s.is_selected { continue; } else {
-//             selection.0 = tag.id;
-//         }
-//     }
-// 
-// }
+fn selection_query (mut s_query: Query<(&PickSelection, &mut Tag)>, mut selection: ResMut<Selection>) {
+    for (s, tag) in s_query.iter_mut() {
+        if !s.is_selected { continue; } else {
+            if selection.0 != tag.id {
+                selection.0 = tag.id;
+                println!("{:?}", selection.0);
+            }
+        }
+    }
+}
 fn setup(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
@@ -157,6 +160,7 @@ fn main() {
     .expect("failed to read");
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
+        .insert_resource(DebugPickingMode::Normal)
         .init_resource::<SecretCount>()
         .init_resource::<SecretLayerCount>()
         .init_resource::<Selection>()
@@ -173,6 +177,7 @@ fn main() {
                 ui_example_system,
                 pan_orbit_camera,
                 update_count,
+                selection_query,
             )
                 .chain(),
         )

@@ -94,7 +94,8 @@ pub fn ui_example_system(
             let _response = ui.text_edit_singleline(&mut func.0);
 
             let enu = enu.0;
-            if ui.button("Translate").clicked() {
+            if ui.button("Translate").clicked() && !selection.0.is_nil(){
+                println!("translate pressed");
                 let mut params = func.0.split_whitespace();
                 let x = params.next().unwrap().parse::<f32>().unwrap();
                 let y = params.next().unwrap().parse::<f32>().unwrap();
@@ -125,13 +126,16 @@ pub fn ui_example_system(
                         }
                     }
                 }
+                counter.0 += 1;
             }
         });
     });
 }
-pub fn update_count(secret: Res<SecretCount>, mut counter: ResMut<VertexCounter>) {
+pub fn update_count(mut secret: ResMut<SecretCount>, mut counter: ResMut<VertexCounter>) {
     if secret.0 as u32 != counter.count {
-        counter.count = secret.0 as u32;
+        if counter.count == counter.max && secret.0 == 0 {
+            secret.0 = counter.count;
+        } else { counter.count = secret.0 as u32; }
     }
 }
 
@@ -144,7 +148,7 @@ pub struct VertexCounter {
 impl VertexCounter {
     pub fn build(gcode: &Parsed) -> VertexCounter {
         let max = gcode.vertices.keys().len() as u32;
-        VertexCounter { count: 0, max }
+        VertexCounter { count: max, max }
     }
 }
 #[derive(Resource)]
