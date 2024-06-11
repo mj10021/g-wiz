@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use print_analyzer::Parsed;
 
-use crate::{GCode, Selection};
+use crate::{ForceRefresh, GCode, Selection};
 
 #[derive(PartialEq, Clone, Copy)]
 enum Choice {
@@ -25,6 +25,7 @@ pub struct Function(pub String);
 
 pub fn ui_example_system(
     mut contexts: EguiContexts,
+    mut commands: Commands,
     vertex: Res<VertexCounter>,
     layer: Res<LayerCounter>,
     mut counter: ResMut<SecretCount>,
@@ -40,6 +41,7 @@ pub fn ui_example_system(
     let spacing = height / 50.0;
     let max = vertex.max;
     let layer_max = layer.max;
+    let mut subdivide_dist = 0.0;
     egui::SidePanel::new(egui::panel::Side::Left, "panel").show(contexts.ctx_mut(), |ui| {
         ui.label("world");
         ui.add_space(spacing);
@@ -85,9 +87,11 @@ pub fn ui_example_system(
             }
         });
         ui.horizontal(|ui| {
-            if ui.button("Subdivide").clicked() {
-                todo!();
+            let _response = ui.add(egui::Slider::new(&mut subdivide_dist, 0.0..=30.0));
+            if ui.button("Subdivide to max distance").clicked() {
+                gcode.0.subdivide_all(subdivide_dist);
             }
+            commands.insert_resource(ForceRefresh);
 
         });
         ui.horizontal(|ui| {
@@ -95,7 +99,7 @@ pub fn ui_example_system(
 
             let enu = enu.0;
             if ui.button("Translate").clicked() && !selection.0.is_nil(){
-                println!("translate pressed");
+                if func.0.is_empty() {return;}
                 let mut params = func.0.split_whitespace();
                 let x = params.next().unwrap().parse::<f32>().unwrap();
                 let y = params.next().unwrap().parse::<f32>().unwrap();
@@ -126,8 +130,11 @@ pub fn ui_example_system(
                         }
                     }
                 }
-                counter.0 += 1;
+                commands.init_resource::<ForceRefresh>();
             }
+        });
+        ui.horizontal(|ui| if ui.button("refresh").clicked() {
+            commands.insert_resource(ForceRefresh);
         });
     });
 }

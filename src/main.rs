@@ -6,11 +6,13 @@ use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Parsed, Pos, Uuid};
-use std::f32::EPSILON;
 use ui::*;
 
 #[derive(Resource)]
 struct GCode(Parsed);
+
+#[derive(Default, Resource)]
+struct ForceRefresh;
 
 #[derive(Component)]
 struct Tag{
@@ -113,6 +115,7 @@ fn draw(
             Tag{id: id.clone()},
         ));
     }
+    commands.remove_resource::<ForceRefresh>();
 }
 fn selection_query (mut s_query: Query<(&PickSelection, &mut Tag)>, mut selection: ResMut<Selection>) {
     for (s, tag) in s_query.iter_mut() {
@@ -161,6 +164,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .insert_resource(DebugPickingMode::Normal)
+        .init_resource::<ForceRefresh>()
         .init_resource::<SecretCount>()
         .init_resource::<SecretLayerCount>()
         .init_resource::<Selection>()
@@ -181,6 +185,6 @@ fn main() {
             )
                 .chain(),
         )
-        .add_systems(Update, draw.run_if(resource_changed::<VertexCounter>))
+        .add_systems(Update, draw.run_if(resource_exists::<ForceRefresh>))
         .run();
 }
