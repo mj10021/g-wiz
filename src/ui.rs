@@ -21,6 +21,7 @@ pub struct UiResource {
     translation_input: String,
     pub panel_size: (f32, f32),
     insert_text: String,
+    pub gcode_emit: String,
 }
 
 impl Default for UiResource {
@@ -33,6 +34,7 @@ impl Default for UiResource {
             translation_input: String::new(),
             panel_size: (0.0, 0.0),
             insert_text: String::new(),
+            gcode_emit: String::new(),
         }
     }
 }
@@ -175,7 +177,13 @@ pub fn ui_example_system(
                 if ui.button("Reset Selection").clicked() {
                     selection.reset_selection(s_query);
                 }
-            })
+            });
+            ui.add_space(spacing);
+            ui.horizontal(|ui| {
+                let _response = ui.text_edit_multiline( &mut ui_res.gcode_emit);
+            });
+
+
         });
 }
 pub fn update_counts(

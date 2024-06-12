@@ -7,7 +7,7 @@ use bevy::window::PrimaryWindow;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
-use print_analyzer::{Parsed, Pos, Uuid};
+use print_analyzer::{Parsed, Pos, Uuid, Emit};
 use std::collections::HashSet;
 use ui::*;
 
@@ -119,7 +119,7 @@ fn draw(
 }
 fn selection_query(
     mut s_query: Query<(&mut PickSelection, &mut Tag)>,
-    ui_res: Res<UiResource>,
+    mut ui_res: ResMut<UiResource>,
     gcode: Res<GCode>,
     mut selection: ResMut<Selection>,
 ) {
@@ -127,6 +127,8 @@ fn selection_query(
         if !s.is_selected {
             if selection.0.contains(&tag.id) {
                 s.is_selected = true;
+                let v = gcode.0.vertices.get(&tag.id).unwrap();
+                ui_res.gcode_emit += &format!("\n {}", v.emit(&gcode.0, false));
             }
             continue;
         } else {
@@ -207,7 +209,8 @@ impl Selection {
 }
 fn main() {
     let gcode = print_analyzer::read(
-        "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
+        //"../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
+        "../print_analyzer/test.gcode",
         false,
     )
     .expect("failed to read");
