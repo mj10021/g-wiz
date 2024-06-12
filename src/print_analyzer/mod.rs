@@ -79,18 +79,6 @@ impl std::ops::Sub for Pos {
     }
 }
 impl Pos {
-    pub fn to_tup(&self) -> (f32, f32, f32) {
-        (self.x, self.y, self.z)
-    }
-    pub fn unhomed() -> Pos {
-        Pos {
-            x: NEG_INFINITY,
-            y: NEG_INFINITY,
-            z: NEG_INFINITY,
-            e: NEG_INFINITY,
-            f: NEG_INFINITY,
-        }
-    }
     pub fn home() -> Pos {
         Pos {
             x: 0.0,
@@ -210,61 +198,11 @@ impl Vertex {
     pub fn is_extrusion(&self) -> bool {
         self.label == Label::PlanarExtrustion || self.label == Label::NonPlanarExtrusion
     }
-    pub fn dist(&self, parsed: &Parsed) -> f32 {
-        let from = self.get_from(parsed);
-        ((self.to.x - from.x).powf(2.0)
-            + (self.to.y - from.y).powf(2.0)
-            + (self.to.z - from.z).powf(2.0))
-        .sqrt()
-    }
-    pub fn dist_mut(&self, parsed: &mut Parsed) -> f32 {
-        let from = self.get_from(parsed);
-        ((self.to.x - from.x).powf(2.0)
-            + (self.to.y - from.y).powf(2.0)
-            + (self.to.z - from.z).powf(2.0))
-        .sqrt()
-    }
-    pub fn flow(&self, parsed: &Parsed) -> f32 {
-        assert!(self.extrusion_move());
-        self.to.e / self.dist(parsed)
-    }
     pub fn extrusion_move(&self) -> bool {
         self.label == Label::PlanarExtrustion || self.label == Label::NonPlanarExtrusion
     }
     pub fn change_move(&self) -> bool {
         self.label == Label::LiftZ || self.label == Label::Wipe || self.label == Label::Retraction
-    }
-    pub fn get_vector(&self, parsed: &Parsed) -> (f32, f32, f32) {
-        let from = {
-            if let Some(prev) = self.prev.clone() {
-                parsed.vertices.get(&prev).unwrap().to.clone()
-            } else {
-                Pos::home()
-            }
-        };
-        let scale = self.dist(parsed);
-        let mut dx = (self.to.x - from.x) / scale;
-        let mut dy = (self.to.y - from.y) / scale;
-        let mut dz = (self.to.z - from.z) / scale;
-        if dx.is_infinite() || dx.is_nan() {
-            dx = 0.0;
-        }
-        if dy.is_infinite() || dy.is_nan() {
-            dy = 0.0;
-        }
-        if dz.is_infinite() || dz.is_nan() {
-            dz = 0.0;
-        }
-        (dx, dy, dz)
-    }
-    pub fn unhomed() -> Vertex {
-        Vertex {
-            id: Uuid::nil(),
-            count: 0,
-            label: Label::Uninitialized,
-            prev: None,
-            to: Pos::unhomed(),
-        }
     }
 }
 
