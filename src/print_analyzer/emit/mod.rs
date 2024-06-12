@@ -1,4 +1,4 @@
-use super::parse::*;
+use super::*;
 pub trait Emit {
     fn emit(&self, parsed: &Parsed, debug: bool) -> String;
 }

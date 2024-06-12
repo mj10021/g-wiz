@@ -1,4 +1,4 @@
-mod emit;
+pub mod emit;
 mod file_reader;
 use std::collections::{HashMap, HashSet};
 use std::f32::{EPSILON, NEG_INFINITY};
@@ -713,7 +713,7 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Uuid> {
 
 impl Parsed {
     pub fn insert_before (&mut self, line: &String, pos: &HashSet<Uuid>) {
-        let line = read_line(line);
+        let line = file_reader::read_line(line);
 
         todo!();
     }
