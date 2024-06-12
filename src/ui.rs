@@ -2,7 +2,7 @@ use crate::{ForceRefresh, GCode, Selection};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use bevy_mod_picking::selection::PickSelection;
-use print_analyzer::Parsed;
+use crate::print_analyzer::Parsed;
 use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]

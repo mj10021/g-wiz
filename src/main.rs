@@ -11,6 +11,7 @@ use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Parsed, Pos, Uuid, Emit};
 use std::collections::HashSet;
 use ui::*;
+use uuid::Uuid;
 
 #[derive(Resource)]
 struct GCode(Parsed);

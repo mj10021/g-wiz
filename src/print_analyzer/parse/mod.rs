@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::f32::{EPSILON, NEG_INFINITY};
-use uuid::Uuid;
+use crate::Uuid;
 
 pub mod file_reader;
 
