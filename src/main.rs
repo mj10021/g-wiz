@@ -1,5 +1,6 @@
 mod pan_orbit;
 mod ui;
+mod print_analyzer;
 use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
