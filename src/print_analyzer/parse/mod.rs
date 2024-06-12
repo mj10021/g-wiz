@@ -1,4 +1,3 @@
-use super::read;
 use std::collections::{HashMap, HashSet};
 use std::f32::{EPSILON, NEG_INFINITY};
 use crate::Uuid;
@@ -271,7 +270,7 @@ impl Vertex {
 #[derive(Debug, PartialEq)]
 pub struct Shape {
     pub id: Uuid,
-    lines: HashSet<Uuid>,
+    lines: Vec<Uuid>,
     layer: f32,
 }
 
@@ -399,7 +398,7 @@ impl Parsed {
 
     fn assign_shapes(&mut self) {
         let mut out = Vec::new();
-        let mut temp_shape = HashSet::new();
+        let mut temp_shape = Vec::new();
         let mut layer = -1.0;
         for line in &self.lines {
             if let Some(vertex) = self.vertices.get(&line) {
@@ -413,13 +412,13 @@ impl Parsed {
                         layer,
                     };
                     out.push(shape);
-                    temp_shape = HashSet::new();
+                    temp_shape = Vec::new();
                     layer = -1.0;
                 } else {
-                    temp_shape.insert(line.clone());
+                    temp_shape.push(line.clone());
                 }
             } else {
-                temp_shape.insert(line.clone());
+                temp_shape.push(line.clone());
             }
         }
         if !temp_shape.is_empty() {
@@ -438,7 +437,7 @@ impl Parsed {
         let mut curr = self.shapes[0].layer;
         let mut temp = HashSet::new();
         for shape in &self.shapes {
-            if (shape.layer - curr).abs() > 0.0 {
+            if (shape.layer - curr).abs() > 0.0 - f32::EPSILON {
                 curr = shape.layer;
                 self.layers.push(temp);
                 temp = HashSet::new();
@@ -621,13 +620,13 @@ impl Parsed {
         f.write_all(&output.as_bytes())
     }
 
-    pub fn get_shape(&self, vertex: &Uuid) -> HashSet<Uuid> {
+    pub fn get_shape(&self, vertex: &Uuid) -> Vec<Uuid> {
         for shape in self.shapes.iter() {
             if shape.lines.contains(vertex) {
                 return shape.lines.clone();
             }
         }
-        HashSet::new()
+        Vec::new()
     }
     pub fn get_layer(&self, vertex: &Uuid) -> HashSet<Uuid> {
         for layer in self.layers.iter() {
@@ -643,7 +642,7 @@ impl Parsed {
 pub enum Label {
     Uninitialized,
     Home,
-    FirstG1,
+    _FirstG1,
     PrePrintMove,
     TravelMove,
     PlanarExtrustion,
@@ -658,6 +657,7 @@ pub enum Label {
 }
 
 #[cfg(test)]
+use super::read;
 #[test]
 fn tran_test() {
     let test = "G28\ng1x1e1\ng1x2e1\ng1x3e1\n";

@@ -174,14 +174,18 @@ pub fn ui_example_system(
             ui.add_space(spacing);
             ui.horizontal(|ui| {
                 let _response = ui.text_edit_singleline( &mut ui_res.insert_text);
-                if ui.button("Reset Selection").clicked() {
-                    selection.reset_selection(s_query);
+                if ui.button("Insert Before").clicked() {
+                    gcode.0.insert_before(&ui_res.insert_text, &selection.0)
                 }
             });
             ui.add_space(spacing);
             ui.horizontal(|ui| {
                 let _response = ui.text_edit_multiline( &mut ui_res.gcode_emit);
             });
+            ui.add_space(spacing);
+            if ui.button("reset selection").clicked() {
+                selection.reset_selection(s_query);
+            }
 
 
         });

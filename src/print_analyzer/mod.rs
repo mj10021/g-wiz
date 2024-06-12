@@ -24,10 +24,11 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Uuid> {
 }
 
 impl Parsed {
-    pub fn insert_before (&mut self, line: String, pos: &Uuid) {
-        let line = read_line(&line);
+    pub fn insert_before (&mut self, line: &String, pos: &HashSet<Uuid>) {
+        let line = read_line(line);
 
-        todo!();}
+        todo!();
+    }
 }
 // fn insert_before(feature)
 // fn modify(feature)
@@ -38,6 +39,8 @@ mod integration_tests {
 
     #[cfg(test)]
     use std::fs::File;
+
+    use crate::print_analyzer::{read,Emit};
     #[test]
     fn import_emit_reemit() {
         use std::io::prelude::*;
