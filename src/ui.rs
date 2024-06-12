@@ -1,6 +1,7 @@
 use crate::{ForceRefresh, GCode, Selection};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
+use bevy_mod_picking::selection::PickSelection;
 use print_analyzer::Parsed;
 use std::collections::HashSet;
 
@@ -19,6 +20,7 @@ pub struct UiResource {
     subdivide_slider: f32,
     translation_input: String,
     pub panel_size: (f32, f32),
+    insert_text: String,
 }
 
 impl Default for UiResource {
@@ -30,6 +32,7 @@ impl Default for UiResource {
             subdivide_slider: 100.0,
             translation_input: String::new(),
             panel_size: (0.0, 0.0),
+            insert_text: String::new(),
         }
     }
 }
@@ -43,6 +46,7 @@ pub fn ui_example_system(
     window: Query<&Window, With<PrimaryWindow>>,
     mut selection: ResMut<Selection>,
     mut gcode: ResMut<GCode>,
+    s_query: Query<&mut PickSelection>,
 ) {
     let Ok(window) = window.get_single() else {
         panic!();
@@ -107,6 +111,7 @@ pub fn ui_example_system(
                     commands.insert_resource(ForceRefresh);
                 }
             });
+            ui.add_space(spacing);
             ui.horizontal(|ui| {
                 let _response = ui.text_edit_singleline(&mut ui_res.translation_input);
 
@@ -158,11 +163,19 @@ pub fn ui_example_system(
                     commands.init_resource::<ForceRefresh>();
                 }
             });
+            ui.add_space(spacing);
             ui.horizontal(|ui| {
                 if ui.button("refresh").clicked() {
                     commands.insert_resource(ForceRefresh);
                 }
             });
+            ui.add_space(spacing);
+            ui.horizontal(|ui| {
+                let _response = ui.text_edit_singleline( &mut ui_res.insert_text);
+                if ui.button("Reset Selection").clicked() {
+                    selection.reset_selection(s_query);
+                }
+            })
         });
 }
 pub fn update_counts(

@@ -197,6 +197,14 @@ impl Default for Selection {
         Selection(HashSet::new())
     }
 }
+impl Selection {
+    fn reset_selection(&mut self, mut s_query: Query<&mut PickSelection>) {
+        for mut s in s_query.iter_mut() {
+            s.is_selected = false;
+        }
+        self.0 = HashSet::new();
+    }
+}
 fn main() {
     let gcode = print_analyzer::read(
         "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
