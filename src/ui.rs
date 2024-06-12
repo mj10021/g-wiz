@@ -179,9 +179,7 @@ pub fn ui_example_system(
                 }
             });
             ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                let _response = ui.text_edit_multiline( &mut ui_res.gcode_emit);
-            });
+            ui.text_edit_multiline( &mut ui_res.gcode_emit).on_hover_text("enter custom gcode");
             ui.add_space(spacing);
             if ui.button("reset selection").clicked() {
                 selection.reset_selection(s_query);

@@ -214,7 +214,7 @@ pub struct Shape {
 }
 
 impl Shape {
-    pub fn len(&self, gcode: &Parsed) -> f32 {
+    pub fn _len(&self, gcode: &Parsed) -> f32 {
         let mut out = 0.0;
         for line in &self.lines {
             if gcode.vertices.contains_key(line) {
@@ -549,14 +549,7 @@ impl Parsed {
             self.subdivide_vertex(line, count);
         }
     }
-    pub fn write_to_file(&self, output_name: &str) -> Result<(), std::io::Error> {
-        use std::fs::File;
-        use std::io::prelude::*;
-        let output = self.emit(&self, false);
 
-        let mut f = File::create(output_name).expect("failed to create file");
-        f.write_all(&output.as_bytes())
-    }
 
     pub fn get_shape(&self, vertex: &Uuid) -> Vec<Uuid> {
         for shape in self.shapes.iter() {
@@ -604,13 +597,6 @@ fn tran_test() {
             gcode._translate(&line, 0.0, 1.0, 0.0);
         }
     }
-}
-
-#[test]
-fn subdivide_all_test() {
-    let mut test = read("test.gcode", false).expect("failed to parse");
-    test.subdivide_all(1.0);
-    assert!(test.write_to_file("subdivide_test.gcode").is_ok());
 }
 
 #[test]
