@@ -633,8 +633,8 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Uuid> {
 }
 
 impl Parsed {
-    pub fn insert_before(&mut self, line: &String, pos: &HashSet<Uuid>) {
-        let line = file_reader::read_line(line);
+    pub fn insert_before(&mut self, line: &String, _pos: &HashSet<Uuid>) {
+        let _line = file_reader::read_line(line);
 
         todo!();
     }
