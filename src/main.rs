@@ -8,7 +8,7 @@ use bevy::window::PrimaryWindow;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
-use print_analyzer::{Parsed, Pos, Uuid, Emit};
+use print_analyzer::{Parsed, Pos, Emit};
 use std::collections::HashSet;
 use ui::*;
 use uuid::Uuid;

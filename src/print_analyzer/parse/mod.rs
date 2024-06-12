@@ -1,7 +1,8 @@
+use super::read;
 use std::collections::{HashMap, HashSet};
 use std::f32::{EPSILON, NEG_INFINITY};
 use crate::Uuid;
-
+use super::emit;
 pub mod file_reader;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -611,7 +612,7 @@ impl Parsed {
         }
     }
     pub fn write_to_file(&self, output_name: &str) -> Result<(), std::io::Error> {
-        use crate::emit::Emit;
+        use emit::Emit;
         use std::fs::File;
         use std::io::prelude::*;
         let output = self.emit(&self, false);
@@ -660,7 +661,7 @@ pub enum Label {
 #[test]
 fn tran_test() {
     let test = "G28\ng1x1e1\ng1x2e1\ng1x3e1\n";
-    let mut gcode = crate::read(test, true).expect("failed to parse");
+    let mut gcode = read(test, true).expect("failed to parse");
     for line in gcode.lines.clone() {
         if gcode.vertices.contains_key(&line) {
             gcode._translate(&line, 0.0, 1.0, 0.0);
@@ -670,14 +671,14 @@ fn tran_test() {
 
 #[test]
 fn subdivide_all_test() {
-    let mut test = crate::read("test.gcode", false).expect("failed to parse");
+    let mut test = read("test.gcode", false).expect("failed to parse");
     test.subdivide_all(1.0);
     assert!(test.write_to_file("subdivide_test.gcode").is_ok());
 }
 
 #[test]
 fn map_test() {
-    let mut test = crate::read("test.gcode", false).expect("failed to parse");
+    let mut test = read("test.gcode", false).expect("failed to parse");
     test.subdivide_all(1.0);
 }
 
@@ -685,10 +686,10 @@ fn map_test() {
 #[should_panic]
 fn no_home_test() {
     let input = "G1 X1 Y1 Z1 E1\n";
-    let _ = crate::read(input, true).expect("failed to parse");
+    let _ = read(input, true).expect("failed to parse");
 }
 #[test]
 #[should_panic]
 fn double_home() {
-    let _ = crate::read("G28\nG28\nG1 x1\ng1y1\ng1e2.222\ng1z1\n", true).expect("failed to parse");
+    let _ = read("G28\nG28\nG1 x1\ng1y1\ng1e2.222\ng1z1\n", true).expect("failed to parse");
 }

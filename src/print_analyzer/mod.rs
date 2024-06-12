@@ -1,9 +1,9 @@
 mod emit;
 mod parse;
-use parse::file_reader::{read_line, parse_str};
-pub use parse::{Parsed, Pos, Shape, Vertex};
-pub use uuid::Uuid;
+use parse::file_reader::read_line;
+pub use parse::{Parsed, Pos, Vertex};
 pub use emit::Emit;
+use super::Uuid;
 
 use std::collections::HashSet;
 
@@ -40,8 +40,6 @@ mod integration_tests {
     use std::fs::File;
     #[test]
     fn import_emit_reemit() {
-        use crate::emit::Emit;
-        use crate::read;
         use std::io::prelude::*;
         let f = "test.gcode";
         let p_init = read(f, false).expect("failed to parse gcode");
@@ -58,7 +56,6 @@ mod integration_tests {
     }
     #[test]
     fn specific_random_gcode_issue() {
-        use crate::{emit::Emit, read};
         use std::io::prelude::*;
         let gcode = "G28
         G1 X179 Y-2 F2400 
