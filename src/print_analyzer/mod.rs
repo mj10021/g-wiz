@@ -1,9 +1,9 @@
 mod emit;
 mod file_reader;
-use std::collections::{HashMap, HashSet};
-use std::f32::{EPSILON, NEG_INFINITY};
 use crate::Uuid;
 pub use emit::Emit;
+use std::collections::{HashMap, HashSet};
+use std::f32::{EPSILON, NEG_INFINITY};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Word(pub char, pub f32, pub Option<String>);
@@ -550,7 +550,6 @@ impl Parsed {
         }
     }
 
-
     pub fn get_shape(&self, vertex: &Uuid) -> Vec<Uuid> {
         for shape in self.shapes.iter() {
             if shape.lines.contains(vertex) {
@@ -617,8 +616,6 @@ fn double_home() {
     let _ = read("G28\nG28\nG1 x1\ng1y1\ng1e2.222\ng1z1\n", true).expect("failed to parse");
 }
 
-
-
 pub fn read(path: &str, raw_str: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
     Parsed::build(path, raw_str)
 }
@@ -636,7 +633,7 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Uuid> {
 }
 
 impl Parsed {
-    pub fn insert_before (&mut self, line: &String, pos: &HashSet<Uuid>) {
+    pub fn insert_before(&mut self, line: &String, pos: &HashSet<Uuid>) {
         let line = file_reader::read_line(line);
 
         todo!();
@@ -646,7 +643,6 @@ impl Parsed {
 // fn modify(feature)
 // fn replace_with(feature, gcode_sequence)
 // fn insert_after(feature)
-
 
 #[cfg(test)]
 use std::fs::File;

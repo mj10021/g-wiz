@@ -107,8 +107,8 @@ impl Emit for Parsed {
 
 #[test]
 fn debug() {
-    use std::io::prelude::*;
     use std::fs::File;
+    use std::io::prelude::*;
     let gcode = Parsed::build("test.gcode", false).expect("");
     let gcode = gcode.emit(&gcode, true);
     let mut f = File::create("test_debug_output.gcode").expect("failed to create file");

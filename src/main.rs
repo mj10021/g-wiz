@@ -1,6 +1,6 @@
 mod pan_orbit;
-mod ui;
 mod print_analyzer;
+mod ui;
 use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
@@ -8,7 +8,7 @@ use bevy::window::PrimaryWindow;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
-use print_analyzer::{Parsed, Pos, Emit};
+use print_analyzer::{Emit, Parsed, Pos};
 use std::collections::HashSet;
 use ui::*;
 use uuid::Uuid;
@@ -87,35 +87,33 @@ fn draw(
         let direction = end - start;
         let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
         // Add the cylinder to the scene
-        commands.spawn((
-            PbrBundle {
-                mesh: mesh_handle,
-                material: material_handle,
-                transform: Transform {
-                    translation: middle,
-                    rotation,
+        commands
+            .spawn((
+                PbrBundle {
+                    mesh: mesh_handle,
+                    material: material_handle,
+                    transform: Transform {
+                        translation: middle,
+                        rotation,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                ..Default::default()
-            },
-            PickableBundle::default(),
-            NoDeselect,
-            Tag { id: id.clone() },
-        ));
-        commands.spawn((
-            PbrBundle {
-                mesh: sphere,
-                material: material_handle2,
-                transform: Transform {
-                    translation: end,
+                PickableBundle::default(),
+                NoDeselect,
+                Tag { id: id.clone() },
+            ))
+            .with_children(|p| {
+                p.spawn(PbrBundle {
+                    mesh: sphere,
+                    material: material_handle2,
+                    transform: Transform {
+                        translation: end,
+                        ..Default::default()
+                    },
                     ..Default::default()
-                },
-                ..Default::default()
-            },
-            PickableBundle::default(),
-            NoDeselect,
-            Tag { id: id.clone() },
-        ));
+                });
+            });
     }
     commands.remove_resource::<ForceRefresh>();
 }

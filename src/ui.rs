@@ -1,8 +1,8 @@
+use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Selection};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use bevy_mod_picking::selection::PickSelection;
-use crate::print_analyzer::Parsed;
 use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -173,19 +173,18 @@ pub fn ui_example_system(
             });
             ui.add_space(spacing);
             ui.horizontal(|ui| {
-                let _response = ui.text_edit_singleline( &mut ui_res.insert_text);
+                let _response = ui.text_edit_singleline(&mut ui_res.insert_text);
                 if ui.button("Insert Before").clicked() {
                     gcode.0.insert_before(&ui_res.insert_text, &selection.0)
                 }
             });
             ui.add_space(spacing);
-            ui.text_edit_multiline( &mut ui_res.gcode_emit).on_hover_text("enter custom gcode");
+            ui.text_edit_multiline(&mut ui_res.gcode_emit)
+                .on_hover_text("enter custom gcode");
             ui.add_space(spacing);
             if ui.button("reset selection").clicked() {
                 selection.reset_selection(s_query);
             }
-
-
         });
 }
 pub fn update_counts(
