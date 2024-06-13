@@ -1,5 +1,5 @@
 use crate::print_analyzer::Parsed;
-use crate::{ForceRefresh, GCode, Selection};
+use crate::{ForceRefresh, GCode};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use bevy_mod_picking::selection::PickSelection;
@@ -46,7 +46,6 @@ pub fn ui_example_system(
     layer: Res<LayerCounter>,
     mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
-    mut selection: ResMut<Selection>,
     mut gcode: ResMut<GCode>,
     s_query: Query<&mut PickSelection>,
 ) {

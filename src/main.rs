@@ -9,9 +9,12 @@ use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use print_analyzer::{Emit, Parsed, Pos};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use ui::*;
 use uuid::Uuid;
+
+#[derive(Default, Resource)]
+struct IdMap(HashMap<Uuid, Entity>);
 
 #[derive(Resource)]
 struct GCode(Parsed);
@@ -28,6 +31,7 @@ fn draw(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut map: ResMut<IdMap>,
     count: Res<VertexCounter>,
     gcode: Res<GCode>,
     cylinders: Query<Entity, With<Tag>>,
@@ -87,67 +91,40 @@ fn draw(
         let direction = end - start;
         let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
         // Add the cylinder to the scene
-        commands.spawn((
-            PbrBundle {
-                mesh: mesh_handle,
-                material: material_handle,
-                transform: Transform {
-                    translation: middle,
-                    rotation,
+        let e_id = commands
+            .spawn((
+                PbrBundle {
+                    mesh: mesh_handle,
+                    material: material_handle,
+                    transform: Transform {
+                        translation: middle,
+                        rotation,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                ..Default::default()
-            },
-            PickableBundle::default(),
-            NoDeselect,
-            Tag { id: id.clone() },
-        ));
-        commands.spawn((
-            PbrBundle {
-                mesh: sphere,
-                material: material_handle2,
-                transform: Transform {
-                    translation: end,
+                PickableBundle::default(),
+                Tag { id: id.clone() },
+            ))
+            .id();
+        commands
+            .spawn((
+                PbrBundle {
+                    mesh: sphere,
+                    material: material_handle2,
+                    transform: Transform {
+                        translation: end,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                ..Default::default()
-            },
-            Tag { id: id.clone() },
-        ));
+                Tag { id: id.clone() },
+            ));
+        map.0.insert(id.clone(), e_id);
     }
     commands.remove_resource::<ForceRefresh>();
 }
-fn selection_query(
-    mut s_query: Query<(&mut PickSelection, &mut Tag)>,
-    mut ui_res: ResMut<UiResource>,
-    gcode: Res<GCode>,
-    mut selection: ResMut<Selection>,
-) {
-    for (mut s, tag) in s_query.iter_mut() {
-        if !s.is_selected {
-            if selection.0.contains(&tag.id) {
-                s.is_selected = true;
-                let v = gcode.0.vertices.get(&tag.id).unwrap();
-                ui_res.gcode_emit += &format!("\n {}", v.emit(&gcode.0, false));
-            }
-            continue;
-        } else {
-            if !selection.0.contains(&tag.id) {
-                match ui_res.selection_enum {
-                    Choice::Vertex => {
-                        selection.0.insert(tag.id);
-                    }
-                    Choice::Shape => {
-                        selection.0.extend(gcode.0.get_shape(&tag.id));
-                    }
-                    Choice::Layer => {
-                        selection.0.extend(gcode.0.get_shape(&tag.id));
-                    }
-                };
-            }
-        }
-    }
-}
+
 fn setup(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
@@ -168,45 +145,70 @@ fn setup(mut commands: Commands) {
         },
     ));
     commands.init_resource::<ForceRefresh>();
-    commands.init_resource::<Selection>();
-    commands.init_resource::<UiResource>()
+
+    commands.init_resource::<UiResource>();
+    commands.init_resource::<IdMap>();
 }
-fn mouse_input_system(
-    egui_context_q: Res<UiResource>,
-    primary_query: Query<&Window, With<PrimaryWindow>>,
-    mut mouse_button_input_events: ResMut<ButtonInput<MouseButton>>,
-    mut mouse_motion_events: EventReader<MouseMotion>,
-    mut mouse_wheel_events: EventReader<MouseWheel>,
+
+/// Update entity selection component state from pointer events.
+fn update_selections(
+    mut selectables: Query<(&mut PickSelection, &Tag)>,
+    select_type: Res<UiResource>,
+    mut selections: EventReader<Pointer<Select>>,
+    mut deselections: EventReader<Pointer<Deselect>>,
+    gcode: Res<GCode>,
+    map: Res<IdMap>,
 ) {
-    let (width, height) = egui_context_q.panel_size;
-    let Ok(window) = primary_query.get_single() else {
+    let select_type = select_type.selection_enum;
+    if select_type == Choice::Vertex {
         return;
-    };
-    let Some(Vec2 { x, y }) = window.cursor_position() else {
-        return;
-    };
-    if x < width && y < height {
-        // Clear mouse input events if egui is handling them
-        mouse_button_input_events.clear();
-        mouse_motion_events.clear();
-        mouse_wheel_events.clear();
     }
-}
-#[derive(Resource)]
-struct Selection(HashSet<Uuid>);
-impl Default for Selection {
-    fn default() -> Self {
-        Selection(HashSet::new())
-    }
-}
-impl Selection {
-    fn reset_selection(&mut self, mut s_query: Query<&mut PickSelection>) {
-        for mut s in s_query.iter_mut() {
-            s.is_selected = false;
+    for selection in selections.read() {
+        if let Ok((_, id)) = selectables.get_mut(selection.target) {
+            if select_type == Choice::Shape {
+                for id in gcode.0.get_shape(&id.id) {
+                    let Some(entity) = map.0.get(&id) else {
+                        continue;
+                    };
+                    {
+                        let (mut select_me, _) =
+                            selectables.get_mut(*entity).expect("entity not found");
+                        select_me.is_selected = true;
+                    }
+                }
+            } else if select_type == Choice::Layer {
+                for id in gcode.0.get_layer(&id.id) {
+                    let entity = map.0.get(&id).unwrap();
+                    let (mut select_me, _) =
+                        selectables.get_mut(*entity).expect("entity not found");
+                    select_me.is_selected = true;
+                }
+            }
         }
-        self.0 = HashSet::new();
+    }
+    for deselection in deselections.read() {
+        if let Ok((_, id)) = selectables.get_mut(deselection.target) {
+            if select_type == Choice::Shape {
+                for id in gcode.0.get_shape(&id.id) {
+                    let Some(entity) = map.0.get(&id) else {
+                        continue;
+                    };
+                    let (mut deselect_me, _) =
+                        selectables.get_mut(*entity).expect("entity not found");
+                    deselect_me.is_selected = false;
+                }
+            } else if select_type == Choice::Layer {
+                for id in gcode.0.get_layer(&id.id) {
+                    let entity = map.0.get(&id).unwrap();
+                    let (mut deselect_me, _) =
+                        selectables.get_mut(*entity).expect("entity not found");
+                    deselect_me.is_selected = false;
+                }
+            }
+        }
     }
 }
+
 fn main() {
     let gcode = print_analyzer::read(
         //"../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
@@ -225,10 +227,9 @@ fn main() {
             (
                 key_system,
                 ui_example_system,
-                mouse_input_system,
                 pan_orbit_camera,
                 update_counts,
-                selection_query,
+                update_selections, //selection_query,
             )
                 .chain(),
         )
