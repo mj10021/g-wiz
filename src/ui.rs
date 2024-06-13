@@ -1,5 +1,5 @@
 use crate::print_analyzer::Parsed;
-use crate::{ForceRefresh, GCode};
+use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use bevy_mod_picking::selection::PickSelection;
@@ -47,7 +47,7 @@ pub fn ui_example_system(
     mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
     mut gcode: ResMut<GCode>,
-    s_query: Query<&mut PickSelection>,
+    s_query: Query<(&mut PickSelection, &Tag)>,
 ) {
     let Ok(window) = window.get_single() else {
         panic!();
@@ -59,6 +59,12 @@ pub fn ui_example_system(
     let spacing = height / 50.0;
     let max = vertex.max;
     let layer_max = layer.max;
+    let mut selection = HashSet::new();
+    for (pick, id) in s_query.iter() {
+        if pick.is_selected {
+            selection.insert(id.id);
+        }
+    }
     egui::SidePanel::new(egui::panel::Side::Left, "panel")
         .exact_width(panel_width)
         .show(contexts.ctx_mut(), |ui| {
@@ -99,7 +105,7 @@ pub fn ui_example_system(
             ui.add_space(spacing);
             ui.horizontal(|ui| {
                 if ui.button("Merge Delete").clicked() {
-                    gcode.0.delete_lines(&mut selection.0)
+                    gcode.0.delete_lines(&mut selection)
                 } else if ui.button("Hole Delete").clicked() {
                     todo!();
                 }
@@ -117,7 +123,7 @@ pub fn ui_example_system(
                 let _response = ui.text_edit_singleline(&mut ui_res.translation_input);
 
                 let enu = ui_res.selection_enum;
-                if ui.button("Translate").clicked() && !selection.0.is_empty() {
+                if ui.button("Translate").clicked() && !selection.is_empty() {
                     if ui_res.translation_input.is_empty() {
                         return;
                     }
@@ -127,7 +133,7 @@ pub fn ui_example_system(
                     let z = params.next().unwrap().parse::<f32>().unwrap();
                     match enu {
                         Choice::Vertex => {
-                            for selection in &selection.0 {
+                            for selection in &selection {
                                 let v = gcode.0.vertices.get_mut(selection).unwrap();
                                 v.to.x += x;
                                 v.to.y += y;
@@ -136,7 +142,7 @@ pub fn ui_example_system(
                         }
                         Choice::Shape => {
                             let mut shapes = HashSet::new();
-                            for selection in &selection.0 {
+                            for selection in &selection {
                                 let shape = gcode.0.get_shape(selection);
                                 shapes.extend(&shape);
                             }
@@ -149,7 +155,7 @@ pub fn ui_example_system(
                         }
                         Choice::Layer => {
                             let mut layers = HashSet::new();
-                            for selection in &selection.0 {
+                            for selection in &selection {
                                 let layer = gcode.0.get_layer(selection);
                                 layers.extend(&layer);
                             }
@@ -174,16 +180,13 @@ pub fn ui_example_system(
             ui.horizontal(|ui| {
                 let _response = ui.text_edit_singleline(&mut ui_res.insert_text);
                 if ui.button("Insert Before").clicked() {
-                    gcode.0.insert_before(&ui_res.insert_text, &selection.0)
+                    gcode.0.insert_before(&ui_res.insert_text, &selection)
                 }
             });
             ui.add_space(spacing);
             ui.text_edit_multiline(&mut ui_res.gcode_emit)
                 .on_hover_text("enter custom gcode");
             ui.add_space(spacing);
-            if ui.button("reset selection").clicked() {
-                selection.reset_selection(s_query);
-            }
         });
 }
 pub fn update_counts(
