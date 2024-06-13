@@ -15,13 +15,14 @@ pub enum Choice {
 #[derive(Resource)]
 pub struct UiResource {
     layer_counter: u32,
-    vertex_counter: u32,
+    pub vertex_counter: u32,
     pub selection_enum: Choice,
     subdivide_slider: f32,
     translation_input: String,
     pub panel_size: (f32, f32),
     insert_text: String,
     pub gcode_emit: String,
+    pub vis_select: VisibilitySelector,
 }
 
 impl Default for UiResource {
@@ -35,6 +36,28 @@ impl Default for UiResource {
             panel_size: (0.0, 0.0),
             insert_text: String::new(),
             gcode_emit: String::new(),
+            vis_select: VisibilitySelector::default(),
+        }
+    }
+}
+
+pub struct VisibilitySelector {
+    pub extrusion: bool,
+    pub wipe: bool,
+    pub retraction: bool,
+    pub deretraction: bool,
+    pub travel: bool,
+    pub preprint: bool,
+}
+impl Default for VisibilitySelector {
+    fn default() -> Self {
+        VisibilitySelector {
+            extrusion: true,
+            wipe: false,
+            retraction: false,
+            deretraction: false,
+            travel: false,
+            preprint: false,
         }
     }
 }
@@ -121,6 +144,15 @@ pub fn ui_example_system(
             });
             ui.add_space(spacing);
             ui.horizontal(|ui| {
+                let _ = ui.checkbox(&mut ui_res.vis_select.extrusion, "extrusion");
+                let _ = ui.checkbox(&mut ui_res.vis_select.travel, "travel");
+                let _ = ui.checkbox(&mut ui_res.vis_select.retraction, "retraction");
+                let _ = ui.checkbox(&mut ui_res.vis_select.wipe, "wipe");
+                let _ = ui.checkbox(&mut ui_res.vis_select.deretraction, "deretraction");
+                let _ = ui.checkbox(&mut ui_res.vis_select.preprint, "preprint");
+            });
+            ui.add_space(spacing);
+            ui.horizontal(|ui| {
                 let _response = ui.text_edit_singleline(&mut ui_res.translation_input);
 
                 let enu = ui_res.selection_enum;
@@ -190,43 +222,29 @@ pub fn ui_example_system(
             ui.add_space(spacing);
         });
 }
-pub fn update_counts(
-    mut commands: Commands,
-    mut ui_res: ResMut<UiResource>,
-    mut counter: ResMut<VertexCounter>,
-) {
-    if ui_res.vertex_counter as u32 != counter.count {
-        if counter.count == counter.max && ui_res.vertex_counter == 0 {
-            ui_res.vertex_counter = counter.count;
-        } else {
-            counter.count = ui_res.vertex_counter;
-            commands.insert_resource(ForceRefresh);
-        }
-    }
-}
 
 #[derive(Resource)]
 pub struct VertexCounter {
-    pub count: u32,
     max: u32,
 }
 
 impl VertexCounter {
     pub fn build(gcode: &Parsed) -> VertexCounter {
-        let max = gcode.vertices.keys().len() as u32;
-        VertexCounter { count: max, max }
+        VertexCounter {
+            max: gcode.vertices.keys().len() as u32,
+        }
     }
 }
 #[derive(Resource)]
 pub struct LayerCounter {
-    _count: u32,
     max: u32,
 }
 
 impl LayerCounter {
     pub fn build(gcode: &Parsed) -> LayerCounter {
-        let max = gcode.layers.len() as u32;
-        LayerCounter { _count: 0, max }
+        LayerCounter {
+            max: gcode.layers.len() as u32,
+        }
     }
 }
 

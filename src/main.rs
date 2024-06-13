@@ -5,7 +5,7 @@ mod ui;
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_egui::{EguiPlugin, EguiContext};
+use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
@@ -59,9 +59,6 @@ fn draw(
             }
         };
 
-        if !vertex.is_extrusion() || vertex.count > count.count {
-            continue;
-        }
         let start = Vec3::new(xi, yi, zi);
         let end = Vec3::new(xf, yf, zf);
 
@@ -218,7 +215,9 @@ fn capture_mouse(
     mut egui_context: Query<&mut EguiContext>,
 ) {
     let width = egui_context.single_mut().get_mut().used_rect().width();
-    let Ok(window) = window.get_single() else {return;};
+    let Ok(window) = window.get_single() else {
+        return;
+    };
     if let Some(Vec2 { x, .. }) = window.cursor_position() {
         if x < width {
             pick_settings.is_enabled = false;
@@ -233,6 +232,35 @@ fn reset_ui_hover(mut commands: Commands, mut pick_settings: ResMut<PickingPlugi
 
 #[derive(Default, Resource)]
 struct EnablePanOrbit;
+
+fn update_visibilities(
+    mut entity_query: Query<(&Tag, &mut Visibility)>,
+    ui_res: Res<UiResource>,
+    gcode: Res<GCode>,
+) {
+    let count = ui_res.vertex_counter;
+    for (tag, mut vis) in entity_query.iter_mut() {
+        if let Some(v) = gcode.0.vertices.get(&tag.id) {
+            let selected = match v.label {
+                print_analyzer::Label::PrePrintMove => ui_res.vis_select.preprint,
+                print_analyzer::Label::PlanarExtrustion
+                | print_analyzer::Label::NonPlanarExtrusion => ui_res.vis_select.extrusion,
+                print_analyzer::Label::Retraction => ui_res.vis_select.retraction,
+                print_analyzer::Label::DeRetraction => ui_res.vis_select.deretraction,
+                print_analyzer::Label::Wipe => ui_res.vis_select.wipe,
+                print_analyzer::Label::LiftZ | print_analyzer::Label::TravelMove => {
+                    ui_res.vis_select.travel
+                }
+                _ => false,
+            };
+            if count > v.count && selected {
+                *vis = Visibility::Visible;
+            } else {
+                *vis = Visibility::Hidden;
+            }
+        }
+    }
+}
 
 fn main() {
     let gcode = print_analyzer::read(
@@ -257,8 +285,8 @@ fn main() {
                 key_system,
                 ui_example_system,
                 capture_mouse,
-                update_counts,
                 update_selections,
+                update_visibilities,
             )
                 .chain(),
         )
