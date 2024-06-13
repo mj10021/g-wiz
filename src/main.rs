@@ -1,17 +1,17 @@
 mod pan_orbit;
 mod print_analyzer;
 mod ui;
-use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
+
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_egui::{EguiPlugin, EguiSet};
+use bevy_egui::{EguiPlugin, EguiContext};
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Emit, Parsed, Pos};
 use selection::send_selection_events;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use ui::*;
 use uuid::Uuid;
 
@@ -215,10 +215,12 @@ fn capture_mouse(
     mut commands: Commands,
     window: Query<&Window, With<PrimaryWindow>>,
     mut pick_settings: ResMut<PickingPluginsSettings>,
+    mut egui_context: Query<&mut EguiContext>,
 ) {
+    let width = egui_context.single_mut().get_mut().used_rect().width();
     let Ok(window) = window.get_single() else {return;};
     if let Some(Vec2 { x, .. }) = window.cursor_position() {
-        if x < window.width() / 6.0 {
+        if x < width {
             pick_settings.is_enabled = false;
             commands.remove_resource::<EnablePanOrbit>();
         }
