@@ -5,10 +5,12 @@ use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_egui::EguiPlugin;
+use bevy_egui::{EguiPlugin, EguiSet};
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
+use picking_core::PickingPluginsSettings;
 use print_analyzer::{Emit, Parsed, Pos};
+use selection::send_selection_events;
 use std::collections::{HashMap, HashSet};
 use ui::*;
 use uuid::Uuid;
@@ -107,19 +109,18 @@ fn draw(
                 Tag { id: id.clone() },
             ))
             .id();
-        commands
-            .spawn((
-                PbrBundle {
-                    mesh: sphere,
-                    material: material_handle2,
-                    transform: Transform {
-                        translation: end,
-                        ..Default::default()
-                    },
+        commands.spawn((
+            PbrBundle {
+                mesh: sphere,
+                material: material_handle2,
+                transform: Transform {
+                    translation: end,
                     ..Default::default()
                 },
-                Tag { id: id.clone() },
-            ));
+                ..Default::default()
+            },
+            Tag { id: id.clone() },
+        ));
         map.0.insert(id.clone(), e_id);
     }
     commands.remove_resource::<ForceRefresh>();
@@ -148,6 +149,7 @@ fn setup(mut commands: Commands) {
 
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
+    commands.init_resource::<EnablePanOrbit>();
 }
 
 /// Update entity selection component state from pointer events.
@@ -209,6 +211,27 @@ fn update_selections(
     }
 }
 
+fn capture_mouse(
+    mut commands: Commands,
+    window: Query<&Window, With<PrimaryWindow>>,
+    mut pick_settings: ResMut<PickingPluginsSettings>,
+) {
+    let Ok(window) = window.get_single() else {return;};
+    if let Some(Vec2 { x, .. }) = window.cursor_position() {
+        if x < window.width() / 6.0 {
+            pick_settings.is_enabled = false;
+            commands.remove_resource::<EnablePanOrbit>();
+        }
+    }
+}
+fn reset_ui_hover(mut commands: Commands, mut pick_settings: ResMut<PickingPluginsSettings>) {
+    commands.init_resource::<EnablePanOrbit>();
+    pick_settings.is_enabled = true;
+}
+
+#[derive(Default, Resource)]
+struct EnablePanOrbit;
+
 fn main() {
     let gcode = print_analyzer::read(
         //"../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
@@ -223,16 +246,25 @@ fn main() {
         .insert_resource(GCode(gcode))
         .add_systems(Startup, setup)
         .add_systems(
+            PreUpdate,
+            (capture_mouse.before(send_selection_events)).chain(),
+        )
+        .add_systems(
             Update,
             (
                 key_system,
                 ui_example_system,
-                pan_orbit_camera,
+                capture_mouse,
                 update_counts,
-                update_selections, //selection_query,
+                update_selections,
             )
                 .chain(),
         )
+        .add_systems(
+            Update,
+            pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
+        )
         .add_systems(Update, draw.run_if(resource_exists::<ForceRefresh>))
+        .add_systems(PostUpdate, reset_ui_hover)
         .run();
 }

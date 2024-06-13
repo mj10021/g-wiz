@@ -67,6 +67,7 @@ pub fn ui_example_system(
     }
     egui::SidePanel::new(egui::panel::Side::Left, "panel")
         .exact_width(panel_width)
+        .resizable(false)
         .show(contexts.ctx_mut(), |ui| {
             ui.label("world");
             ui.add_space(spacing);
