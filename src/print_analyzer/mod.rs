@@ -195,9 +195,6 @@ impl Vertex {
             }
         };
     }
-    pub fn is_extrusion(&self) -> bool {
-        self.label == Label::PlanarExtrustion || self.label == Label::NonPlanarExtrusion
-    }
     pub fn extrusion_move(&self) -> bool {
         self.label == Label::PlanarExtrustion || self.label == Label::NonPlanarExtrusion
     }
@@ -257,76 +254,69 @@ impl Parsed {
             }
         };
         assert!(lines.len() > 0);
-        // prev holds a raw mut pointer to the to position of the previous vertex
+        // previous vertex id
         let mut prev: Option<Uuid> = None;
         for line in lines {
-            // parse the line into a vec of words (currently storing the instruction numbers and paramters both as floats)
+            // parse the line into a vec of Word(char, f32, Option<String>)
             let mut line = file_reader::read_line(&line);
             if line.is_empty() {
                 continue;
             }
+            // reverse the vec to be able to pop from the first commands
             line.reverse();
-            // throw away logical line numbers
+            // start popping and matching the lines one by one
             let mut front = line.pop();
-            match front.clone() {
-                Some(Word('N', _, _)) => {
-                    front = line.pop();
-                }
-                Some(_) => {}
-                None => {} //panic!("popping empty line"),
+            // throw away logical line numbers
+            if let Some(Word('N', _, _)) = front {
+                front = line.pop();
             }
-            match front {
-                Some(Word(letter, number, params)) => {
-                    let num = number.round() as i32;
-                    match (letter, num) {
-                        ('G', 28) => {
-                            // if the homing node points to a previous extrusion move node, something is wrong
-                            assert!(prev.is_none(), "homing from previously homed state");
-                            let id = Uuid::new_v4();
-                            let vrtx = Vertex {
-                                id,
-                                count: 0,
-                                label: Label::Home,
-                                to: Pos::home(),
-                                prev: None,
-                            };
-                            parsed.vertices.insert(id.clone(), vrtx);
-                            prev = Some(id);
-                            parsed.lines.push(id);
-                        }
-                        ('G', 1) => {
-                            // if prev is None, it means no homing command has been read
-                            assert!(prev.is_some(), "g1 move from unhomed state");
-                            let g1 = G1::build(line);
-                            let vrtx = Vertex::build(&parsed, prev, g1);
-                            parsed.lines.push(vrtx.id);
-                            prev = Some(vrtx.id);
-                            parsed.vertices.insert(vrtx.id, vrtx);
-                        }
-                        ('G', 90) => {
-                            parsed.rel_xyz = false;
-                        }
-                        ('G', 91) => {
-                            parsed.rel_xyz = true;
-                        }
-                        ('M', 82) => {
-                            parsed.rel_e = false;
-                        }
-                        ('M', 83) => {
-                            parsed.rel_e = true;
-                        }
-                        _ => {
-                            let word = Word(letter, number, params);
-                            line.push(word);
-                            let id = Uuid::new_v4();
-                            let ins = Instruction::build(line);
-                            parsed.lines.push(id.clone());
-                            parsed.instructions.insert(id.clone(), ins);
-                        }
-                    }
+            let Word(letter, number, params) = front.unwrap();
+            // lines have already been checked for non integer word numbers
+            let num = number.round() as i32;
+            match (letter, num) {
+                ('G', 28) => {
+                    // if the homing node points to a previous extrusion move node, something is wrong
+                    assert!(prev.is_none(), "homing from previously homed state");
+                    let id = Uuid::new_v4();
+                    let vrtx = Vertex {
+                        id,
+                        count: 0,
+                        label: Label::Home,
+                        to: Pos::home(),
+                        prev: None,
+                    };
+                    parsed.vertices.insert(id.clone(), vrtx);
+                    prev = Some(id);
+                    parsed.lines.push(id);
+                }
+                ('G', 1) => {
+                    // if prev is None, it means no homing command has been read
+                    assert!(prev.is_some(), "g1 move from unhomed state");
+                    let g1 = G1::build(line);
+                    let vrtx = Vertex::build(&parsed, prev, g1);
+                    parsed.lines.push(vrtx.id);
+                    prev = Some(vrtx.id);
+                    parsed.vertices.insert(vrtx.id, vrtx);
+                }
+                ('G', 90) => {
+                    parsed.rel_xyz = false;
+                }
+                ('G', 91) => {
+                    parsed.rel_xyz = true;
+                }
+                ('M', 82) => {
+                    parsed.rel_e = false;
+                }
+                ('M', 83) => {
+                    parsed.rel_e = true;
                 }
                 _ => {
-                    panic!("{:?}", front);
+                    let word = Word(letter, number, params);
+                    line.push(word);
+                    let id = Uuid::new_v4();
+                    let ins = Instruction::build(line);
+                    parsed.lines.push(id.clone());
+                    parsed.instructions.insert(id.clone(), ins);
                 }
             }
         }

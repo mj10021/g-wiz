@@ -6,7 +6,7 @@ use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContext, EguiPlugin};
-use bevy_mod_picking::prelude::*;
+use bevy_mod_picking::{debug::PointerDebug, prelude::*};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Emit, Parsed, Pos};
@@ -34,7 +34,6 @@ fn draw(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut map: ResMut<IdMap>,
-    count: Res<VertexCounter>,
     gcode: Res<GCode>,
     cylinders: Query<Entity, With<Tag>>,
 ) {
@@ -143,10 +142,17 @@ fn setup(mut commands: Commands) {
         },
     ));
     commands.init_resource::<ForceRefresh>();
-
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
+}
+
+fn display_information(hover: Query<(&PickingInteraction, &Tag)>, gcode: Res<GCode>) {
+    for (interaction, tag) in hover.iter() {
+        if *interaction == PickingInteraction::Hovered {
+            let v = gcode.0.vertices.get(&tag.id).unwrap();
+        }
+    }
 }
 
 /// Update entity selection component state from pointer events.
@@ -264,8 +270,8 @@ fn update_visibilities(
 
 fn main() {
     let gcode = print_analyzer::read(
-        //"../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
-        "../print_analyzer/test.gcode",
+        "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
+        //"../print_analyzer/test.gcode",
         false,
     )
     .expect("failed to read");

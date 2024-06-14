@@ -180,10 +180,11 @@ pub fn ui_example_system(
                                 shapes.extend(&shape);
                             }
                             for vertex in shapes.iter() {
-                                let v = gcode.0.vertices.get_mut(vertex).unwrap();
-                                v.to.x += x;
-                                v.to.y += y;
-                                v.to.z += z;
+                                if let Some(v) = gcode.0.vertices.get_mut(vertex) {
+                                    v.to.x += x;
+                                    v.to.y += y;
+                                    v.to.z += z;
+                                }
                             }
                         }
                         Choice::Layer => {
