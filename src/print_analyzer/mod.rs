@@ -143,23 +143,33 @@ impl std::fmt::Debug for Vertex {
 
 impl Vertex {
     fn build(parsed: &mut Parsed, prev: Option<Id>, g1: G1) -> Vertex {
-        let (p, count, n) = {
-            if let Some(prev) = prev.clone() {
-                let prev = parsed.vertices.get(&prev).unwrap();
-                (prev.to.clone(), prev.count + 1, prev.next)
-            } else {
-                (Pos::home(), 0, None)
-            }
-        };
-        let mut vrtx = Vertex {
-            id: parsed.id_counter.get(),
-            count,
-            label: Label::Uninitialized,
-            to: Pos::build(&p, &g1),
-            prev,
-        };
-        vrtx.label(parsed);
-        vrtx
+        let id = parsed.id_counter.get();
+        if let Some(prev) = prev {
+            let p = parsed.vertices.get_mut(&prev).unwrap();
+            let mut vrtx = Vertex {
+                id,
+                count: p.count + 1,
+                label: Label::Uninitialized,
+                to: Pos::build(&p.to, &g1),
+                prev: Some(prev),
+                next: p.next,
+            };
+            p.next = Some(id);
+            vrtx.label(parsed);
+            return vrtx;
+
+        } else {
+            let mut vrtx = Vertex {
+                id,
+                count: 1,
+                label: Label::Uninitialized,
+                prev: None,
+                next: None,
+                to: Pos::home(),
+            };
+            vrtx.label(parsed);
+            return  vrtx;
+        }
     }
     pub fn get_from(&self, parsed: &Parsed) -> Pos {
         if let Some(prev) = self.prev.clone() {
@@ -299,6 +309,7 @@ impl Parsed {
                         label: Label::Home,
                         to: Pos::home(),
                         prev: None,
+                        next: None,
                     };
                     parsed.vertices.insert(id.clone(), vrtx);
                     prev = Some(id);
@@ -527,6 +538,8 @@ impl Parsed {
                     e: ef / countf,
                     f,
                 },
+                // FIXME!!!
+                next: None,
             };
             new.label(self);
             self.vertices.insert(new.id, new.clone());
