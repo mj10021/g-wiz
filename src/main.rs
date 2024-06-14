@@ -145,6 +145,7 @@ fn setup(mut commands: Commands) {
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
+
 }
 
 fn display_information(hover: Query<(&PickingInteraction, &Tag)>, gcode: Res<GCode>) {
@@ -263,7 +264,6 @@ fn update_visibilities(
                 *vis = Visibility::Visible;
             } else {
                 *vis = Visibility::Hidden;
-                return;
             }
         }
     }
@@ -291,7 +291,7 @@ fn main() {
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(GCode(gcode))
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, ui_setup))
         .add_systems(
             PreUpdate,
             (capture_mouse.before(send_selection_events)).chain(),
@@ -300,7 +300,7 @@ fn main() {
             Update,
             (
                 key_system,
-                ui_example_system,
+                ui_system,
                 capture_mouse,
                 update_selections,
                 update_visibilities,

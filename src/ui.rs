@@ -64,7 +64,15 @@ impl Default for VisibilitySelector {
     }
 }
 
-pub fn ui_example_system(
+pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
+    for (_, v) in gcode.0.vertices.iter() {
+        ui_res.display_z_max = ui_res.display_z_max.max(v.to.z);
+        ui_res.vertex_counter = ui_res.vertex_counter.max(v.count);
+        
+    }
+}
+
+pub fn ui_system(
     mut contexts: EguiContexts,
     mut commands: Commands,
     vertex: Res<VertexCounter>,
@@ -88,13 +96,6 @@ pub fn ui_example_system(
             selection.insert(id.id);
         }
     }
-    let max_print_height = {
-        let mut out: f32 = 0.0;
-        for (_, vertex) in gcode.0.vertices.iter() {
-            out = out.max(vertex.to.z);
-        }
-        out
-    };
     egui::SidePanel::new(egui::panel::Side::Left, "panel")
         .exact_width(panel_width)
         .resizable(false)
@@ -103,9 +104,11 @@ pub fn ui_example_system(
             ui.add_space(spacing);
             ui.add(egui::Slider::new(&mut ui_res.vertex_counter, 0..=max));
             ui.add_space(spacing);
-            ui.add(egui::Slider::new(&mut ui_res.display_z_max, 0.0..=max_print_height).vertical());
-            ui.add_space(spacing);
-            ui.add(egui::Slider::new(&mut ui_res.display_z_min, max_print_height..=0.0).vertical());           
+            let mx = ui_res.display_z_max;
+            ui.horizontal(|ui| {
+                ui.add(egui::Slider::new(&mut ui_res.display_z_max, 0.0..=mx).vertical().step_by(0.1));
+                ui.add(egui::Slider::new(&mut ui_res.display_z_min, mx..=0.0).vertical().step_by(0.1));        
+            });   
             let steps = [
                 (100, "<<<"),
                 (10, "<<"),
