@@ -157,7 +157,6 @@ impl Vertex {
             p.next = Some(id);
             vrtx.label(parsed);
             return vrtx;
-
         } else {
             let mut vrtx = Vertex {
                 id,
@@ -168,7 +167,7 @@ impl Vertex {
                 to: Pos::home(),
             };
             vrtx.label(parsed);
-            return  vrtx;
+            return vrtx;
         }
     }
     pub fn get_from(&self, parsed: &Parsed) -> Pos {
@@ -413,8 +412,6 @@ impl Parsed {
     }
     pub fn delete_lines(&mut self, lines_to_delete: &mut HashSet<Id>) {
         let mut temp = Vec::new();
-        let mut last_del: Option<Id> = None;
-        let mut last_del_prev: Option<Id> = None;
 
         for line in &self.lines {
             if lines_to_delete.is_empty() {
@@ -427,22 +424,30 @@ impl Parsed {
                     .vertices
                     .remove_entry(line)
                     .expect("removing non-existent vertex");
-                if last_del.is_none() {
-                    last_del = Some(line);
-                    last_del_prev = vertex.prev.clone();
-                }
-            } else {
-                if let Some(vertex) = self.vertices.get_mut(line) {
-                    if vertex.prev == last_del {
-                        vertex.prev = last_del_prev.clone();
-                        last_del = None;
-                        last_del_prev = None;
+                if let Some(n) = vertex.next {
+                    let n = self.vertices.get_mut(&n).unwrap();
+                    n.prev = {
+                        if let Some(p) = vertex.prev {
+                            Some(p)
+                        } else {
+                            None
+                        }
                     }
                 }
-                temp.push(line.clone());
+                if let Some(p) = vertex.prev {
+                    let p = self.vertices.get_mut(&p).unwrap();
+                    p.next = {
+                        if let Some(n) = vertex.next {
+                            Some(n)
+                        } else {
+                            None
+                        }
+                    }
+                }
+            } else {
+                temp.push(line);
             }
         }
-        self.lines = temp;
     }
 
     pub fn translate(&mut self, id: &Id, dx: f32, dy: f32, dz: f32) {

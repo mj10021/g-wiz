@@ -12,6 +12,7 @@ use picking_core::PickingPluginsSettings;
 use print_analyzer::{Emit, Id, Parsed, Pos};
 use selection::send_selection_events;
 use std::collections::HashMap;
+use std::env;
 use ui::*;
 
 #[derive(Default, Resource)]
@@ -268,12 +269,23 @@ fn update_visibilities(
 }
 
 fn main() {
-    let gcode = print_analyzer::read(
-        "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode",
-        //"../print_analyzer/test.gcode",
-        false,
-    )
-    .expect("failed to read");
+    let args: Vec<String> = env::args().collect();
+
+    // Check if a filename was provided
+    let filename: &str;
+    if args.len() < 2 {
+        println!("invalid file provided, opening test cube instead");
+        filename = "../print_analyzer/test.gcode";
+    } else {
+        let name = &args[1];
+        if name == "goblin" {
+            filename = "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode";
+        } else {
+            filename = name;
+        }
+    }
+
+    let gcode = print_analyzer::read(filename, false).expect("failed to read");
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .insert_resource(VertexCounter::build(&gcode))
