@@ -14,7 +14,8 @@ pub enum Choice {
 
 #[derive(Resource)]
 pub struct UiResource {
-    layer_counter: u32,
+    pub display_z_max: f32,
+    pub display_z_min: f32,
     pub vertex_counter: u32,
     pub selection_enum: Choice,
     subdivide_slider: f32,
@@ -28,7 +29,8 @@ pub struct UiResource {
 impl Default for UiResource {
     fn default() -> Self {
         UiResource {
-            layer_counter: 0,
+            display_z_max: 0.0,
+            display_z_min: 0.0,
             vertex_counter: 0,
             selection_enum: Choice::Vertex,
             subdivide_slider: 100.0,
@@ -66,7 +68,6 @@ pub fn ui_example_system(
     mut contexts: EguiContexts,
     mut commands: Commands,
     vertex: Res<VertexCounter>,
-    layer: Res<LayerCounter>,
     mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
     mut gcode: ResMut<GCode>,
@@ -81,13 +82,19 @@ pub fn ui_example_system(
     let height = window.height();
     let spacing = height / 50.0;
     let max = vertex.max;
-    let layer_max = layer.max;
     let mut selection = HashSet::new();
     for (pick, id) in s_query.iter() {
         if pick.is_selected {
             selection.insert(id.id);
         }
     }
+    let max_print_height = {
+        let mut out: f32 = 0.0;
+        for (_, vertex) in gcode.0.vertices.iter() {
+            out = out.max(vertex.to.z);
+        }
+        out
+    };
     egui::SidePanel::new(egui::panel::Side::Left, "panel")
         .exact_width(panel_width)
         .resizable(false)
@@ -96,7 +103,9 @@ pub fn ui_example_system(
             ui.add_space(spacing);
             ui.add(egui::Slider::new(&mut ui_res.vertex_counter, 0..=max));
             ui.add_space(spacing);
-            ui.add(egui::Slider::new(&mut ui_res.layer_counter, 0..=layer_max).vertical());
+            ui.add(egui::Slider::new(&mut ui_res.display_z_max, 0.0..=max_print_height).vertical());
+            ui.add_space(spacing);
+            ui.add(egui::Slider::new(&mut ui_res.display_z_min, max_print_height..=0.0).vertical());           
             let steps = [
                 (100, "<<<"),
                 (10, "<<"),
@@ -132,7 +141,7 @@ pub fn ui_example_system(
                     gcode.0.delete_lines(&mut selection);
                     commands.init_resource::<ForceRefresh>();
                 } else if ui.button("Hole Delete").clicked() {
-                    todo!();
+                    println!("todo!");
                 }
             });
             ui.add_space(spacing);
@@ -227,18 +236,7 @@ impl VertexCounter {
         }
     }
 }
-#[derive(Resource)]
-pub struct LayerCounter {
-    max: u32,
-}
 
-impl LayerCounter {
-    pub fn build(gcode: &Parsed) -> LayerCounter {
-        LayerCounter {
-            max: gcode.layers.len() as u32,
-        }
-    }
-}
 
 pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.pressed(KeyCode::ArrowLeft) {
@@ -246,8 +244,8 @@ pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>
     } else if keys.pressed(KeyCode::ArrowRight) {
         ui_res.vertex_counter += 1;
     } else if keys.pressed(KeyCode::ArrowUp) {
-        ui_res.layer_counter += 1;
+        ui_res.display_z_max += 0.2;
     } else if keys.pressed(KeyCode::ArrowDown) {
-        ui_res.layer_counter -= 1;
+        ui_res.display_z_max -= 0.2;
     }
 }

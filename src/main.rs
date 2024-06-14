@@ -259,10 +259,11 @@ fn update_visibilities(
                 }
                 _ => false,
             };
-            if count > v.count && selected {
+            if count > v.count && selected && v.to.z < ui_res.display_z_max && v.to.z > ui_res.display_z_min {
                 *vis = Visibility::Visible;
             } else {
                 *vis = Visibility::Hidden;
+                return;
             }
         }
     }
@@ -289,7 +290,6 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .insert_resource(VertexCounter::build(&gcode))
-        .insert_resource(LayerCounter::build(&gcode))
         .insert_resource(GCode(gcode))
         .add_systems(Startup, setup)
         .add_systems(
