@@ -1,9 +1,21 @@
 mod emit;
 mod file_reader;
-use crate::Uuid;
 pub use emit::Emit;
 use std::collections::{HashMap, HashSet};
 use std::f32::{EPSILON, NEG_INFINITY};
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct Id(u32);
+impl Id {
+    fn new() -> Self {
+        Id(0)
+    }
+    fn get(&mut self) -> Self {
+        let out = self.0;
+        self.0 += 1;
+        Id(out)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Word(pub char, pub f32, pub Option<String>);
@@ -112,11 +124,11 @@ fn pre_home(p: Pos) -> bool {
 }
 #[derive(Clone, PartialEq)]
 pub struct Vertex {
-    pub id: Uuid,
+    pub id: Id,
     pub count: u32,
     pub label: Label,
     // this id of previous extrusion move
-    pub prev: Option<Uuid>,
+    pub prev: Option<Id>,
     pub to: Pos,
 }
 impl std::fmt::Debug for Vertex {
@@ -129,7 +141,7 @@ impl std::fmt::Debug for Vertex {
 }
 
 impl Vertex {
-    fn build(parsed: &Parsed, prev: Option<Uuid>, g1: G1) -> Vertex {
+    fn build(parsed: &mut Parsed, prev: Option<Id>, g1: G1) -> Vertex {
         let (p, count) = {
             if let Some(prev) = prev.clone() {
                 let prev = parsed.vertices.get(&prev).unwrap();
@@ -139,7 +151,7 @@ impl Vertex {
             }
         };
         let mut vrtx = Vertex {
-            id: Uuid::new_v4(),
+            id: parsed.id_counter.get(),
             count,
             label: Label::Uninitialized,
             to: Pos::build(&p, &g1),
@@ -205,8 +217,8 @@ impl Vertex {
 
 #[derive(Debug, PartialEq)]
 pub struct Shape {
-    pub id: Uuid,
-    lines: Vec<Uuid>,
+    pub id: Id,
+    lines: Vec<Id>,
     layer: f32,
 }
 
@@ -224,13 +236,14 @@ impl Shape {
 
 #[derive(Debug, PartialEq)]
 pub struct Parsed {
-    pub lines: Vec<Uuid>,
-    pub vertices: HashMap<Uuid, Vertex>,
-    pub instructions: HashMap<Uuid, Instruction>,
+    pub lines: Vec<Id>,
+    pub vertices: HashMap<Id, Vertex>,
+    pub instructions: HashMap<Id, Instruction>,
     pub shapes: Vec<Shape>,
-    pub layers: Vec<HashSet<Uuid>>,
+    pub layers: Vec<HashSet<Id>>,
     pub rel_xyz: bool,
     pub rel_e: bool,
+    id_counter: Id,
 }
 impl Parsed {
     pub fn new() -> Parsed {
@@ -242,6 +255,7 @@ impl Parsed {
             layers: Vec::new(),
             rel_xyz: false,
             rel_e: true,
+            id_counter: Id::new(),
         }
     }
     pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
@@ -255,7 +269,7 @@ impl Parsed {
         };
         assert!(lines.len() > 0);
         // previous vertex id
-        let mut prev: Option<Uuid> = None;
+        let mut prev: Option<Id> = None;
         for line in lines {
             // parse the line into a vec of Word(char, f32, Option<String>)
             let mut line = file_reader::read_line(&line);
@@ -277,7 +291,7 @@ impl Parsed {
                 ('G', 28) => {
                     // if the homing node points to a previous extrusion move node, something is wrong
                     assert!(prev.is_none(), "homing from previously homed state");
-                    let id = Uuid::new_v4();
+                    let id = parsed.id_counter.get();
                     let vrtx = Vertex {
                         id,
                         count: 0,
@@ -293,7 +307,7 @@ impl Parsed {
                     // if prev is None, it means no homing command has been read
                     assert!(prev.is_some(), "g1 move from unhomed state");
                     let g1 = G1::build(line);
-                    let vrtx = Vertex::build(&parsed, prev, g1);
+                    let vrtx = Vertex::build(&mut parsed, prev, g1);
                     parsed.lines.push(vrtx.id);
                     prev = Some(vrtx.id);
                     parsed.vertices.insert(vrtx.id, vrtx);
@@ -313,7 +327,7 @@ impl Parsed {
                 _ => {
                     let word = Word(letter, number, params);
                     line.push(word);
-                    let id = Uuid::new_v4();
+                    let id = Id::new();
                     let ins = Instruction::build(line);
                     parsed.lines.push(id.clone());
                     parsed.instructions.insert(id.clone(), ins);
@@ -336,7 +350,7 @@ impl Parsed {
                 }
                 if vertex.change_move() {
                     let shape = Shape {
-                        id: Uuid::new_v4(),
+                        id: self.id_counter.get(),
                         lines: temp_shape,
                         layer,
                     };
@@ -352,7 +366,7 @@ impl Parsed {
         }
         if !temp_shape.is_empty() {
             let shape = Shape {
-                id: Uuid::new_v4(),
+                id: self.id_counter.get(),
                 lines: temp_shape,
                 layer,
             };
@@ -374,7 +388,7 @@ impl Parsed {
             temp.insert(shape.id);
         }
     }
-    fn dist_from_prev(&self, id: &Uuid) -> f32 {
+    fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self
             .vertices
             .get(id)
@@ -385,11 +399,10 @@ impl Parsed {
         let p = self.vertices.get(&v.prev.unwrap()).unwrap();
         p.to.dist(&v.to)
     }
-    // FIXME: need to write a test for this
-    pub fn delete_lines(&mut self, lines_to_delete: &mut HashSet<Uuid>) {
+    pub fn delete_lines(&mut self, lines_to_delete: &mut HashSet<Id>) {
         let mut temp = Vec::new();
-        let mut last_del: Option<Uuid> = None;
-        let mut last_del_prev: Option<Uuid> = None;
+        let mut last_del: Option<Id> = None;
+        let mut last_del_prev: Option<Id> = None;
 
         for line in &self.lines {
             if lines_to_delete.is_empty() {
@@ -420,8 +433,10 @@ impl Parsed {
         self.lines = temp;
     }
 
-    fn _translate(&mut self, id: &Uuid, dx: f32, dy: f32, dz: f32) {
-        let v = self.vertices.get(id).unwrap();
+    pub fn translate(&mut self, id: &Id, dx: f32, dy: f32, dz: f32) {
+        let Some(v) = self.vertices.get(id) else {
+            return;
+        }; // in case a non-vertex instruction is searched, do nothing
         if v.prev.is_none() {
             let v = self.vertices.get_mut(id).unwrap();
 
@@ -461,7 +476,7 @@ impl Parsed {
         let v = self.vertices.get_mut(id).unwrap();
         v.to.e = init_flow * scale;
     }
-    fn insert_lines_before(&mut self, mut lines: Vec<Uuid>, id: &Uuid) {
+    fn insert_lines_before(&mut self, mut lines: Vec<Id>, id: &Id) {
         let mut i = 0;
         for line in &self.lines {
             if line == id {
@@ -473,7 +488,7 @@ impl Parsed {
             self.lines.insert(i, lines.pop().unwrap());
         }
     }
-    fn subdivide_vertex(&mut self, id: &Uuid, count: u32) {
+    fn subdivide_vertex(&mut self, id: &Id, count: u32) {
         if count < 1 {
             return;
         }
@@ -500,7 +515,7 @@ impl Parsed {
         for i in 1..count {
             let i = i as f32;
             let mut new = Vertex {
-                id: Uuid::new_v4(),
+                id: self.id_counter.get(),
                 count: 0, //FIXME: duh
                 label: Label::Uninitialized,
                 prev,
@@ -540,7 +555,7 @@ impl Parsed {
         }
     }
 
-    pub fn get_shape(&self, vertex: &Uuid) -> Vec<Uuid> {
+    pub fn get_shape(&self, vertex: &Id) -> Vec<Id> {
         for shape in self.shapes.iter() {
             if shape.lines.contains(vertex) {
                 return shape.lines.clone();
@@ -548,7 +563,7 @@ impl Parsed {
         }
         Vec::new()
     }
-    pub fn get_layer(&self, vertex: &Uuid) -> HashSet<Uuid> {
+    pub fn get_layer(&self, vertex: &Id) -> HashSet<Id> {
         for layer in self.layers.iter() {
             if layer.contains(vertex) {
                 return layer.clone();
@@ -583,7 +598,7 @@ fn tran_test() {
     let mut gcode = read(test, true).expect("failed to parse");
     for line in gcode.lines.clone() {
         if gcode.vertices.contains_key(&line) {
-            gcode._translate(&line, 0.0, 1.0, 0.0);
+            gcode.translate(&line, 0.0, 1.0, 0.0);
         }
     }
 }
@@ -610,7 +625,7 @@ pub fn read(path: &str, raw_str: bool) -> Result<Parsed, Box<dyn std::error::Err
     Parsed::build(path, raw_str)
 }
 
-fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Uuid> {
+fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Id> {
     let mut out = HashSet::new();
     for line in &gcode.lines {
         if let Some(v) = gcode.vertices.get(line) {
@@ -623,7 +638,7 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Uuid> {
 }
 
 impl Parsed {
-    pub fn insert_before(&mut self, line: &String, _pos: &HashSet<Uuid>) {
+    pub fn insert_before(&mut self, line: &String, _pos: &HashSet<Id>) {
         let _line = file_reader::read_line(line);
 
         todo!();

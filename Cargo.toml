@@ -9,15 +9,6 @@ bevy_egui = "0.27.1"
 bevy_mod_picking = "0.18.2"
 egui = "0.27.2"
 
-[dependencies.uuid]
-version = "1.8.0"
-features = [
-    "v4",                # Lets you generate random UUIDs
-    "fast-rng",          # Use a faster (but still sufficiently random) RNG
-    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
-]
-
-
 # Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level = 1

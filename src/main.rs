@@ -6,17 +6,16 @@ use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContext, EguiPlugin};
-use bevy_mod_picking::{debug::PointerDebug, prelude::*};
+use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
-use print_analyzer::{Emit, Parsed, Pos};
+use print_analyzer::{Emit, Id, Parsed, Pos};
 use selection::send_selection_events;
 use std::collections::HashMap;
 use ui::*;
-use uuid::Uuid;
 
 #[derive(Default, Resource)]
-struct IdMap(HashMap<Uuid, Entity>);
+struct IdMap(HashMap<Id, Entity>);
 
 #[derive(Resource)]
 struct GCode(Parsed);
@@ -26,7 +25,7 @@ struct ForceRefresh;
 
 #[derive(Component)]
 struct Tag {
-    id: Uuid,
+    id: Id,
 }
 
 fn draw(

@@ -129,7 +129,8 @@ pub fn ui_example_system(
             ui.add_space(spacing);
             ui.horizontal(|ui| {
                 if ui.button("Merge Delete").clicked() {
-                    gcode.0.delete_lines(&mut selection)
+                    gcode.0.delete_lines(&mut selection);
+                    commands.init_resource::<ForceRefresh>();
                 } else if ui.button("Hole Delete").clicked() {
                     todo!();
                 }
@@ -167,10 +168,7 @@ pub fn ui_example_system(
                     match enu {
                         Choice::Vertex => {
                             for selection in &selection {
-                                let v = gcode.0.vertices.get_mut(selection).unwrap();
-                                v.to.x += x;
-                                v.to.y += y;
-                                v.to.z += z;
+                                gcode.0.translate(selection, x, y, z);
                             }
                         }
                         Choice::Shape => {
@@ -180,11 +178,7 @@ pub fn ui_example_system(
                                 shapes.extend(&shape);
                             }
                             for vertex in shapes.iter() {
-                                if let Some(v) = gcode.0.vertices.get_mut(vertex) {
-                                    v.to.x += x;
-                                    v.to.y += y;
-                                    v.to.z += z;
-                                }
+                                gcode.0.translate(vertex, x, y, z);
                             }
                         }
                         Choice::Layer => {
@@ -194,10 +188,7 @@ pub fn ui_example_system(
                                 layers.extend(&layer);
                             }
                             for vertex in layers.iter() {
-                                let v = gcode.0.vertices.get_mut(vertex).unwrap();
-                                v.to.x += x;
-                                v.to.y += y;
-                                v.to.z += z;
+                                gcode.0.translate(vertex, x, y, z);
                             }
                         }
                     }
