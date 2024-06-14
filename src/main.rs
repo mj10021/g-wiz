@@ -221,7 +221,8 @@ fn capture_mouse(
     mut pick_settings: ResMut<PickingPluginsSettings>,
     mut egui_context: Query<&mut EguiContext>,
 ) {
-    let width = egui_context.single_mut().get_mut().used_rect().width();
+    let Ok(mut width) = egui_context.get_single_mut() else {return;};
+    let width = width.get_mut().used_rect().width();
     let Ok(window) = window.get_single() else {
         return;
     };
@@ -291,7 +292,7 @@ fn main() {
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(GCode(gcode))
-        .add_systems(Startup, (setup, ui_setup))
+        .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(
             PreUpdate,
             (capture_mouse.before(send_selection_events)).chain(),
