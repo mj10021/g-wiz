@@ -129,6 +129,7 @@ pub struct Vertex {
     pub label: Label,
     // this id of previous extrusion move
     pub prev: Option<Id>,
+    pub next: Option<Id>,
     pub to: Pos,
 }
 impl std::fmt::Debug for Vertex {
@@ -142,12 +143,12 @@ impl std::fmt::Debug for Vertex {
 
 impl Vertex {
     fn build(parsed: &mut Parsed, prev: Option<Id>, g1: G1) -> Vertex {
-        let (p, count) = {
+        let (p, count, n) = {
             if let Some(prev) = prev.clone() {
                 let prev = parsed.vertices.get(&prev).unwrap();
-                (prev.to.clone(), prev.count + 1)
+                (prev.to.clone(), prev.count + 1, prev.next)
             } else {
-                (Pos::home(), 0)
+                (Pos::home(), 0, None)
             }
         };
         let mut vrtx = Vertex {
