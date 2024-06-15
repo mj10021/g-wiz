@@ -1,4 +1,4 @@
-use super::{Parsed, Id};
+use super::{Id, Parsed};
 use bevy::math::Vec3;
 use core::f32::consts::PI;
 trait Transform {
@@ -43,10 +43,7 @@ impl Parsed {
         v.to.y = y + origin.y;
         v.to.z = z + origin.z;
     }
-    fn rotate_vertices(&mut self, vertices:Vec<&Id>, theta: f32) {
-
-    }
-    fn scale(&mut self, vertex: &Id, origin: Vec3, scale: f32) {
+    pub fn scale(&mut self, vertex: &Id, origin: Vec3, scale: f32) {
         let v = self.vertices.get_mut(vertex).unwrap();
         v.to.x = origin.x + (v.to.x - origin.x) * scale;
         v.to.y = origin.y + (v.to.y - origin.y) * scale;

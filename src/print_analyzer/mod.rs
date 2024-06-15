@@ -43,13 +43,19 @@ impl Instruction {
     }
     pub fn insert_temp_retraction(gcode: &mut Parsed) -> Id {
         let id = gcode.id_counter.get();
-        let ins = Instruction {first_word: Word('X', NEG_INFINITY, Some(String::from("retraction"))), params: None};
+        let ins = Instruction {
+            first_word: Word('X', NEG_INFINITY, Some(String::from("retraction"))),
+            params: None,
+        };
         gcode.instructions.insert(id, ins);
         id
     }
     pub fn insert_temp_deretraction(gcode: &mut Parsed) -> Id {
         let id = gcode.id_counter.get();
-        let ins = Instruction {first_word: Word('X', NEG_INFINITY, Some(String::from("deretraction"))), params: None};
+        let ins = Instruction {
+            first_word: Word('X', NEG_INFINITY, Some(String::from("deretraction"))),
+            params: None,
+        };
         gcode.instructions.insert(id, ins);
         id
     }
@@ -403,7 +409,7 @@ impl Parsed {
             y += v.to.y;
             z += v.to.z;
         }
-        let mut out = Vec3{x, y, z};
+        let mut out = Vec3 { x, y, z };
         out = out / count;
         out
     }
@@ -427,9 +433,7 @@ impl Parsed {
             if lines_to_delete.contains(line) {
                 lines_to_delete.remove(line);
                 let (v_id, p, n) = {
-                    let vertex = self
-                        .vertices
-                        .get_mut(line).unwrap();
+                    let vertex = self.vertices.get_mut(line).unwrap();
                     vertex.to.e = 0.0;
                     vertex.label = Label::TravelMove;
                     (vertex.id, vertex.prev, vertex.next)
@@ -439,7 +443,9 @@ impl Parsed {
                 temp.push(retract);
                 temp.push(v_id);
                 temp.push(deretract);
-            } else {temp.push(*line)}
+            } else {
+                temp.push(*line)
+            }
         }
         self.lines = temp;
     }
@@ -625,6 +631,13 @@ impl Parsed {
         }
         out
     }
+    pub fn write_to_file(&self, path: &str) -> Result<(), std::io::Error> {
+        use std::fs::File;
+        let out = self.emit(&self, false);
+        let mut f = File::create(path)?;
+        f.write_all(&out.as_bytes())?;
+        Ok(())
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -705,8 +718,10 @@ impl Parsed {
 
 #[cfg(test)]
 use std::fs::File;
+use std::io::Write;
 
 use bevy::math::Vec3;
+use emit::Emit;
 #[test]
 fn import_emit_reemit() {
     use emit::Emit;

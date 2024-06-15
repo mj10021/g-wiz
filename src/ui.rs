@@ -74,7 +74,6 @@ pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     for (_, v) in gcode.0.vertices.iter() {
         ui_res.display_z_max.1 = ui_res.display_z_max.1.max(v.to.z);
         ui_res.vertex_counter = ui_res.vertex_counter.max(v.count);
-        
     }
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
@@ -105,153 +104,174 @@ pub fn ui_system(
         .exact_width(panel_width)
         .resizable(false)
         .show(contexts.ctx_mut(), |ui| {
-            ui.label("world");
-            ui.add_space(spacing);
-            ui.add(egui::Slider::new(&mut ui_res.vertex_counter, 0..=max));
-            ui.add_space(spacing);
-            let mx = ui_res.display_z_max.1;
-            ui.horizontal(|ui| {
-                ui.add(egui::Slider::new(&mut ui_res.display_z_max.0, 0.0..=mx).vertical().step_by(0.1));
-                ui.add(egui::Slider::new(&mut ui_res.display_z_min, mx..=0.0).vertical().step_by(0.1));        
-            });   
-            let steps = [
-                (100, "<<<"),
-                (10, "<<"),
-                (1, "<"),
-                (1, ">"),
-                (10, ">>"),
-                (100, ">>>"),
-            ];
-            let mut i = 0;
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                for (num, str) in steps {
-                    let neg = i < steps.len() / 2;
-                    if ui.button(str).clicked() {
-                        if neg {
-                            ui_res.vertex_counter -= num;
-                        } else {
-                            ui_res.vertex_counter += num;
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.label("world");
+                ui.add_space(spacing);
+                ui.add(egui::Slider::new(&mut ui_res.vertex_counter, 0..=max));
+                ui.add_space(spacing);
+                let mx = ui_res.display_z_max.1;
+                ui.horizontal(|ui| {
+                    ui.add(
+                        egui::Slider::new(&mut ui_res.display_z_max.0, 0.0..=mx)
+                            .vertical()
+                            .step_by(0.1),
+                    );
+                    ui.add(
+                        egui::Slider::new(&mut ui_res.display_z_min, mx..=0.0)
+                            .vertical()
+                            .step_by(0.1),
+                    );
+                });
+                let steps = [
+                    (100, "<<<"),
+                    (10, "<<"),
+                    (1, "<"),
+                    (1, ">"),
+                    (10, ">>"),
+                    (100, ">>>"),
+                ];
+                let mut i = 0;
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    for (num, str) in steps {
+                        let neg = i < steps.len() / 2;
+                        if ui.button(str).clicked() {
+                            if neg {
+                                ui_res.vertex_counter -= num;
+                            } else {
+                                ui_res.vertex_counter += num;
+                            }
                         }
+                        i += 1;
                     }
-                    i += 1;
-                }
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                ui.radio_value(&mut ui_res.selection_enum, Choice::Vertex, "Vertex");
-                ui.radio_value(&mut ui_res.selection_enum, Choice::Shape, "Shape");
-                ui.radio_value(&mut ui_res.selection_enum, Choice::Layer, "Layer");
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                if ui.button("Merge Delete").clicked() {
-                    gcode.0.merge_delete(&mut selection);
-                    commands.init_resource::<ForceRefresh>();
-                } else if ui.button("Hole Delete").clicked() {
-                    gcode.0.hole_delete(&mut selection);
-                    commands.init_resource::<ForceRefresh>();
-                }
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                let _response = ui.add(egui::Slider::new(&mut ui_res.subdivide_slider, 0.0..=30.0));
-                if ui.button("Subdivide to max distance").clicked() {
-                    gcode.0.subdivide_all(ui_res.subdivide_slider);
-                    commands.insert_resource(ForceRefresh);
-                }
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                let _ = ui.checkbox(&mut ui_res.vis_select.extrusion, "extrusion");
-                let _ = ui.checkbox(&mut ui_res.vis_select.travel, "travel");
-                let _ = ui.checkbox(&mut ui_res.vis_select.retraction, "retraction");
-                let _ = ui.checkbox(&mut ui_res.vis_select.wipe, "wipe");
-                let _ = ui.checkbox(&mut ui_res.vis_select.deretraction, "deretraction");
-                let _ = ui.checkbox(&mut ui_res.vis_select.preprint, "preprint");
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                let _response = ui.text_edit_singleline(&mut ui_res.translation_input);
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    ui.radio_value(&mut ui_res.selection_enum, Choice::Vertex, "Vertex");
+                    ui.radio_value(&mut ui_res.selection_enum, Choice::Shape, "Shape");
+                    ui.radio_value(&mut ui_res.selection_enum, Choice::Layer, "Layer");
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    if ui.button("Merge Delete").clicked() {
+                        gcode.0.merge_delete(&mut selection);
+                        commands.init_resource::<ForceRefresh>();
+                    } else if ui.button("Hole Delete").clicked() {
+                        gcode.0.hole_delete(&mut selection);
+                        commands.init_resource::<ForceRefresh>();
+                    }
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    let _response =
+                        ui.add(egui::Slider::new(&mut ui_res.subdivide_slider, 0.0..=30.0));
+                    if ui.button("Subdivide to max distance").clicked() {
+                        gcode.0.subdivide_all(ui_res.subdivide_slider);
+                        commands.insert_resource(ForceRefresh);
+                    }
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    let _ = ui.checkbox(&mut ui_res.vis_select.extrusion, "extrusion");
+                    let _ = ui.checkbox(&mut ui_res.vis_select.travel, "travel");
+                    let _ = ui.checkbox(&mut ui_res.vis_select.retraction, "retraction");
+                    let _ = ui.checkbox(&mut ui_res.vis_select.wipe, "wipe");
+                    let _ = ui.checkbox(&mut ui_res.vis_select.deretraction, "deretraction");
+                    let _ = ui.checkbox(&mut ui_res.vis_select.preprint, "preprint");
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    let _response = ui.text_edit_singleline(&mut ui_res.translation_input);
 
-                let enu = ui_res.selection_enum;
-                if ui.button("Translate").clicked() && !selection.is_empty() {
-                    if ui_res.translation_input.is_empty() {
-                        return;
-                    }
-                    let mut params = ui_res.translation_input.split_whitespace();
-                    let x = params.next().unwrap().parse::<f32>().unwrap();
-                    let y = params.next().unwrap().parse::<f32>().unwrap();
-                    let z = params.next().unwrap().parse::<f32>().unwrap();
-                    match enu {
-                        Choice::Vertex => {
-                            for selection in &selection {
-                                gcode.0.translate(selection, x, y, z);
+                    let enu = ui_res.selection_enum;
+                    if ui.button("Translate").clicked() && !selection.is_empty() {
+                        if ui_res.translation_input.is_empty() {
+                            return;
+                        }
+                        let mut params = ui_res.translation_input.split_whitespace();
+                        let x = params.next().unwrap().parse::<f32>().unwrap();
+                        let y = params.next().unwrap().parse::<f32>().unwrap();
+                        let z = params.next().unwrap().parse::<f32>().unwrap();
+                        match enu {
+                            Choice::Vertex => {
+                                for selection in &selection {
+                                    gcode.0.translate(selection, x, y, z);
+                                }
+                            }
+                            Choice::Shape => {
+                                let mut shapes = HashSet::new();
+                                for selection in &selection {
+                                    let shape = gcode.0.get_shape(selection);
+                                    shapes.extend(&shape);
+                                }
+                                for vertex in shapes.iter() {
+                                    gcode.0.translate(vertex, x, y, z);
+                                }
+                            }
+                            Choice::Layer => {
+                                let mut layers = HashSet::new();
+                                for selection in &selection {
+                                    let layer = gcode.0.get_same_z(selection);
+                                    layers.extend(&layer);
+                                }
+                                for vertex in layers.iter() {
+                                    gcode.0.translate(vertex, x, y, z);
+                                }
                             }
                         }
-                        Choice::Shape => {
-                            let mut shapes = HashSet::new();
-                            for selection in &selection {
-                                let shape = gcode.0.get_shape(selection);
-                                shapes.extend(&shape);
-                            }
-                            for vertex in shapes.iter() {
-                                gcode.0.translate(vertex, x, y, z);
-                            }
-                        }
-                        Choice::Layer => {
-                            let mut layers = HashSet::new();
-                            for selection in &selection {
-                                let layer = gcode.0.get_same_z(selection);
-                                layers.extend(&layer);
-                            }
-                            for vertex in layers.iter() {
-                                gcode.0.translate(vertex, x, y, z);
-                            }
-                        }
+                        commands.init_resource::<ForceRefresh>();
                     }
-                    commands.init_resource::<ForceRefresh>();
-                }
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                if ui.button("refresh").clicked() {
-                    commands.insert_resource(ForceRefresh);
-                }
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                let _response = ui.text_edit_singleline(&mut ui_res.insert_text);
-                if ui.button("Insert Before").clicked() {
-                    gcode.0.insert_before(&ui_res.insert_text, &selection)
-                }
-            });
-            ui.add_space(spacing);
-            ui.text_edit_multiline(&mut ui_res.gcode_emit)
-                .on_hover_text("enter custom gcode");
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                ui.add(egui::Slider::new(&mut ui_res.rotate_x, -180.0..=180.0).vertical());
-                ui.add(egui::Slider::new(&mut ui_res.rotate_y, -180.0..=180.0).vertical());
-                ui.add(egui::Slider::new(&mut ui_res.rotate_z, -180.0..=180.0).vertical());
-                if ui.button("Rotate").clicked() {
-                    let origin = gcode.0.get_centroid(&selection);
-                    for vertex in selection {
-                        gcode.0.rotate(&vertex, origin, ui_res.rotate_x, ui_res.rotate_y, ui_res.rotate_z);
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    if ui.button("refresh").clicked() {
+                        commands.insert_resource(ForceRefresh);
                     }
-                    commands.init_resource::<ForceRefresh>();
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    let _response = ui.text_edit_singleline(&mut ui_res.insert_text);
+                    if ui.button("Insert Before").clicked() {
+                        gcode.0.insert_before(&ui_res.insert_text, &selection)
+                    }
+                });
+                ui.add_space(spacing);
+                ui.text_edit_multiline(&mut ui_res.gcode_emit)
+                    .on_hover_text("enter custom gcode");
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    ui.add(egui::Slider::new(&mut ui_res.rotate_x, -180.0..=180.0).vertical());
+                    ui.add(egui::Slider::new(&mut ui_res.rotate_y, -180.0..=180.0).vertical());
+                    ui.add(egui::Slider::new(&mut ui_res.rotate_z, -180.0..=180.0).vertical());
+                    if ui.button("Rotate").clicked() {
+                        let origin = gcode.0.get_centroid(&selection);
+                        for vertex in &selection {
+                            gcode.0.rotate(
+                                vertex,
+                                origin,
+                                ui_res.rotate_x,
+                                ui_res.rotate_y,
+                                ui_res.rotate_z,
+                            );
+                        }
+                        commands.init_resource::<ForceRefresh>();
+                    }
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    ui.add(egui::Slider::new(&mut ui_res.scale, 0.1..=10.0));
+                    if ui.button("Scale").clicked() {
+                        let origin = gcode.0.get_centroid(&selection);
+                        for vertex in &selection {
+                            gcode.0.scale(vertex, origin, ui_res.scale);
+                        }
+                        commands.init_resource::<ForceRefresh>();
+                    }
+                });
+                if ui.button("Save").clicked() {
+                    let _ = gcode.0.write_to_file("./test_output.gcode");
                 }
-            });
-            ui.add_space(spacing);
-            ui.horizontal(|ui| {
-                ui.add(egui::Slider::new(&mut ui_res.scale, 0.1..=10.0));
-                if ui.button("Scale").clicked() {
-                    let origin = gcode.0.get_centroid(&selection);
-                }
-            });
-            if ui.button("Save").clicked() {
-
-            }
+            })
         });
 }
 
@@ -267,7 +287,6 @@ impl VertexCounter {
         }
     }
 }
-
 
 pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>>) {
     if keys.pressed(KeyCode::ArrowLeft) {

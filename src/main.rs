@@ -145,7 +145,6 @@ fn setup(mut commands: Commands) {
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
-
 }
 
 /// Update entity selection component state from pointer events.
@@ -213,7 +212,9 @@ fn capture_mouse(
     mut pick_settings: ResMut<PickingPluginsSettings>,
     mut egui_context: Query<&mut EguiContext>,
 ) {
-    let Ok(mut width) = egui_context.get_single_mut() else {return;};
+    let Ok(mut width) = egui_context.get_single_mut() else {
+        return;
+    };
     let width = width.get_mut().used_rect().width();
     let Ok(window) = window.get_single() else {
         return;
@@ -253,7 +254,11 @@ fn update_visibilities(
                 }
                 _ => false,
             };
-            if count > v.count && selected && v.to.z < ui_res.display_z_max.0 && v.to.z > ui_res.display_z_min {
+            if count > v.count
+                && selected
+                && v.to.z < ui_res.display_z_max.0
+                && v.to.z > ui_res.display_z_min
+            {
                 *vis = Visibility::Visible;
             } else {
                 *vis = Visibility::Hidden;
