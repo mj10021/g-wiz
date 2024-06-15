@@ -285,6 +285,9 @@ fn main() {
     }
 
     let gcode = print_analyzer::read(filename, false).expect("failed to read");
+    let _ = gcode.write_to_file("./test_output.gcode");
+    println!("save successful");
+    return;
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
         .insert_resource(VertexCounter::build(&gcode))
@@ -309,7 +312,7 @@ fn main() {
             Update,
             pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
         )
-        .add_systems(Update, draw.run_if(resource_exists::<ForceRefresh>))
+        //.add_systems(Update, draw.run_if(resource_exists::<ForceRefresh>))
         .add_systems(PostUpdate, reset_ui_hover)
         .run();
 }

@@ -1,4 +1,4 @@
-mod emit;
+pub mod emit;
 mod file_reader;
 mod transform;
 use std::collections::{HashMap, HashSet};
@@ -432,11 +432,11 @@ impl Parsed {
             }
             if lines_to_delete.contains(line) {
                 lines_to_delete.remove(line);
-                let (v_id, p, n) = {
+                let v_id = {
                     let vertex = self.vertices.get_mut(line).unwrap();
                     vertex.to.e = 0.0;
                     vertex.label = Label::TravelMove;
-                    (vertex.id, vertex.prev, vertex.next)
+                    vertex.id
                 };
                 let retract = Instruction::insert_temp_retraction(self);
                 let deretract = Instruction::insert_temp_deretraction(self);
@@ -636,6 +636,7 @@ impl Parsed {
         let out = self.emit(&self, false);
         let mut f = File::create(path)?;
         f.write_all(&out.as_bytes())?;
+        println!("save successful");
         Ok(())
     }
 }
@@ -726,7 +727,7 @@ use emit::Emit;
 fn import_emit_reemit() {
     use emit::Emit;
     use std::io::prelude::*;
-    let f = "test.gcode";
+    let f = "../print_analyzer/test.gcode";
     let p_init = read(f, false).expect("failed to parse gcode");
     let init = p_init.emit(&p_init, false);
     let mut f = File::create("test_output.gcode").expect("failed to create file");

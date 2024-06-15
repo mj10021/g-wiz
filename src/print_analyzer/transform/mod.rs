@@ -1,11 +1,7 @@
 use super::{Id, Parsed};
 use bevy::math::Vec3;
 use core::f32::consts::PI;
-trait Transform {
-    fn translate(parsed: &mut Parsed, vertex: &Id);
-    fn rotate(parsed: &mut Parsed, vertex: &Id);
-    fn scale(parsed: &mut Parsed, vertex: &Id);
-}
+
 
 impl Parsed {
     pub fn rotate(&mut self, vertex: &Id, origin: Vec3, angle_x: f32, angle_y: f32, angle_z: f32) {
