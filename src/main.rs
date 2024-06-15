@@ -253,7 +253,7 @@ fn update_visibilities(
                 }
                 _ => false,
             };
-            if count > v.count && selected && v.to.z < ui_res.display_z_max && v.to.z > ui_res.display_z_min {
+            if count > v.count && selected && v.to.z < ui_res.display_z_max.0 && v.to.z > ui_res.display_z_min {
                 *vis = Visibility::Visible;
             } else {
                 *vis = Visibility::Hidden;

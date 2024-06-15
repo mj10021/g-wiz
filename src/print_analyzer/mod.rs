@@ -1,5 +1,6 @@
 mod emit;
 mod file_reader;
+mod transform;
 use std::collections::{HashMap, HashSet};
 use std::f32::{EPSILON, NEG_INFINITY};
 
@@ -39,6 +40,18 @@ impl Instruction {
             first_word,
             params: Some(line),
         }
+    }
+    pub fn insert_temp_retraction(gcode: &mut Parsed) -> Id {
+        let id = gcode.id_counter.get();
+        let ins = Instruction {first_word: Word('X', NEG_INFINITY, Some(String::from("retraction"))), params: None};
+        gcode.instructions.insert(id, ins);
+        id
+    }
+    pub fn insert_temp_deretraction(gcode: &mut Parsed) -> Id {
+        let id = gcode.id_counter.get();
+        let ins = Instruction {first_word: Word('X', NEG_INFINITY, Some(String::from("deretraction"))), params: None};
+        gcode.instructions.insert(id, ins);
+        id
     }
 }
 
@@ -381,6 +394,19 @@ impl Parsed {
         }
         self.shapes = out;
     }
+    pub fn get_centroid(&self, vertices: &HashSet<Id>) -> Vec3 {
+        let (mut x, mut y, mut z, mut count) = (0.0, 0.0, 0.0, 0.0);
+        for vertex in vertices {
+            count += 1.0;
+            let v = self.vertices.get(vertex).unwrap();
+            x += v.to.x;
+            y += v.to.y;
+            z += v.to.z;
+        }
+        let mut out = Vec3{x, y, z};
+        out = out / count;
+        out
+    }
     fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self
             .vertices
@@ -392,7 +418,32 @@ impl Parsed {
         let p = self.vertices.get(&v.prev.unwrap()).unwrap();
         p.to.dist(&v.to)
     }
-    pub fn delete_lines(&mut self, lines_to_delete: &mut HashSet<Id>) {
+    pub fn hole_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
+        let mut temp = Vec::new();
+        for line in &self.lines.clone() {
+            if lines_to_delete.is_empty() {
+                break;
+            }
+            if lines_to_delete.contains(line) {
+                lines_to_delete.remove(line);
+                let (v_id, p, n) = {
+                    let vertex = self
+                        .vertices
+                        .get_mut(line).unwrap();
+                    vertex.to.e = 0.0;
+                    vertex.label = Label::TravelMove;
+                    (vertex.id, vertex.prev, vertex.next)
+                };
+                let retract = Instruction::insert_temp_retraction(self);
+                let deretract = Instruction::insert_temp_deretraction(self);
+                temp.push(retract);
+                temp.push(v_id);
+                temp.push(deretract);
+            } else {temp.push(*line)}
+        }
+        self.lines = temp;
+    }
+    pub fn merge_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
         let mut temp = Vec::new();
 
         for line in &self.lines {
@@ -654,6 +705,8 @@ impl Parsed {
 
 #[cfg(test)]
 use std::fs::File;
+
+use bevy::math::Vec3;
 #[test]
 fn import_emit_reemit() {
     use emit::Emit;

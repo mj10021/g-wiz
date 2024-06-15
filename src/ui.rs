@@ -14,7 +14,7 @@ pub enum Choice {
 
 #[derive(Resource)]
 pub struct UiResource {
-    pub display_z_max: f32,
+    pub display_z_max: (f32, f32),
     pub display_z_min: f32,
     pub vertex_counter: u32,
     pub selection_enum: Choice,
@@ -23,12 +23,16 @@ pub struct UiResource {
     insert_text: String,
     pub gcode_emit: String,
     pub vis_select: VisibilitySelector,
+    pub rotate_x: f32,
+    pub rotate_y: f32,
+    pub rotate_z: f32,
+    pub scale: f32,
 }
 
 impl Default for UiResource {
     fn default() -> Self {
         UiResource {
-            display_z_max: 0.0,
+            display_z_max: (0.0, 0.0),
             display_z_min: 0.0,
             vertex_counter: 0,
             selection_enum: Choice::Vertex,
@@ -37,6 +41,10 @@ impl Default for UiResource {
             insert_text: String::new(),
             gcode_emit: String::new(),
             vis_select: VisibilitySelector::default(),
+            rotate_x: 0.0,
+            rotate_y: 0.0,
+            rotate_z: 0.0,
+            scale: 1.0,
         }
     }
 }
@@ -64,10 +72,11 @@ impl Default for VisibilitySelector {
 
 pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     for (_, v) in gcode.0.vertices.iter() {
-        ui_res.display_z_max = ui_res.display_z_max.max(v.to.z);
+        ui_res.display_z_max.1 = ui_res.display_z_max.1.max(v.to.z);
         ui_res.vertex_counter = ui_res.vertex_counter.max(v.count);
         
     }
+    ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
 
 pub fn ui_system(
@@ -100,9 +109,9 @@ pub fn ui_system(
             ui.add_space(spacing);
             ui.add(egui::Slider::new(&mut ui_res.vertex_counter, 0..=max));
             ui.add_space(spacing);
-            let mx = ui_res.display_z_max;
+            let mx = ui_res.display_z_max.1;
             ui.horizontal(|ui| {
-                ui.add(egui::Slider::new(&mut ui_res.display_z_max, 0.0..=mx).vertical().step_by(0.1));
+                ui.add(egui::Slider::new(&mut ui_res.display_z_max.0, 0.0..=mx).vertical().step_by(0.1));
                 ui.add(egui::Slider::new(&mut ui_res.display_z_min, mx..=0.0).vertical().step_by(0.1));        
             });   
             let steps = [
@@ -137,10 +146,11 @@ pub fn ui_system(
             ui.add_space(spacing);
             ui.horizontal(|ui| {
                 if ui.button("Merge Delete").clicked() {
-                    gcode.0.delete_lines(&mut selection);
+                    gcode.0.merge_delete(&mut selection);
                     commands.init_resource::<ForceRefresh>();
                 } else if ui.button("Hole Delete").clicked() {
-                    println!("todo!");
+                    gcode.0.hole_delete(&mut selection);
+                    commands.init_resource::<ForceRefresh>();
                 }
             });
             ui.add_space(spacing);
@@ -220,6 +230,28 @@ pub fn ui_system(
             ui.text_edit_multiline(&mut ui_res.gcode_emit)
                 .on_hover_text("enter custom gcode");
             ui.add_space(spacing);
+            ui.horizontal(|ui| {
+                ui.add(egui::Slider::new(&mut ui_res.rotate_x, -180.0..=180.0).vertical());
+                ui.add(egui::Slider::new(&mut ui_res.rotate_y, -180.0..=180.0).vertical());
+                ui.add(egui::Slider::new(&mut ui_res.rotate_z, -180.0..=180.0).vertical());
+                if ui.button("Rotate").clicked() {
+                    let origin = gcode.0.get_centroid(&selection);
+                    for vertex in selection {
+                        gcode.0.rotate(&vertex, origin, ui_res.rotate_x, ui_res.rotate_y, ui_res.rotate_z);
+                    }
+                    commands.init_resource::<ForceRefresh>();
+                }
+            });
+            ui.add_space(spacing);
+            ui.horizontal(|ui| {
+                ui.add(egui::Slider::new(&mut ui_res.scale, 0.1..=10.0));
+                if ui.button("Scale").clicked() {
+                    let origin = gcode.0.get_centroid(&selection);
+                }
+            });
+            if ui.button("Save").clicked() {
+
+            }
         });
 }
 
@@ -243,8 +275,8 @@ pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>
     } else if keys.pressed(KeyCode::ArrowRight) {
         ui_res.vertex_counter += 1;
     } else if keys.pressed(KeyCode::ArrowUp) {
-        ui_res.display_z_max += 0.2;
+        ui_res.display_z_max.0 += 0.2;
     } else if keys.pressed(KeyCode::ArrowDown) {
-        ui_res.display_z_max -= 0.2;
+        ui_res.display_z_max.0 -= 0.2;
     }
 }
