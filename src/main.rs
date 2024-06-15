@@ -9,7 +9,7 @@ use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
-use print_analyzer::{Emit, Id, Parsed, Pos};
+use print_analyzer::{Id, Parsed, Pos};
 use selection::send_selection_events;
 use std::collections::HashMap;
 use std::env;
@@ -146,14 +146,6 @@ fn setup(mut commands: Commands) {
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
 
-}
-
-fn display_information(hover: Query<(&PickingInteraction, &Tag)>, gcode: Res<GCode>) {
-    for (interaction, tag) in hover.iter() {
-        if *interaction == PickingInteraction::Hovered {
-            let v = gcode.0.vertices.get(&tag.id).unwrap();
-        }
-    }
 }
 
 /// Update entity selection component state from pointer events.

@@ -1,6 +1,5 @@
 mod emit;
 mod file_reader;
-pub use emit::Emit;
 use std::collections::{HashMap, HashSet};
 use std::f32::{EPSILON, NEG_INFINITY};
 
@@ -420,7 +419,7 @@ impl Parsed {
             if lines_to_delete.contains(line) {
                 lines_to_delete.remove(line);
                 //  keep track of the prev node of the first vertex deleted in a block of verteces
-                let (line, vertex) = self
+                let (_, vertex) = self
                     .vertices
                     .remove_entry(line)
                     .expect("removing non-existent vertex");
@@ -672,6 +671,7 @@ impl Parsed {
 use std::fs::File;
 #[test]
 fn import_emit_reemit() {
+    use emit::Emit;
     use std::io::prelude::*;
     let f = "test.gcode";
     let p_init = read(f, false).expect("failed to parse gcode");
@@ -687,6 +687,7 @@ fn import_emit_reemit() {
 }
 #[test]
 fn specific_random_gcode_issue() {
+    use emit::Emit;
     use std::io::prelude::*;
     let gcode = "G28
     G1 X179 Y-2 F2400 
