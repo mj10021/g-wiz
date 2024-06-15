@@ -20,7 +20,6 @@ pub struct UiResource {
     pub selection_enum: Choice,
     subdivide_slider: f32,
     translation_input: String,
-    pub panel_size: (f32, f32),
     insert_text: String,
     pub gcode_emit: String,
     pub vis_select: VisibilitySelector,
@@ -35,7 +34,6 @@ impl Default for UiResource {
             selection_enum: Choice::Vertex,
             subdivide_slider: 100.0,
             translation_input: String::new(),
-            panel_size: (0.0, 0.0),
             insert_text: String::new(),
             gcode_emit: String::new(),
             vis_select: VisibilitySelector::default(),
@@ -85,8 +83,6 @@ pub fn ui_system(
         panic!();
     };
     let panel_width = window.width() / 6.0;
-    let height = window.height();
-    ui_res.panel_size = (panel_width, height);
     let height = window.height();
     let spacing = height / 50.0;
     let max = vertex.max;
@@ -196,7 +192,7 @@ pub fn ui_system(
                         Choice::Layer => {
                             let mut layers = HashSet::new();
                             for selection in &selection {
-                                let layer = gcode.0.get_layer(selection);
+                                let layer = gcode.0.get_same_z(selection);
                                 layers.extend(&layer);
                             }
                             for vertex in layers.iter() {

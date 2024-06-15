@@ -249,7 +249,6 @@ pub struct Parsed {
     pub vertices: HashMap<Id, Vertex>,
     pub instructions: HashMap<Id, Instruction>,
     pub shapes: Vec<Shape>,
-    pub layers: Vec<HashSet<Id>>,
     pub rel_xyz: bool,
     pub rel_e: bool,
     id_counter: Id,
@@ -261,7 +260,6 @@ impl Parsed {
             vertices: HashMap::new(),
             instructions: HashMap::new(),
             shapes: Vec::new(),
-            layers: Vec::new(),
             rel_xyz: false,
             rel_e: true,
             id_counter: Id::new(),
@@ -345,7 +343,6 @@ impl Parsed {
             }
         }
         parsed.assign_shapes();
-        parsed.assign_layers();
         Ok(parsed)
     }
 
@@ -383,20 +380,6 @@ impl Parsed {
             out.push(shape);
         }
         self.shapes = out;
-    }
-
-    fn assign_layers(&mut self) {
-        assert!(!self.shapes.is_empty(), "building layers with empty shapes");
-        let mut curr = self.shapes[0].layer;
-        let mut temp = HashSet::new();
-        for shape in &self.shapes {
-            if (shape.layer - curr).abs() > 0.0 - f32::EPSILON {
-                curr = shape.layer;
-                self.layers.push(temp);
-                temp = HashSet::new();
-            }
-            temp.insert(shape.id);
-        }
     }
     fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self
@@ -581,13 +564,15 @@ impl Parsed {
         }
         Vec::new()
     }
-    pub fn get_layer(&self, vertex: &Id) -> HashSet<Id> {
-        for layer in self.layers.iter() {
-            if layer.contains(vertex) {
-                return layer.clone();
+    pub fn get_same_z(&self, vertex: &Id) -> Vec<Id> {
+        let mut out = Vec::new();
+        let z = self.vertices.get(vertex).unwrap().to.z;
+        for (_, vertex) in self.vertices.iter() {
+            if (vertex.to.z - z).abs() < f32::EPSILON {
+                out.push(vertex.id);
             }
         }
-        HashSet::new()
+        out
     }
 }
 

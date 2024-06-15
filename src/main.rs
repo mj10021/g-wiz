@@ -175,7 +175,7 @@ fn update_selections(
                     }
                 }
             } else if select_type == Choice::Layer {
-                for id in gcode.0.get_layer(&id.id) {
+                for id in gcode.0.get_same_z(&id.id) {
                     let entity = map.0.get(&id).unwrap();
                     let (mut select_me, _) =
                         selectables.get_mut(*entity).expect("entity not found");
@@ -196,7 +196,7 @@ fn update_selections(
                     deselect_me.is_selected = false;
                 }
             } else if select_type == Choice::Layer {
-                for id in gcode.0.get_layer(&id.id) {
+                for id in gcode.0.get_same_z(&id.id) {
                     let entity = map.0.get(&id).unwrap();
                     let (mut deselect_me, _) =
                         selectables.get_mut(*entity).expect("entity not found");
