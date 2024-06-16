@@ -41,7 +41,7 @@ impl Instruction {
     pub fn insert_temp_retraction(gcode: &mut Parsed) -> Id {
         let id = gcode.id_counter.get();
         let ins = Instruction {
-            first_word: Word('X', NEG_INFINITY, Some(String::from("retraction"))),
+            first_word: Word('X', NEG_INFINITY, Some(String::from("; retraction"))),
             params: None,
         };
         gcode.instructions.insert(id, ins);
@@ -50,7 +50,7 @@ impl Instruction {
     pub fn insert_temp_deretraction(gcode: &mut Parsed) -> Id {
         let id = gcode.id_counter.get();
         let ins = Instruction {
-            first_word: Word('X', NEG_INFINITY, Some(String::from("deretraction"))),
+            first_word: Word('X', NEG_INFINITY, Some(String::from("; deretraction"))),
             params: None,
         };
         gcode.instructions.insert(id, ins);
