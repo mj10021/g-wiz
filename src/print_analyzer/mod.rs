@@ -7,9 +7,6 @@ use std::f32::{EPSILON, NEG_INFINITY};
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Id(u32);
 impl Id {
-    fn new() -> Self {
-        Id(0)
-    }
     fn get(&mut self) -> Self {
         let out = self.0;
         self.0 += 1;
@@ -268,7 +265,7 @@ impl Parsed {
             shapes: Vec::new(),
             rel_xyz: false,
             rel_e: true,
-            id_counter: Id::new(),
+            id_counter: Id(0),
         }
     }
     pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
