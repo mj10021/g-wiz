@@ -307,6 +307,7 @@ fn main() {
                 update_selections,
                 update_visibilities,
                 update_selection_log,
+                update_selections
             )
                 .chain(),
         )
