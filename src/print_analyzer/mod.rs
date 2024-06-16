@@ -131,7 +131,11 @@ impl Pos {
     }
 }
 fn pre_home(p: Pos) -> bool {
-    if p.x == f32::NEG_INFINITY || p.y == f32::NEG_INFINITY || p.z == f32::NEG_INFINITY || p.e == f32::NEG_INFINITY {
+    if p.x == f32::NEG_INFINITY
+        || p.y == f32::NEG_INFINITY
+        || p.z == f32::NEG_INFINITY
+        || p.e == f32::NEG_INFINITY
+    {
         return true;
     }
     false
@@ -393,10 +397,7 @@ impl Parsed {
         out
     }
     fn dist_from_prev(&self, id: &Id) -> f32 {
-        let v = self
-            .vertices
-            .get(id)
-            .expect("vertex not found in map");
+        let v = self.vertices.get(id).expect("vertex not found in map");
         if v.prev.is_none() {
             return 0.0;
         }
@@ -672,7 +673,6 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Id> {
     }
     out
 }
-
 
 // fn insert_before(feature)
 // fn modify(feature)

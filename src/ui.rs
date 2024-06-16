@@ -4,6 +4,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use bevy_mod_picking::selection::PickSelection;
 use std::collections::HashSet;
+use super::diff::SelectionLog;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Choice {
@@ -279,7 +280,7 @@ impl VertexCounter {
     }
 }
 
-pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>>) {
+pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>>, mut log: ResMut<SelectionLog>) {
     if keys.pressed(KeyCode::ArrowLeft) {
         ui_res.vertex_counter -= 1;
     } else if keys.pressed(KeyCode::ArrowRight) {
@@ -288,5 +289,17 @@ pub fn key_system(mut ui_res: ResMut<UiResource>, keys: Res<ButtonInput<KeyCode>
         ui_res.display_z_max.0 += 0.2;
     } else if keys.pressed(KeyCode::ArrowDown) {
         ui_res.display_z_max.0 -= 0.2;
+    } else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft])
+        && keys.just_pressed(KeyCode::KeyZ)  && !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight])
+    {
+        if log.history_counter as usize == log.log.len() {
+            return;
+        }
+        log.history_counter += 1;
+    } else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft])
+    && keys.just_pressed(KeyCode::KeyZ) && keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
+        if log.history_counter == 0 {return;}
+        log.history_counter -= 1;
+        println!("{}", log.history_counter);
     }
 }

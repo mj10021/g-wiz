@@ -29,7 +29,7 @@ pub fn split_line(line: &str) -> Vec<Word> {
             if let Ok(num) = slice.collect::<String>().parse::<f32>() {
                 out.push(Word(letter, num, None));
             } else {
-                return Vec::from([Word('X', f32::NEG_INFINITY, Some(line.to_owned()))])
+                return Vec::from([Word('X', f32::NEG_INFINITY, Some(line.to_owned()))]);
             }
         }
     }
