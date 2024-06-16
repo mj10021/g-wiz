@@ -337,7 +337,7 @@ impl Parsed {
                 _ => {
                     let word = Word(letter, number, params);
                     line.push(word);
-                    let id = Id::new();
+                    let id = parsed.id_counter.get();
                     let ins = Instruction::build(line);
                     parsed.lines.push(id.clone());
                     parsed.instructions.insert(id.clone(), ins);
