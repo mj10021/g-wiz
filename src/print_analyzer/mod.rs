@@ -403,6 +403,7 @@ impl Parsed {
         let p = self.vertices.get(&v.prev.unwrap()).unwrap();
         p.to.dist(&v.to)
     }
+    // FIXME: this doesn't really work
     pub fn hole_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
         let mut temp = Vec::new();
         for line in &self.lines.clone() {
@@ -444,23 +445,11 @@ impl Parsed {
                     .expect("removing non-existent vertex");
                 if let Some(n) = vertex.next {
                     let n = self.vertices.get_mut(&n).unwrap();
-                    n.prev = {
-                        if let Some(p) = vertex.prev {
-                            Some(p)
-                        } else {
-                            None
-                        }
-                    }
+                    n.prev = vertex.prev;
                 }
                 if let Some(p) = vertex.prev {
                     let p = self.vertices.get_mut(&p).unwrap();
-                    p.next = {
-                        if let Some(n) = vertex.next {
-                            Some(n)
-                        } else {
-                            None
-                        }
-                    }
+                    p.next = vertex.next;
                 }
             } else {
                 temp.push(line);
@@ -519,8 +508,8 @@ impl Parsed {
             }
             i += 1;
         }
-        while lines.len() > 0 {
-            self.lines.insert(i, lines.pop().unwrap());
+        while let Some(line) = lines.pop() {
+            self.lines.insert(i, line);
         }
     }
     fn subdivide_vertex(&mut self, id: &Id, count: u32) {
@@ -572,7 +561,7 @@ impl Parsed {
         }
         // FIXME: this does not seem efficient
         for id in &new_ids {
-            prev = Some(id.clone());
+            prev = Some(*id);
         }
         self.insert_lines_before(new_ids, id);
         let v = self.vertices.get_mut(id).unwrap();
@@ -583,7 +572,7 @@ impl Parsed {
         // FIXME: this is probably dumb
         let mut v = Vec::new();
         for key in self.vertices.keys() {
-            v.push(key.clone());
+            v.push(*key);
         }
         for line in &v {
             let dist = self.dist_from_prev(line);
@@ -612,9 +601,9 @@ impl Parsed {
     }
     pub fn write_to_file(&self, path: &str) -> Result<(), std::io::Error> {
         use std::fs::File;
-        let out = self.emit(&self, false);
+        let out = self.emit(self, false);
         let mut f = File::create(path)?;
-        f.write_all(&out.as_bytes())?;
+        f.write_all(out.as_bytes())?;
         println!("save successful");
         Ok(())
     }
@@ -704,12 +693,12 @@ fn import_emit_reemit() {
     let p_init = read(f, false).expect("failed to parse gcode");
     let init = p_init.emit(&p_init, false);
     let mut f = File::create("test_output.gcode").expect("failed to create file");
-    let _ = f.write_all(&init.as_bytes());
+    let _ = f.write_all(init.as_bytes());
     let snd = read("test_output.gcode", false).expect("asdf");
     let snd = snd.emit(&snd, false);
     let snd = read(&snd, true).expect("failed to parse reemitted file");
     let mut f = File::create("test_output2.gcode").expect("failed to create file");
-    let _ = f.write_all(&snd.emit(&snd, false).as_bytes());
+    let _ = f.write_all(snd.emit(&snd, false).as_bytes());
     // assert_eq!(p_init, snd);
 }
 #[test]
@@ -747,5 +736,5 @@ fn specific_random_gcode_issue() {
     G1 X87 Y83 E13";
     let gcode = read(gcode, true).expect("asf");
     let mut f = File::create("asdf_test.gcode").expect("failed to create file");
-    let _ = f.write_all(&gcode.emit(&gcode, false).as_bytes());
+    let _ = f.write_all(gcode.emit(&gcode, false).as_bytes());
 }
