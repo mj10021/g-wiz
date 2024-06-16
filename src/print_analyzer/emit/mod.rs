@@ -99,7 +99,6 @@ impl Emit for Parsed {
             } else {
                 out += &self.instructions.get(line).unwrap().emit(self, debug);
             }
-            //out += "\n";
         }
         out
     }
@@ -109,7 +108,7 @@ impl Emit for Parsed {
 fn debug() {
     use std::fs::File;
     use std::io::prelude::*;
-    let gcode = Parsed::build("test.gcode", false).expect("");
+    let gcode = Parsed::build("../print_analyzer/test.gcode", false).expect("");
     let gcode = gcode.emit(&gcode, true);
     let mut f = File::create("test_debug_output.gcode").expect("failed to create file");
     let _ = f.write_all(&gcode.as_bytes());

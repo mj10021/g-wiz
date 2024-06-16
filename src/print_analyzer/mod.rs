@@ -160,33 +160,20 @@ impl std::fmt::Debug for Vertex {
 }
 
 impl Vertex {
-    fn build(parsed: &mut Parsed, prev: Option<Id>, g1: G1) -> Vertex {
+    fn build(parsed: &mut Parsed, prev: &Id, g1: G1) -> Vertex {
         let id = parsed.id_counter.get();
-        if let Some(prev) = prev {
-            let p = parsed.vertices.get_mut(&prev).unwrap();
-            let mut vrtx = Vertex {
-                id,
-                count: p.count + 1,
-                label: Label::Uninitialized,
-                to: Pos::build(&p.to, &g1),
-                prev: Some(prev),
-                next: p.next,
-            };
-            p.next = Some(id);
-            vrtx.label(parsed);
-            return vrtx;
-        } else {
-            let mut vrtx = Vertex {
-                id,
-                count: 1,
-                label: Label::Uninitialized,
-                prev: None,
-                next: None,
-                to: Pos::home(),
-            };
-            vrtx.label(parsed);
-            return vrtx;
-        }
+        let p = parsed.vertices.get_mut(prev).unwrap();
+        let mut vrtx = Vertex {
+            id,
+            count: p.count + 1,
+            label: Label::Uninitialized,
+            to: Pos::build(&p.to, &g1),
+            prev: Some(prev.clone()),
+            next: p.next,
+        };
+        p.next = Some(id);
+        vrtx.label(parsed);
+        return vrtx;
     }
     pub fn get_from(&self, parsed: &Parsed) -> Pos {
         if let Some(prev) = self.prev.clone() {
@@ -298,18 +285,14 @@ impl Parsed {
         let mut prev: Option<Id> = None;
         for line in lines {
             // parse the line into a vec of Word(char, f32, Option<String>)
-            let mut line = file_reader::read_line(&line);
+            let mut line = file_reader::split_line(&line);
             if line.is_empty() {
                 continue;
             }
             // reverse the vec to be able to pop from the first commands
             line.reverse();
-            // start popping and matching the lines one by one
-            let mut front = line.pop();
-            // throw away logical line numbers
-            if let Some(Word('N', _, _)) = front {
-                front = line.pop();
-            }
+            // match the first word from the line
+            let front = line.pop();
             let Word(letter, number, params) = front.unwrap();
             // lines have already been checked for non integer word numbers
             let num = number.round() as i32;
@@ -326,15 +309,15 @@ impl Parsed {
                         prev: None,
                         next: None,
                     };
-                    parsed.vertices.insert(id.clone(), vrtx);
+                    parsed.vertices.insert(id, vrtx);
                     prev = Some(id);
                     parsed.lines.push(id);
                 }
                 ('G', 1) => {
                     // if prev is None, it means no homing command has been read
-                    assert!(prev.is_some(), "g1 move from unhomed state");
+                    let p = prev.expect("g1 move from unhomed state");
                     let g1 = G1::build(line);
-                    let vrtx = Vertex::build(&mut parsed, prev, g1);
+                    let vrtx = Vertex::build(&mut parsed, &p, g1);
                     parsed.lines.push(vrtx.id);
                     prev = Some(vrtx.id);
                     parsed.vertices.insert(vrtx.id, vrtx);
@@ -705,13 +688,7 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Id> {
     out
 }
 
-impl Parsed {
-    pub fn insert_before(&mut self, line: &String, _pos: &HashSet<Id>) {
-        let _line = file_reader::read_line(line);
 
-        todo!();
-    }
-}
 // fn insert_before(feature)
 // fn modify(feature)
 // fn replace_with(feature, gcode_sequence)

@@ -2,7 +2,6 @@ use super::{Id, Parsed};
 use bevy::math::Vec3;
 use core::f32::consts::PI;
 
-
 impl Parsed {
     pub fn rotate(&mut self, vertex: &Id, origin: Vec3, angle_x: f32, angle_y: f32, angle_z: f32) {
         let v = self.vertices.get_mut(vertex).unwrap();

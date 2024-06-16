@@ -229,13 +229,6 @@ pub fn ui_system(
                     }
                 });
                 ui.add_space(spacing);
-                ui.horizontal(|ui| {
-                    let _response = ui.text_edit_singleline(&mut ui_res.insert_text);
-                    if ui.button("Insert Before").clicked() {
-                        gcode.0.insert_before(&ui_res.insert_text, &selection)
-                    }
-                });
-                ui.add_space(spacing);
                 ui.text_edit_multiline(&mut ui_res.gcode_emit)
                     .on_hover_text("enter custom gcode");
                 ui.add_space(spacing);

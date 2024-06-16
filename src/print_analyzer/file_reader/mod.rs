@@ -19,56 +19,27 @@ pub fn parse_str(str: &str) -> Vec<String> {
         .collect()
 }
 
-fn split_line(line: &str) -> Vec<Word> {
+pub fn split_line(line: &str) -> Vec<Word> {
     let mut out = Vec::new();
     let mut words = line.split_whitespace();
-    while let Some(words) = words.next() {
-        let mut slice = words.chars();
+    while let Some(word) = words.next() {
+        let mut slice = word.chars();
         if let Some(letter) = slice.nth(0) {
             assert!(letter.is_ascii_alphabetic());
-            out.push(Word(
-                letter,
-                slice.collect::<String>().parse::<f32>().unwrap(),
-                None,
-            ));
+            if let Ok(num) = slice.collect::<String>().parse::<f32>() {
+                out.push(Word(letter, num, None));
+            } else {
+                return Vec::from([Word('X', NEG_INFINITY, Some(line.to_owned()))])
+            }
         }
+    }
+    match out[0] {
+        Word('N', ..) => {
+            out.reverse();
+            out.pop();
+            out.reverse();
+        }
+        _ => {}
     }
     out
-}
-
-pub fn read_line(line: &str) -> Vec<Word> {
-    // here i rly want to check if there is a character that doesn't make sense
-    // and just pass the raw string through if that's the case
-    let mut out = Vec::new();
-    let words = line.split_whitespace();
-    let mut valid = true;
-    let mut first = true;
-    for word in words {
-        let mut chars = word.chars();
-        if let Some(letter) = chars.next() {
-            if let Ok(num) = chars.collect::<String>().parse::<f32>() {
-                // FIXME: this needs to be only first word
-                if first && (num % 1.0).abs() > EPSILON {
-                    valid = false;
-                } else {
-                    out.push(Word(letter, num, None));
-                }
-            } else {
-                valid = false;
-            }
-        } else {
-            valid = false;
-        }
-        first = false;
-    }
-    if !valid {
-        if line.len() > 1 {
-            let word = Word('X', NEG_INFINITY, Some(line.to_owned()));
-            return Vec::from([word]);
-        } else {
-            let word = Word('X', NEG_INFINITY, None);
-            return Vec::from([word]);
-        }
-    }
-    split_line(line)
 }
