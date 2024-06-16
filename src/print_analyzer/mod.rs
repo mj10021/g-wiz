@@ -26,7 +26,7 @@ impl Instruction {
     fn build(mut line: Vec<Word>) -> Instruction {
         let first_word = line.pop().unwrap();
         line.reverse();
-        if line.len() < 1 {
+        if line.is_empty() {
             return Instruction {
                 first_word,
                 params: None,
@@ -43,7 +43,7 @@ impl Instruction {
             first_word: Word('X', f32::NEG_INFINITY, Some(String::from("; retraction"))),
             params: None,
         };
-        gcode.instructions.insert(id, ins);
+        assert!(gcode.instructions.insert(id, ins).is_none());
         id
     }
     pub fn insert_temp_deretraction(gcode: &mut Parsed) -> Id {
@@ -52,7 +52,7 @@ impl Instruction {
             first_word: Word('X', f32::NEG_INFINITY, Some(String::from("; deretraction"))),
             params: None,
         };
-        gcode.instructions.insert(id, ins);
+        assert!(gcode.instructions.insert(id, ins).is_none());
         id
     }
 }
@@ -164,16 +164,16 @@ impl Vertex {
             count: p.count + 1,
             label: Label::Uninitialized,
             to: Pos::build(&p.to, &g1),
-            prev: Some(prev.clone()),
+            prev: Some(*prev),
             next: p.next,
         };
         p.next = Some(id);
         vrtx.label(parsed);
-        return vrtx;
+        vrtx
     }
     pub fn get_from(&self, parsed: &Parsed) -> Pos {
-        if let Some(prev) = self.prev.clone() {
-            parsed.vertices.get(&prev).unwrap().to.clone()
+        if let Some(prev) = self.prev {
+            parsed.vertices.get(&prev).unwrap().to
         } else {
             Pos::home()
         }
@@ -276,7 +276,7 @@ impl Parsed {
                 file_reader::parse_str(path)
             }
         };
-        assert!(lines.len() > 0);
+        assert!(!lines.is_empty());
         // previous vertex id
         let mut prev: Option<Id> = None;
         for line in lines {
@@ -305,7 +305,7 @@ impl Parsed {
                         prev: None,
                         next: None,
                     };
-                    parsed.vertices.insert(id, vrtx);
+                    assert!(parsed.vertices.insert(id, vrtx).is_none());
                     prev = Some(id);
                     parsed.lines.push(id);
                 }
@@ -316,7 +316,7 @@ impl Parsed {
                     let vrtx = Vertex::build(&mut parsed, &p, g1);
                     parsed.lines.push(vrtx.id);
                     prev = Some(vrtx.id);
-                    parsed.vertices.insert(vrtx.id, vrtx);
+                    assert!(parsed.vertices.insert(vrtx.id, vrtx).is_none());
                 }
                 ('G', 90) => {
                     parsed.rel_xyz = false;
@@ -335,8 +335,8 @@ impl Parsed {
                     line.push(word);
                     let id = parsed.id_counter.get();
                     let ins = Instruction::build(line);
-                    parsed.lines.push(id.clone());
-                    parsed.instructions.insert(id.clone(), ins);
+                    parsed.lines.push(id);
+                    assert!(parsed.instructions.insert(id, ins).is_none());
                 }
             }
         }
@@ -349,7 +349,7 @@ impl Parsed {
         let mut temp_shape = Vec::new();
         let mut layer = -1.0;
         for line in &self.lines {
-            if let Some(vertex) = self.vertices.get(&line) {
+            if let Some(vertex) = self.vertices.get(line) {
                 if vertex.extrusion_move() {
                     layer = vertex.to.z;
                 }
@@ -363,10 +363,10 @@ impl Parsed {
                     temp_shape = Vec::new();
                     layer = -1.0;
                 } else {
-                    temp_shape.push(line.clone());
+                    temp_shape.push(*line);
                 }
             } else {
-                temp_shape.push(line.clone());
+                temp_shape.push(*line);
             }
         }
         if !temp_shape.is_empty() {
@@ -389,14 +389,14 @@ impl Parsed {
             z += v.to.z;
         }
         let mut out = Vec3 { x, y, z };
-        out = out / count;
+        out /= count;
         out
     }
     fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self
             .vertices
             .get(id)
-            .expect(&format!("vertex with id: {:?} not found in map", id));
+            .expect("vertex not found in map");
         if v.prev.is_none() {
             return 0.0;
         }
@@ -677,7 +677,7 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Id> {
     for line in &gcode.lines {
         if let Some(v) = gcode.vertices.get(line) {
             if f(v) {
-                out.insert(v.id.clone());
+                out.insert(v.id);
             }
         }
     }
