@@ -102,7 +102,7 @@ fn draw(
                     ..Default::default()
                 },
                 PickableBundle::default(),
-                Tag { id: id.clone() },
+                Tag { id: *id },
             ))
             .id();
         commands.spawn((
@@ -115,9 +115,9 @@ fn draw(
                 },
                 ..Default::default()
             },
-            Tag { id: id.clone() },
+            Tag { id: *id },
         ));
-        map.0.insert(id.clone(), e_id);
+        map.0.insert(*id, e_id);
     }
     commands.remove_resource::<ForceRefresh>();
 }

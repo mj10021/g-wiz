@@ -2,7 +2,6 @@ pub mod emit;
 mod file_reader;
 mod transform;
 use std::collections::{HashMap, HashSet};
-use std::f32::{EPSILON, NEG_INFINITY};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Id(u32);
@@ -41,7 +40,7 @@ impl Instruction {
     pub fn insert_temp_retraction(gcode: &mut Parsed) -> Id {
         let id = gcode.id_counter.get();
         let ins = Instruction {
-            first_word: Word('X', NEG_INFINITY, Some(String::from("; retraction"))),
+            first_word: Word('X', f32::NEG_INFINITY, Some(String::from("; retraction"))),
             params: None,
         };
         gcode.instructions.insert(id, ins);
@@ -50,7 +49,7 @@ impl Instruction {
     pub fn insert_temp_deretraction(gcode: &mut Parsed) -> Id {
         let id = gcode.id_counter.get();
         let ins = Instruction {
-            first_word: Word('X', NEG_INFINITY, Some(String::from("; deretraction"))),
+            first_word: Word('X', f32::NEG_INFINITY, Some(String::from("; deretraction"))),
             params: None,
         };
         gcode.instructions.insert(id, ins);
@@ -112,7 +111,7 @@ impl Pos {
             y: 0.0,
             z: 0.0,
             e: 0.0,
-            f: NEG_INFINITY, // this will not emit if a feedrate is never set
+            f: f32::NEG_INFINITY, // this will not emit if a feedrate is never set
         }
     }
     pub fn build(prev: &Pos, g1: &G1) -> Pos {
@@ -132,7 +131,7 @@ impl Pos {
     }
 }
 fn pre_home(p: Pos) -> bool {
-    if p.x == NEG_INFINITY || p.y == NEG_INFINITY || p.z == NEG_INFINITY || p.e == NEG_INFINITY {
+    if p.x == f32::NEG_INFINITY || p.y == f32::NEG_INFINITY || p.z == f32::NEG_INFINITY || p.e == f32::NEG_INFINITY {
         return true;
     }
     false
@@ -189,7 +188,7 @@ impl Vertex {
             if self.to.x < 5.0 || self.to.y < 5.0 {
                 Label::PrePrintMove
             } else if de > 0.0 {
-                if dx.abs() + dy.abs() > 0.0 - EPSILON {
+                if dx.abs() + dy.abs() > 0.0 - f32::EPSILON {
                     if dz.abs() > f32::EPSILON {
                         Label::NonPlanarExtrusion
                     } else {
@@ -198,19 +197,19 @@ impl Vertex {
                 } else {
                     Label::DeRetraction
                 }
-            } else if dz.abs() > EPSILON {
+            } else if dz.abs() > f32::EPSILON {
                 if dz < 0.0 {
                     Label::LowerZ
                 } else {
                     Label::LiftZ
                 }
-            } else if de.abs() > EPSILON {
-                if dx.abs() + dy.abs() > EPSILON {
+            } else if de.abs() > f32::EPSILON {
+                if dx.abs() + dy.abs() > f32::EPSILON {
                     Label::Wipe
                 } else {
                     Label::Retraction
                 }
-            } else if dx.abs() + dy.abs() > EPSILON {
+            } else if dx.abs() + dy.abs() > f32::EPSILON {
                 Label::TravelMove
             } else if from.f != self.to.f {
                 Label::FeedrateChangeOnly
