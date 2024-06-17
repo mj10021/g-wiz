@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
-use diff::update_selection_log;
+use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed, Pos};
@@ -26,7 +26,7 @@ struct GCode(Parsed);
 #[derive(Default, Resource)]
 struct ForceRefresh;
 
-#[derive(Component, PartialEq, Copy, Clone, Hash, Eq)]
+#[derive(Component, PartialEq, Copy, Clone, Hash, Eq, Debug)]
 struct Tag {
     id: Id,
 }
@@ -147,7 +147,7 @@ fn setup(mut commands: Commands) {
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
-    commands.init_resource::<diff::SelectionLog>()
+    commands.init_resource::<SelectionLog>()
 }
 #[derive(Default, Resource, Clone, PartialEq, Hash)]
 struct Selection(Vec<Tag>);
@@ -299,15 +299,19 @@ fn main() {
             (capture_mouse.before(send_selection_events)).chain(),
         )
         .add_systems(
+            PreUpdate,
+            (update_selection_log, undo_redo_selections)
+                .chain()
+                .run_if(resource_exists::<SetSelections>),
+        )
+
+        .add_systems(
             Update,
             (
                 key_system,
                 ui_system,
-                capture_mouse,
                 update_selections,
                 update_visibilities,
-                update_selection_log,
-                update_selections
             )
                 .chain(),
         )
