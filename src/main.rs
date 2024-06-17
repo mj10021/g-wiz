@@ -294,17 +294,13 @@ fn main() {
         .insert_resource(VertexCounter::build(&gcode))
         .insert_resource(GCode(gcode))
         .add_systems(Startup, (setup, ui_setup).chain())
+        .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(
-            PreUpdate,
-            (capture_mouse.before(send_selection_events)).chain(),
+            PostUpdate,
+            undo_redo_selections
+                .run_if(resource_exists::<SetSelections>)
+                .after(send_selection_events),
         )
-        .add_systems(
-            PreUpdate,
-            (update_selection_log, undo_redo_selections)
-                .chain()
-                .run_if(resource_exists::<SetSelections>),
-        )
-
         .add_systems(
             Update,
             (
@@ -312,6 +308,7 @@ fn main() {
                 ui_system,
                 update_selections,
                 update_visibilities,
+                update_selection_log,
             )
                 .chain(),
         )

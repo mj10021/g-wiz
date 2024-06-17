@@ -1,5 +1,5 @@
 [package]
-name = "visual_gcode_editor"
+name = "g-wiz"
 version = "0.1.0"
 edition = "2021"
 

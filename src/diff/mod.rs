@@ -1,10 +1,7 @@
+use super::{Resource, Tag};
 use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
 use std::collections::HashSet;
-
-use crate::ForceRefresh;
-
-use super::{Resource, Tag};
 
 #[derive(Default, Resource, Debug)]
 pub struct SelectionLog {
@@ -32,21 +29,25 @@ impl SelectionDiff {
             assert!(curr.remove(elem));
         }
     }
-    fn is_some(&self) -> bool {
-        !self.add.is_empty() || !self.sub.is_empty()
+    fn is_none(&self) -> bool {
+        self.add.is_empty() && self.sub.is_empty()
     }
 }
 #[derive(Resource, Default)]
 pub struct SetSelections;
-pub fn update_selection_log(mut commands: Commands, s_query: Query<(&PickSelection, &Tag)>, mut log: ResMut<SelectionLog>) {
+pub fn update_selection_log(
+    mut commands: Commands,
+    s_query: Query<(&PickSelection, &Tag)>,
+    mut log: ResMut<SelectionLog>,
+) {
     let new_set = s_query
         .iter()
         .filter(|(s, _)| s.is_selected)
         .map(|(_, t)| *t)
         .collect::<HashSet<Tag>>();
     let diff = SelectionDiff::diff(&log.curr, &new_set);
-    if !diff.is_some() {
-        return
+    if diff.is_none() {
+        return;
     }
     // if log.history_counter > 0 {
     //     log.log = Vec::new();
@@ -55,11 +56,16 @@ pub fn update_selection_log(mut commands: Commands, s_query: Query<(&PickSelecti
     log.curr = new_set;
     log.log.push(diff);
     commands.init_resource::<SetSelections>()
-
 }
 
-pub fn undo_redo_selections(mut s_query: Query<(&mut PickSelection, &Tag)>, mut log: ResMut<SelectionLog>) {
-    if log.update_counter == log.history_counter{return;}
+pub fn undo_redo_selections(
+    mut commands: Commands,
+    mut s_query: Query<(&mut PickSelection, &Tag)>,
+    mut log: ResMut<SelectionLog>,
+) {
+    if log.update_counter == log.history_counter {
+        return;
+    }
     if log.history_counter == 0 {
         return;
     }
@@ -75,4 +81,5 @@ pub fn undo_redo_selections(mut s_query: Query<(&mut PickSelection, &Tag)>, mut 
         s.is_selected = curr.contains(i);
     }
     log.update_counter = log.history_counter;
+    commands.remove_resource::<SetSelections>()
 }

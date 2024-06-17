@@ -2053,6 +2053,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "g-wiz"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_egui",
+ "bevy_mod_picking",
+ "egui",
+]
+
+[[package]]
 name = "gethostname"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3896,16 +3906,6 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
-
-[[package]]
-name = "visual_gcode_editor"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_egui",
- "bevy_mod_picking",
- "egui",
-]
 
 [[package]]
 name = "walkdir"
