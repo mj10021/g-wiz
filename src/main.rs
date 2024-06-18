@@ -1,21 +1,23 @@
 mod diff;
 mod pan_orbit;
 mod print_analyzer;
+mod render;
 mod ui;
+mod select;
 
-use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed, Pos};
+use render::*;
 use selection::send_selection_events;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
+use select::*;
 
 #[derive(Default, Resource)]
 struct IdMap(HashMap<Id, Entity>);
@@ -29,99 +31,6 @@ struct ForceRefresh;
 #[derive(Component, PartialEq, Copy, Clone, Hash, Eq, Debug)]
 struct Tag {
     id: Id,
-}
-
-fn draw(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut map: ResMut<IdMap>,
-    gcode: Res<GCode>,
-    cylinders: Query<Entity, With<Tag>>,
-) {
-    for cylinder in cylinders.iter() {
-        commands.entity(cylinder).despawn();
-    }
-    let gcode = &gcode.0;
-
-    for (id, vertex) in gcode.vertices.iter() {
-        let Pos {
-            x: xf,
-            y: yf,
-            z: zf,
-            ..
-        } = vertex.to;
-        let (xi, yi, zi) = {
-            if let Some(prev) = vertex.prev {
-                let p = gcode.vertices.get(&prev).unwrap();
-                (p.to.x, p.to.y, p.to.z)
-            } else {
-                (0.0, 0.0, 0.0)
-            }
-        };
-
-        let start = Vec3::new(xi, yi, zi);
-        let end = Vec3::new(xf, yf, zf);
-
-        // Create a cylinder mesh
-        let radius = 0.05;
-        let length = start.distance(end);
-        let cylinder = Cylinder {
-            radius,
-            half_height: length / 2.0,
-        };
-        let sphere = Sphere {
-            radius: radius * 1.618,
-        };
-
-        // Create the mesh and material
-        let mesh_handle = meshes.add(cylinder);
-        let sphere = meshes.add(sphere);
-        let material_handle = materials.add(StandardMaterial {
-            base_color: Color::ORANGE_RED,
-            ..Default::default()
-        });
-        let material_handle2 = materials.add(StandardMaterial {
-            base_color: Color::BLUE,
-            ..Default::default()
-        });
-
-        // Calculate the middle point and orientation of the cylinder
-        let middle = (start + end) / 2.0;
-        let direction = end - start;
-        let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
-        // Add the cylinder to the scene
-        let e_id = commands
-            .spawn((
-                PbrBundle {
-                    mesh: mesh_handle,
-                    material: material_handle,
-                    transform: Transform {
-                        translation: middle,
-                        rotation,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-                PickableBundle::default(),
-                Tag { id: *id },
-            ))
-            .id();
-        commands.spawn((
-            PbrBundle {
-                mesh: sphere,
-                material: material_handle2,
-                transform: Transform {
-                    translation: end,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            Tag { id: *id },
-        ));
-        map.0.insert(*id, e_id);
-    }
-    commands.remove_resource::<ForceRefresh>();
 }
 
 fn setup(mut commands: Commands) {
@@ -149,128 +58,6 @@ fn setup(mut commands: Commands) {
     commands.init_resource::<EnablePanOrbit>();
     commands.init_resource::<SelectionLog>()
 }
-#[derive(Default, Resource, Clone, PartialEq, Hash)]
-struct Selection(Vec<Tag>);
-/// Update entity selection component state from pointer events.
-fn update_selections(
-    mut selectables: Query<(&mut PickSelection, &Tag)>,
-    select_type: Res<UiResource>,
-    mut selections: EventReader<Pointer<Select>>,
-    mut deselections: EventReader<Pointer<Deselect>>,
-    gcode: Res<GCode>,
-    map: Res<IdMap>,
-) {
-    let select_type = select_type.selection_enum;
-    if select_type == Choice::Vertex {
-        return;
-    }
-    for selection in selections.read() {
-        if let Ok((_, id)) = selectables.get_mut(selection.target) {
-            if select_type == Choice::Shape {
-                for id in gcode.0.get_shape(&id.id) {
-                    let Some(entity) = map.0.get(&id) else {
-                        continue;
-                    };
-                    {
-                        let (mut select_me, _) =
-                            selectables.get_mut(*entity).expect("entity not found");
-                        select_me.is_selected = true;
-                    }
-                }
-            } else if select_type == Choice::Layer {
-                for id in gcode.0.get_same_z(&id.id) {
-                    let entity = map.0.get(&id).unwrap();
-                    let (mut select_me, _) =
-                        selectables.get_mut(*entity).expect("entity not found");
-                    select_me.is_selected = true;
-                }
-            }
-        }
-    }
-    for deselection in deselections.read() {
-        if let Ok((_, id)) = selectables.get_mut(deselection.target) {
-            if select_type == Choice::Shape {
-                for id in gcode.0.get_shape(&id.id) {
-                    let Some(entity) = map.0.get(&id) else {
-                        continue;
-                    };
-                    let (mut deselect_me, _) =
-                        selectables.get_mut(*entity).expect("entity not found");
-                    deselect_me.is_selected = false;
-                }
-            } else if select_type == Choice::Layer {
-                for id in gcode.0.get_same_z(&id.id) {
-                    let entity = map.0.get(&id).unwrap();
-                    let (mut deselect_me, _) =
-                        selectables.get_mut(*entity).expect("entity not found");
-                    deselect_me.is_selected = false;
-                }
-            }
-        }
-    }
-}
-
-fn capture_mouse(
-    mut commands: Commands,
-    window: Query<&Window, With<PrimaryWindow>>,
-    mut pick_settings: ResMut<PickingPluginsSettings>,
-    mut egui_context: Query<&mut EguiContext>,
-) {
-    let Ok(mut width) = egui_context.get_single_mut() else {
-        return;
-    };
-    let width = width.get_mut().used_rect().width();
-    let Ok(window) = window.get_single() else {
-        return;
-    };
-    if let Some(Vec2 { x, .. }) = window.cursor_position() {
-        if x < width {
-            pick_settings.is_enabled = false;
-            commands.remove_resource::<EnablePanOrbit>();
-        }
-    }
-}
-fn reset_ui_hover(mut commands: Commands, mut pick_settings: ResMut<PickingPluginsSettings>) {
-    commands.init_resource::<EnablePanOrbit>();
-    pick_settings.is_enabled = true;
-}
-
-#[derive(Default, Resource)]
-struct EnablePanOrbit;
-
-fn update_visibilities(
-    mut entity_query: Query<(&Tag, &mut Visibility)>,
-    ui_res: Res<UiResource>,
-    gcode: Res<GCode>,
-) {
-    let count = ui_res.vertex_counter;
-    for (tag, mut vis) in entity_query.iter_mut() {
-        if let Some(v) = gcode.0.vertices.get(&tag.id) {
-            let selected = match v.label {
-                print_analyzer::Label::PrePrintMove => ui_res.vis_select.preprint,
-                print_analyzer::Label::PlanarExtrustion
-                | print_analyzer::Label::NonPlanarExtrusion => ui_res.vis_select.extrusion,
-                print_analyzer::Label::Retraction => ui_res.vis_select.retraction,
-                print_analyzer::Label::DeRetraction => ui_res.vis_select.deretraction,
-                print_analyzer::Label::Wipe => ui_res.vis_select.wipe,
-                print_analyzer::Label::LiftZ | print_analyzer::Label::TravelMove => {
-                    ui_res.vis_select.travel
-                }
-                _ => false,
-            };
-            if count > v.count
-                && selected
-                && v.to.z < ui_res.display_z_max.0
-                && v.to.z > ui_res.display_z_min
-            {
-                *vis = Visibility::Visible;
-            } else {
-                *vis = Visibility::Hidden;
-            }
-        }
-    }
-}
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -296,7 +83,7 @@ fn main() {
         .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(
-            PostUpdate,
+            Update,
             undo_redo_selections
                 .run_if(resource_exists::<SetSelections>)
                 .after(send_selection_events),
@@ -308,7 +95,6 @@ fn main() {
                 ui_system,
                 update_selections,
                 update_visibilities,
-                update_selection_log,
             )
                 .chain(),
         )
@@ -316,7 +102,7 @@ fn main() {
             Update,
             pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
         )
-        .add_systems(Update, draw.run_if(resource_exists::<ForceRefresh>))
-        .add_systems(PostUpdate, reset_ui_hover)
+        .add_systems(Update, render.run_if(resource_exists::<ForceRefresh>))
+        .add_systems(PostUpdate, (reset_ui_hover, update_selection_log))
         .run();
 }

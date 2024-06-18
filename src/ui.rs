@@ -3,7 +3,7 @@ use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
-use bevy_mod_picking::selection::PickSelection;
+use super::{PickSelection, PickingPluginsSettings, EguiContext};
 use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -314,3 +314,33 @@ pub fn key_system(
         commands.init_resource::<SetSelections>();
     }
 }
+
+pub fn capture_mouse(
+    mut commands: Commands,
+    window: Query<&Window, With<PrimaryWindow>>,
+    mut pick_settings: ResMut<PickingPluginsSettings>,
+    mut egui_context: Query<&mut EguiContext>,
+) {
+    let Ok(mut width) = egui_context.get_single_mut() else {
+        return;
+    };
+    let width = width.get_mut().used_rect().width();
+    let Ok(window) = window.get_single() else {
+        return;
+    };
+    if let Some(Vec2 { x, .. }) = window.cursor_position() {
+        if x < width {
+            pick_settings.is_enabled = false;
+            commands.remove_resource::<EnablePanOrbit>();
+        }
+    }
+}
+pub fn reset_ui_hover(mut commands: Commands, mut pick_settings: ResMut<PickingPluginsSettings>) {
+    commands.init_resource::<EnablePanOrbit>();
+    pick_settings.is_enabled = true;
+}
+
+#[derive(Default, Resource)]
+pub struct EnablePanOrbit;
+
+

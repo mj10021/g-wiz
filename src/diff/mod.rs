@@ -79,8 +79,8 @@ pub fn undo_redo_selections(
     }
     // ctrl+shift+z
     while log.curr_counter > log.history_counter {
-            let diff = log.log[log.log.len() - log.curr_counter as usize].clone();
-            diff.forward_apply(&mut log.curr);
+        let diff = log.log[log.log.len() - log.curr_counter as usize].clone();
+        diff.forward_apply(&mut log.curr);
         log.curr_counter -= 1;
         updated = true;
     }
