@@ -8,7 +8,7 @@ pub struct SelectionLog {
     curr: HashSet<Tag>,
     pub log: Vec<SelectionDiff>,
     pub history_counter: u32,
-    update_counter: u32,
+    curr_counter: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -23,9 +23,15 @@ impl SelectionDiff {
         let add = next.difference(curr).copied().collect::<HashSet<_>>();
         SelectionDiff { add, sub }
     }
-    fn apply(curr: &mut HashSet<Tag>, diff: SelectionDiff) {
-        curr.extend(diff.add);
-        for elem in diff.sub.iter() {
+    fn forward_apply(&self, curr: &mut HashSet<Tag>) {
+        curr.extend(self.add.clone());
+        for elem in self.sub.iter() {
+            assert!(curr.remove(elem));
+        }
+    }
+    fn reverse_apply(&self, curr: &mut HashSet<Tag>) {
+        curr.extend(self.sub.clone());
+        for elem in self.add.iter() {
             assert!(curr.remove(elem));
         }
     }
@@ -63,23 +69,25 @@ pub fn undo_redo_selections(
     mut s_query: Query<(&mut PickSelection, &Tag)>,
     mut log: ResMut<SelectionLog>,
 ) {
-    if log.update_counter == log.history_counter {
-        return;
+    let mut updated = false;
+    // ctrl+z
+    while log.curr_counter < log.history_counter {
+        let diff = log.log[log.log.len() - log.curr_counter as usize - 1].clone();
+        diff.reverse_apply(&mut log.curr);
+        log.curr_counter += 1;
+        updated = true;
     }
-    if log.history_counter == 0 {
-        return;
+    // ctrl+shift+z
+    while log.curr_counter > log.history_counter {
+            let diff = log.log[log.log.len() - log.curr_counter as usize].clone();
+            diff.forward_apply(&mut log.curr);
+        log.curr_counter -= 1;
+        updated = true;
     }
-    log.log.reverse();
-    let mut curr = log.curr.clone();
-    for i in 0..log.history_counter as usize {
-        SelectionDiff::apply(&mut curr, log.log[i].clone());
-        println!("{:?}", log);
+    if updated {
+        for (mut s, i) in s_query.iter_mut() {
+            s.is_selected = log.curr.contains(i);
+        }
     }
-    log.log.reverse();
-
-    for (mut s, i) in s_query.iter_mut() {
-        s.is_selected = curr.contains(i);
-    }
-    log.update_counter = log.history_counter;
     commands.remove_resource::<SetSelections>()
 }
