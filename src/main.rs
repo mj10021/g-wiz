@@ -2,8 +2,8 @@ mod diff;
 mod pan_orbit;
 mod print_analyzer;
 mod render;
-mod ui;
 mod select;
+mod ui;
 
 use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
@@ -13,11 +13,11 @@ use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed, Pos};
 use render::*;
+use select::*;
 use selection::send_selection_events;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
-use select::*;
 
 #[derive(Default, Resource)]
 struct IdMap(HashMap<Id, Entity>);

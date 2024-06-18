@@ -26,13 +26,19 @@ impl SelectionDiff {
     fn forward_apply(&self, curr: &mut HashSet<Tag>) {
         curr.extend(self.add.clone());
         for elem in self.sub.iter() {
-            assert!(curr.remove(elem));
+            let dbg = !(curr.remove(elem));
+            if dbg {
+                println!("{:#?}\r\n\r\n{:#?}", self, curr);
+            }
         }
     }
     fn reverse_apply(&self, curr: &mut HashSet<Tag>) {
         curr.extend(self.sub.clone());
         for elem in self.add.iter() {
-            assert!(curr.remove(elem));
+            let dbg = !(curr.remove(elem));
+            if dbg {
+                println!("{:#?}\r\n\r\n{:#?}", self, curr);
+            }
         }
     }
     fn is_none(&self) -> bool {
@@ -57,12 +63,12 @@ pub fn update_selection_log(
     }
     // if a new selection is made in the middle of the history, clear the history after the current selection
     // FIXME: this is wrong
-    // if log.curr_counter != log.history_counter {
-    //     let split =  log.log.len() - log.curr_counter as usize;
-    //     log.log.truncate(split);
-    //     log.history_counter = 0;
-    //     log.curr_counter = 0;
-    // }
+    if log.curr_counter != log.history_counter {
+        let split = log.log.len() - log.curr_counter as usize;
+        log.log.truncate(split);
+        log.history_counter = 0;
+        log.curr_counter = 0;
+    }
     log.curr = new_set;
     log.log.push(diff);
     commands.init_resource::<SetSelections>()

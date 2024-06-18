@@ -1,7 +1,6 @@
+use super::{Choice, GCode, IdMap, PickSelection, Tag, UiResource};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-use super::{Tag, PickSelection, UiResource, GCode, IdMap, Choice};
-
 
 #[derive(Default, Resource, Clone, PartialEq, Hash)]
 struct Selection(Vec<Tag>);
@@ -63,4 +62,3 @@ pub fn update_selections(
         }
     }
 }
-

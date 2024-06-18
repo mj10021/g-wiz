@@ -1,9 +1,9 @@
 use super::diff::{SelectionLog, SetSelections};
+use super::{EguiContext, PickSelection, PickingPluginsSettings};
 use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
-use super::{PickSelection, PickingPluginsSettings, EguiContext};
 use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -315,6 +315,8 @@ pub fn key_system(
     }
 }
 
+pub fn select_brush() {}
+
 pub fn capture_mouse(
     mut commands: Commands,
     window: Query<&Window, With<PrimaryWindow>>,
@@ -342,5 +344,3 @@ pub fn reset_ui_hover(mut commands: Commands, mut pick_settings: ResMut<PickingP
 
 #[derive(Default, Resource)]
 pub struct EnablePanOrbit;
-
-
