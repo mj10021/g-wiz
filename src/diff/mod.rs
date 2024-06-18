@@ -55,9 +55,13 @@ pub fn update_selection_log(
     if diff.is_none() {
         return;
     }
-    // if log.history_counter > 0 {
-    //     log.log = Vec::new();
+    // if a new selection is made in the middle of the history, clear the history after the current selection
+    // FIXME: this is wrong
+    // if log.curr_counter != log.history_counter {
+    //     let split =  log.log.len() - log.curr_counter as usize;
+    //     log.log.truncate(split);
     //     log.history_counter = 0;
+    //     log.curr_counter = 0;
     // }
     log.curr = new_set;
     log.log.push(diff);
