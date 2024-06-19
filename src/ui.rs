@@ -4,6 +4,7 @@ use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
+use bevy_mod_picking::{prelude::*, selection::SelectionPluginSettings};
 use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -11,6 +12,13 @@ pub enum Choice {
     Vertex,
     Shape,
     Layer,
+}
+
+#[derive(PartialEq)]
+enum Cursor {
+    Pointer,
+    Brush,
+    Eraser,
 }
 
 #[derive(Resource)]
@@ -27,6 +35,8 @@ pub struct UiResource {
     pub rotate_y: f32,
     pub rotate_z: f32,
     pub scale: f32,
+    pub brush: bool,
+    cursor_enum: Cursor,
 }
 
 impl Default for UiResource {
@@ -44,6 +54,8 @@ impl Default for UiResource {
             rotate_y: 0.0,
             rotate_z: 0.0,
             scale: 1.0,
+            brush: false,
+            cursor_enum: Cursor::Pointer,
         }
     }
 }
@@ -143,6 +155,12 @@ pub fn ui_system(
                         }
                         i += 1;
                     }
+                });
+                ui.add_space(spacing);
+                ui.horizontal(|ui| {
+                    ui.radio_value(&mut ui_res.cursor_enum, Cursor::Pointer, "Pointer");
+                    ui.radio_value(&mut ui_res.cursor_enum, Cursor::Brush, "Brush");
+                    ui.radio_value(&mut ui_res.cursor_enum, Cursor::Eraser, "Eraser");
                 });
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
@@ -315,7 +333,46 @@ pub fn key_system(
     }
 }
 
-pub fn select_brush() {}
+pub fn select_brush(
+    mut commands: Commands,
+    mut selection_plugin: ResMut<SelectionPluginSettings>,
+    mut hover_reader: EventReader<Pointer<Over>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    mut s_query: Query<(Entity, &mut PickSelection)>,
+    ui_res: Res<UiResource>,
+) {
+    if ui_res.cursor_enum != Cursor::Brush {return;}
+    selection_plugin.click_nothing_deselect_all = false;
+    commands.remove_resource::<EnablePanOrbit>();
+    if !mouse.pressed(MouseButton::Left) {
+        return;
+    }
+    for hover in hover_reader.read() {
+        if let Ok((_, mut selection)) = s_query.get_mut(hover.target) {
+            selection.is_selected = true;
+        }
+    }
+}
+pub fn erase_brush(
+    mut commands: Commands,
+    mut selection_plugin: ResMut<SelectionPluginSettings>,
+    mut hover_reader: EventReader<Pointer<Over>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    mut s_query: Query<(Entity, &mut PickSelection)>,
+    ui_res: Res<UiResource>,
+) {
+    if ui_res.cursor_enum != Cursor::Eraser {return;}
+    selection_plugin.click_nothing_deselect_all = false;
+    commands.remove_resource::<EnablePanOrbit>();
+    if !mouse.pressed(MouseButton::Left) {
+        return;
+    }
+    for hover in hover_reader.read() {
+        if let Ok((_, mut selection)) = s_query.get_mut(hover.target) {
+            selection.is_selected = false;
+        }
+    }
+}
 
 pub fn capture_mouse(
     mut commands: Commands,
@@ -338,7 +395,7 @@ pub fn capture_mouse(
     }
 }
 pub fn reset_ui_hover(mut commands: Commands, mut pick_settings: ResMut<PickingPluginsSettings>) {
-    commands.init_resource::<EnablePanOrbit>();
+    //commands.init_resource::<EnablePanOrbit>();
     pick_settings.is_enabled = true;
 }
 

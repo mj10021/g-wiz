@@ -56,7 +56,7 @@ fn setup(mut commands: Commands) {
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
-    commands.init_resource::<SelectionLog>()
+    commands.init_resource::<SelectionLog>();
 }
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -91,6 +91,8 @@ fn main() {
         .add_systems(
             Update,
             (
+                select_brush,
+                erase_brush,
                 key_system,
                 ui_system,
                 update_selections,

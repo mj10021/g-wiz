@@ -3,6 +3,8 @@ use super::{
 };
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
+use bevy_mod_picking::prelude::*;
+use bevy_mod_picking::selection::PickSelection;
 
 pub fn render(
     mut commands: Commands,
