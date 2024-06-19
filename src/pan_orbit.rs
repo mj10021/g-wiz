@@ -29,8 +29,8 @@ pub fn pan_orbit_camera(
     primary_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     // change input mapping for orbit and panning here
-    let orbit_button = MouseButton::Right;
-    let pan_button = MouseButton::Left;
+    let orbit_button = MouseButton::Left;
+    let pan_button = MouseButton::Right;
     let zoom = 35.0;
     let mut pan = Vec2::ZERO;
     let mut rotation_move = Vec2::ZERO;

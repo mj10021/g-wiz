@@ -341,7 +341,9 @@ pub fn select_brush(
     mut s_query: Query<(Entity, &mut PickSelection)>,
     ui_res: Res<UiResource>,
 ) {
-    if ui_res.cursor_enum != Cursor::Brush {return;}
+    if ui_res.cursor_enum != Cursor::Brush {
+        return;
+    }
     selection_plugin.click_nothing_deselect_all = false;
     commands.remove_resource::<EnablePanOrbit>();
     if !mouse.pressed(MouseButton::Left) {
@@ -361,7 +363,9 @@ pub fn erase_brush(
     mut s_query: Query<(Entity, &mut PickSelection)>,
     ui_res: Res<UiResource>,
 ) {
-    if ui_res.cursor_enum != Cursor::Eraser {return;}
+    if ui_res.cursor_enum != Cursor::Eraser {
+        return;
+    }
     selection_plugin.click_nothing_deselect_all = false;
     commands.remove_resource::<EnablePanOrbit>();
     if !mouse.pressed(MouseButton::Left) {
