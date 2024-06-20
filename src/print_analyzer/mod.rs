@@ -347,7 +347,22 @@ impl Parsed {
         parsed.assign_shapes();
         Ok(parsed)
     }
-
+    fn centroid(&self) -> Vec3 {
+        let (mut x, mut y, mut z) = (0.0, 0.0, 0.0);
+        let mut count = 0.0;
+        for v in self.vertices.values() {
+            if v.extrusion_move() {
+                x += v.to.x;
+                y += v.to.y;
+                z += v.to.z;
+                count += 1.0;
+            }
+        }
+        x /= count;
+        y /= count;
+        z /= count;
+        Vec3::new(x, y, z)
+    }
     fn assign_shapes(&mut self) {
         let mut out = Vec::new();
         let mut temp_shape = Vec::new();

@@ -35,7 +35,6 @@ pub struct UiResource {
     pub rotate_y: f32,
     pub rotate_z: f32,
     pub scale: f32,
-    pub brush: bool,
     cursor_enum: Cursor,
 }
 
@@ -54,7 +53,6 @@ impl Default for UiResource {
             rotate_y: 0.0,
             rotate_z: 0.0,
             scale: 1.0,
-            brush: false,
             cursor_enum: Cursor::Pointer,
         }
     }
@@ -340,30 +338,15 @@ pub fn select_brush(
     mouse: Res<ButtonInput<MouseButton>>,
     mut s_query: Query<(Entity, &mut PickSelection)>,
     ui_res: Res<UiResource>,
+    mut window: Query<&mut Window, With<PrimaryWindow>>,
 ) {
-    if ui_res.cursor_enum != Cursor::Brush {
-        return;
-    }
-    selection_plugin.click_nothing_deselect_all = false;
-    commands.remove_resource::<EnablePanOrbit>();
-    if !mouse.pressed(MouseButton::Left) {
-        return;
-    }
-    for hover in hover_reader.read() {
-        if let Ok((_, mut selection)) = s_query.get_mut(hover.target) {
-            selection.is_selected = true;
+    if let Ok(mut window) = window.get_single_mut() {
+        window.cursor.icon = match ui_res.cursor_enum {
+            Cursor::Pointer => CursorIcon::Default,
+            Cursor::Brush | Cursor::Eraser => CursorIcon::Crosshair,
         }
     }
-}
-pub fn erase_brush(
-    mut commands: Commands,
-    mut selection_plugin: ResMut<SelectionPluginSettings>,
-    mut hover_reader: EventReader<Pointer<Over>>,
-    mouse: Res<ButtonInput<MouseButton>>,
-    mut s_query: Query<(Entity, &mut PickSelection)>,
-    ui_res: Res<UiResource>,
-) {
-    if ui_res.cursor_enum != Cursor::Eraser {
+    if ui_res.cursor_enum == Cursor::Pointer {
         return;
     }
     selection_plugin.click_nothing_deselect_all = false;
@@ -373,7 +356,7 @@ pub fn erase_brush(
     }
     for hover in hover_reader.read() {
         if let Ok((_, mut selection)) = s_query.get_mut(hover.target) {
-            selection.is_selected = false;
+            selection.is_selected = ui_res.cursor_enum == Cursor::Brush;
         }
     }
 }
@@ -398,8 +381,14 @@ pub fn capture_mouse(
         }
     }
 }
-pub fn reset_ui_hover(mut commands: Commands, mut pick_settings: ResMut<PickingPluginsSettings>) {
-    //commands.init_resource::<EnablePanOrbit>();
+pub fn reset_ui_hover(
+    mut commands: Commands,
+    mut pick_settings: ResMut<PickingPluginsSettings>,
+    ui_res: Res<UiResource>,
+) {
+    if ui_res.cursor_enum == Cursor::Pointer {
+        commands.init_resource::<EnablePanOrbit>();
+    }
     pick_settings.is_enabled = true;
 }
 

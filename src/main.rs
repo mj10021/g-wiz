@@ -34,31 +34,6 @@ struct Tag {
 }
 
 fn setup(mut commands: Commands) {
-    commands.insert_resource(AmbientLight {
-        color: Color::WHITE,
-        brightness: 100.0,
-    });
-    let zoom = 35.0;
-    let translation = Vec3::new(5.0 * zoom, -5.0 * zoom, 5.0 * zoom);
-    let radius = translation.length();
-
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_translation(translation).looking_at(Vec3::ZERO, Vec3::Y),
-            ..Default::default()
-        },
-        PanOrbitCamera {
-            radius,
-            ..Default::default()
-        },
-    ));
-    commands.init_resource::<ForceRefresh>();
-    commands.init_resource::<UiResource>();
-    commands.init_resource::<IdMap>();
-    commands.init_resource::<EnablePanOrbit>();
-    commands.init_resource::<SelectionLog>();
-}
-fn main() {
     let args: Vec<String> = env::args().collect();
 
     // Check if a filename was provided
@@ -75,11 +50,35 @@ fn main() {
         }
     }
 
+    commands.insert_resource(AmbientLight {
+        color: Color::WHITE,
+        brightness: 100.0,
+    });
+    let zoom = 35.0;
+    let translation = Vec3::new(5.0 * zoom, -5.0 * zoom, 5.0 * zoom);
+    let radius = translation.length();
     let gcode = print_analyzer::read(filename, false).expect("failed to read");
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_translation(translation).looking_at(Vec3::ZERO, Vec3::Y),
+            ..Default::default()
+        },
+        PanOrbitCamera {
+            radius,
+            ..Default::default()
+        },
+    ));
+    commands.insert_resource(VertexCounter::build(&gcode));
+    commands.insert_resource(GCode(gcode));
+    commands.init_resource::<ForceRefresh>();
+    commands.init_resource::<UiResource>();
+    commands.init_resource::<IdMap>();
+    commands.init_resource::<EnablePanOrbit>();
+    commands.init_resource::<SelectionLog>();
+}
+fn main() {
     App::new()
         .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
-        .insert_resource(VertexCounter::build(&gcode))
-        .insert_resource(GCode(gcode))
         .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(
@@ -92,7 +91,6 @@ fn main() {
             Update,
             (
                 select_brush,
-                erase_brush,
                 key_system,
                 ui_system,
                 update_selections,
