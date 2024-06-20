@@ -49,18 +49,19 @@ fn setup(mut commands: Commands) {
             filename = name;
         }
     }
-
+    let gcode = print_analyzer::read(filename, false).expect("failed to read");
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 100.0,
     });
     let zoom = 35.0;
+    let gcode_centroid = gcode.centroid();
     let translation = Vec3::new(5.0 * zoom, -5.0 * zoom, 5.0 * zoom);
     let radius = translation.length();
-    let gcode = print_analyzer::read(filename, false).expect("failed to read");
+
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_translation(translation).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_translation(translation).looking_at(gcode_centroid, Vec3::Y),
             ..Default::default()
         },
         PanOrbitCamera {
@@ -78,7 +79,17 @@ fn setup(mut commands: Commands) {
 }
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, DefaultPickingPlugins, EguiPlugin))
+        .add_plugins((
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    mode: bevy::window::WindowMode::Fullscreen,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            DefaultPickingPlugins,
+            EguiPlugin,
+        ))
         .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(

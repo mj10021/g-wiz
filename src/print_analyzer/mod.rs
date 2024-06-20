@@ -347,7 +347,7 @@ impl Parsed {
         parsed.assign_shapes();
         Ok(parsed)
     }
-    fn centroid(&self) -> Vec3 {
+    pub fn centroid(&self) -> Vec3 {
         let (mut x, mut y, mut z) = (0.0, 0.0, 0.0);
         let mut count = 0.0;
         for v in self.vertices.values() {
