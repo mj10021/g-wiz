@@ -33,7 +33,11 @@ struct Tag {
     id: Id,
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     let args: Vec<String> = env::args().collect();
 
     // Check if a filename was provided
@@ -54,14 +58,17 @@ fn setup(mut commands: Commands) {
         color: Color::WHITE,
         brightness: 100.0,
     });
-    let zoom = 35.0;
-    let gcode_centroid = gcode.centroid();
-    let translation = Vec3::new(5.0 * zoom, -5.0 * zoom, 5.0 * zoom);
+    let translation = Vec3::new(-360.0, -360.0, 346.53);
+    let rotation = Quat::from_vec4(Vec4::new(0.44708318, -0.0770713, -0.30120307, 0.83872086));
     let radius = translation.length();
 
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_translation(translation).looking_at(gcode_centroid, Vec3::Y),
+            transform: Transform {
+                translation,
+                rotation,
+                scale: Vec3::new(1.0, 1.0, 1.0),
+            },
             ..Default::default()
         },
         PanOrbitCamera {
@@ -69,6 +76,20 @@ fn setup(mut commands: Commands) {
             ..Default::default()
         },
     ));
+    let (x, y) = (300.0, 300.0);
+    let _ = commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::new(x, y, -0.1)),
+        material: materials.add(StandardMaterial {
+            base_color: Color::WHITE,
+            emissive: Color::WHITE,
+            ..Default::default()
+        }),
+        transform: Transform {
+            translation: Vec3::new(x / 2.0, y / 2.0, 0.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
     commands.insert_resource(VertexCounter::build(&gcode));
     commands.insert_resource(GCode(gcode));
     commands.init_resource::<ForceRefresh>();
@@ -82,7 +103,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    mode: bevy::window::WindowMode::Fullscreen,
+                    mode: bevy::window::WindowMode::Windowed,
                     ..Default::default()
                 }),
                 ..Default::default()

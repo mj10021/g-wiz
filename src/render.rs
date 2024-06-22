@@ -51,7 +51,8 @@ pub fn render(
         let mesh_handle = meshes.add(cylinder);
         let sphere = meshes.add(sphere);
         let material_handle = materials.add(StandardMaterial {
-            base_color: Color::ORANGE_RED,
+            base_color: Color::rgb(0.0, 1.0, 0.0),
+            emissive: Color::rgb(0.0, 1.0, 0.0),
             ..Default::default()
         });
         let material_handle2 = materials.add(StandardMaterial {
