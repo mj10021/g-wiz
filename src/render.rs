@@ -3,6 +3,8 @@ use super::{
 };
 use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
+use bevy::render::mesh::MeshVertexAttribute;
+use bevy::render::render_asset::RenderAssetUsages;
 
 pub fn render(
     mut commands: Commands,
@@ -48,7 +50,7 @@ pub fn render(
         };
 
         // Create the mesh and material
-        let mesh_handle = meshes.add(cylinder);
+        //let mesh_handle = meshes.add(cylinder);
         let sphere = meshes.add(sphere);
         let material_handle = materials.add(StandardMaterial {
             base_color: Color::rgb(0.0, 1.0, 0.0),
@@ -60,19 +62,35 @@ pub fn render(
             ..Default::default()
         });
 
-        // Calculate the middle point and orientation of the cylinder
-        let middle = (start + end) / 2.0;
-        let direction = end - start;
-        let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
-        // Add the cylinder to the scene
+        // Add the move line to the scene
+        commands.spawn((
+            PbrBundle {
+                mesh: meshes.add(
+                    Mesh::new(
+                        bevy::render::mesh::PrimitiveTopology::LineList,
+                        RenderAssetUsages::RENDER_WORLD,
+                    )
+                    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::from([end, start])),
+                ),
+                //mesh: mesh_handle,
+                material: material_handle,
+                //transform: Transform {
+                //    translation: middle,
+                //    rotation,
+                //    ..Default::default()
+                //},
+                ..Default::default()
+            },
+            Tag { id: *id },
+        ));
+        // add the
         let e_id = commands
             .spawn((
                 PbrBundle {
-                    mesh: mesh_handle,
-                    material: material_handle,
+                    mesh: sphere,
+                    material: material_handle2,
                     transform: Transform {
-                        translation: middle,
-                        rotation,
+                        translation: end,
                         ..Default::default()
                     },
                     ..Default::default()
@@ -81,18 +99,6 @@ pub fn render(
                 Tag { id: *id },
             ))
             .id();
-        commands.spawn((
-            PbrBundle {
-                mesh: sphere,
-                material: material_handle2,
-                transform: Transform {
-                    translation: end,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            Tag { id: *id },
-        ));
         map.0.insert(*id, e_id);
     }
     commands.remove_resource::<ForceRefresh>();

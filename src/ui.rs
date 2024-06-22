@@ -299,10 +299,13 @@ impl VertexCounter {
 pub fn key_system(
     mut commands: Commands,
     mut ui_res: ResMut<UiResource>,
-    keys: Res<ButtonInput<KeyCode>>,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
     mut log: ResMut<SelectionLog>,
 ) {
     if keys.pressed(KeyCode::ArrowLeft) {
+        if ui_res.vertex_counter == 0 {
+            return;
+        }
         ui_res.vertex_counter -= 1;
     } else if keys.pressed(KeyCode::ArrowRight) {
         ui_res.vertex_counter += 1;
@@ -329,6 +332,8 @@ pub fn key_system(
         log.history_counter -= 1;
         commands.init_resource::<SetSelections>();
     }
+    // clear key presses after read
+    keys.clear();
 }
 
 pub fn select_brush(

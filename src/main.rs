@@ -6,6 +6,8 @@ mod select;
 mod ui;
 
 use bevy::prelude::*;
+use bevy::render::mesh::PrimitiveTopology;
+use bevy::render::render_asset::RenderAssetUsages;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
@@ -76,20 +78,41 @@ fn setup(
             ..Default::default()
         },
     ));
-    let (x, y) = (300.0, 300.0);
+    let (w, l, h) = (300.0, 300.0, 300.0);
     let _ = commands.spawn(PbrBundle {
-        mesh: meshes.add(Cuboid::new(x, y, -0.1)),
+        mesh: meshes.add(Cuboid::new(w, l, -0.1)),
         material: materials.add(StandardMaterial {
             base_color: Color::WHITE,
             emissive: Color::WHITE,
             ..Default::default()
         }),
         transform: Transform {
-            translation: Vec3::new(x / 2.0, y / 2.0, 0.0),
+            translation: Vec3::new(w / 2.0, l / 2.0, 0.0),
             ..Default::default()
         },
         ..Default::default()
     });
+    let step = 25;
+    for x in (0..=w as i32).step_by(step) {
+        for y in (0..=l as i32).step_by(step) {
+            let (x, y) = (x as f32, y as f32);
+            let _ = commands.spawn(PbrBundle {
+                mesh: meshes.add(
+                    Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::RENDER_WORLD)
+                        .with_inserted_attribute(
+                            Mesh::ATTRIBUTE_POSITION,
+                            Vec::from([Vec3::new(x, y, 0.0), Vec3::new(x, y, 300.0)]),
+                        ),
+                ),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::WHITE,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            });
+        }
+    }
+
     commands.insert_resource(VertexCounter::build(&gcode));
     commands.insert_resource(GCode(gcode));
     commands.init_resource::<ForceRefresh>();
