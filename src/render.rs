@@ -1,9 +1,7 @@
 use super::{
     print_analyzer::Label, ForceRefresh, GCode, IdMap, PickableBundle, Pos, Tag, UiResource,
 };
-use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
-use bevy::render::mesh::MeshVertexAttribute;
 use bevy::render::render_asset::RenderAssetUsages;
 
 pub fn render(
@@ -12,52 +10,39 @@ pub fn render(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut map: ResMut<IdMap>,
     gcode: Res<GCode>,
-    cylinders: Query<Entity, With<Tag>>,
+    shapes: Query<Entity, With<Tag>>,
 ) {
-    for cylinder in cylinders.iter() {
-        commands.entity(cylinder).despawn();
+    for shape in shapes.iter() {
+        commands.entity(shape).despawn();
     }
     let gcode = &gcode.0;
-
-    for (id, vertex) in gcode.vertices.iter() {
-        let Pos {
-            x: xf,
-            y: yf,
-            z: zf,
-            ..
-        } = vertex.to;
+    let mut pos_list = Vec::new();
+    for v in gcode.vertices.values() {
+        let (xf, yf, zf) = (v.to.x, v.to.y, v.to.z);
         let (xi, yi, zi) = {
-            if let Some(prev) = vertex.prev {
+            if let Some(prev) = v.prev {
                 let p = gcode.vertices.get(&prev).unwrap();
                 (p.to.x, p.to.y, p.to.z)
-            } else {
-                (0.0, 0.0, 0.0)
-            }
+            } else {(0.0, 0.0, 0.0)}
         };
-
-        let start = Vec3::new(xi, yi, zi);
-        let end = Vec3::new(xf, yf, zf);
+        pos_list.push((v.id, Vec3::new(xi, yi, zi), Vec3::new(xf, yf, zf)));
+    }
+    for (id, start, end) in pos_list {
 
         // Create a cylinder mesh
-        let radius = 0.05;
-        let length = start.distance(end);
-        let cylinder = Cylinder {
-            radius,
-            half_height: length / 2.0,
-        };
         let sphere = Sphere {
-            radius: radius * 1.618,
+            radius: 0.125,
         };
 
         // Create the mesh and material
         //let mesh_handle = meshes.add(cylinder);
         let sphere = meshes.add(sphere);
-        let material_handle = materials.add(StandardMaterial {
+        let line_material = materials.add(StandardMaterial {
             base_color: Color::rgb(0.0, 1.0, 0.0),
             emissive: Color::rgb(0.0, 1.0, 0.0),
             ..Default::default()
         });
-        let material_handle2 = materials.add(StandardMaterial {
+        let sphere_material = materials.add(StandardMaterial {
             base_color: Color::BLUE,
             ..Default::default()
         });
@@ -66,29 +51,19 @@ pub fn render(
         commands.spawn((
             PbrBundle {
                 mesh: meshes.add(
-                    Mesh::new(
-                        bevy::render::mesh::PrimitiveTopology::LineList,
-                        RenderAssetUsages::RENDER_WORLD,
-                    )
-                    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::from([end, start])),
+                    Segment3d::from_points(start, end).0,
                 ),
-                //mesh: mesh_handle,
-                material: material_handle,
-                //transform: Transform {
-                //    translation: middle,
-                //    rotation,
-                //    ..Default::default()
-                //},
+                material: line_material,
                 ..Default::default()
             },
-            Tag { id: *id },
+            Tag { id },
         ));
         // add the
         let e_id = commands
             .spawn((
                 PbrBundle {
                     mesh: sphere,
-                    material: material_handle2,
+                    material: sphere_material,
                     transform: Transform {
                         translation: end,
                         ..Default::default()
@@ -96,10 +71,10 @@ pub fn render(
                     ..Default::default()
                 },
                 PickableBundle::default(),
-                Tag { id: *id },
+                Tag { id },
             ))
             .id();
-        map.0.insert(*id, e_id);
+        map.0.insert(id, e_id);
     }
     commands.remove_resource::<ForceRefresh>();
 }

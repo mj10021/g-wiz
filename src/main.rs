@@ -4,6 +4,7 @@ mod print_analyzer;
 mod render;
 mod select;
 mod ui;
+mod settings;
 
 use bevy::prelude::*;
 use bevy::render::mesh::PrimitiveTopology;

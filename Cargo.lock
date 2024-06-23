@@ -2060,6 +2060,7 @@ dependencies = [
  "bevy_egui",
  "bevy_mod_picking",
  "egui",
+ "serde_json",
 ]
 
 [[package]]
