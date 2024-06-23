@@ -3,8 +3,8 @@ mod pan_orbit;
 mod print_analyzer;
 mod render;
 mod select;
-mod ui;
 mod settings;
+mod ui;
 
 use bevy::prelude::*;
 use bevy::render::mesh::PrimitiveTopology;

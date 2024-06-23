@@ -22,16 +22,19 @@ pub fn render(
             if let Some(prev) = v.prev {
                 let p = gcode.vertices.get(&prev).unwrap();
                 (p.to.x, p.to.y, p.to.z)
-            } else {(0.0, 0.0, 0.0)}
+            } else {
+                (0.0, 0.0, 0.0)
+            }
         };
-        pos_list.push((v.id, Vec3::new(xi, yi, zi), Vec3::new(xf, yf, zf)));
+        let (start, end) = (Vec3::new(xi, yi, zi), Vec3::new(xf, yf, zf));
+        let dist = start.distance(end);
+        let flow = v.to.e / dist;
+        pos_list.push((v.id, start, end, flow));
     }
-    for (id, start, end) in pos_list {
-
+    for (id, start, end, flow) in pos_list {
         // Create a cylinder mesh
-        let sphere = Sphere {
-            radius: 0.125,
-        };
+        let sphere = Sphere { radius: 0.125 };
+        let radius = (flow / std::f32::consts::PI).sqrt();
 
         // Create the mesh and material
         //let mesh_handle = meshes.add(cylinder);
@@ -46,25 +49,42 @@ pub fn render(
             ..Default::default()
         });
 
-        // Add the move line to the scene
-        commands.spawn((
-            PbrBundle {
-                mesh: meshes.add(
-                    Segment3d::from_points(start, end).0,
-                ),
-                material: line_material,
-                ..Default::default()
-            },
-            Tag { id },
-        ));
-        // add the
+        // Create a cylinder mesh
+        let length = start.distance(end);
+        let cylinder = Cylinder {
+            radius,
+            half_height: length / 2.0,
+        };
+        let sphere = Sphere {
+            radius: radius * 1.618,
+        };
+
+        // Create the mesh and material
+        let mesh_handle = meshes.add(cylinder);
+        let sphere = meshes.add(sphere);
+        let material_handle = materials.add(StandardMaterial {
+            base_color: Color::rgb(0.0, 1.0, 0.0),
+            emissive: Color::rgb(0.0, 1.0, 0.0),
+            ..Default::default()
+        });
+        let material_handle2 = materials.add(StandardMaterial {
+            base_color: Color::BLUE,
+            ..Default::default()
+        });
+
+        // Calculate the middle point and orientation of the cylinder
+        let middle = (start + end) / 2.0;
+        let direction = end - start;
+        let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
+        // Add the cylinder to the scene
         let e_id = commands
             .spawn((
                 PbrBundle {
-                    mesh: sphere,
-                    material: sphere_material,
+                    mesh: mesh_handle,
+                    material: material_handle,
                     transform: Transform {
-                        translation: end,
+                        translation: middle,
+                        rotation,
                         ..Default::default()
                     },
                     ..Default::default()
@@ -73,6 +93,20 @@ pub fn render(
                 Tag { id },
             ))
             .id();
+        // add the
+        commands.spawn((
+            PbrBundle {
+                mesh: sphere,
+                material: sphere_material,
+                transform: Transform {
+                    translation: end,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            PickableBundle::default(),
+            Tag { id },
+        ));
         map.0.insert(id, e_id);
     }
     commands.remove_resource::<ForceRefresh>();

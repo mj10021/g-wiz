@@ -1,6 +1,6 @@
-use std::fs::read_to_string;
-use bevy::prelude::{KeyCode, MouseButton, Resource, Color};
+use bevy::prelude::{Color, KeyCode, MouseButton, Resource};
 use serde_json::{json, Value};
+use std::fs::read_to_string;
 
 #[derive(Resource)]
 struct Settings {
@@ -14,13 +14,12 @@ struct Settings {
     save_suffix: String,
 }
 
-
 fn read_key(value: &Value, key: &str) -> KeyCode {
     let key = value.get(key).unwrap().as_str();
     match key {
         Some("del") | Some("delete") => KeyCode::Delete,
         Some("backspace") => KeyCode::Backspace,
-        _ => panic!("invalid key option")
+        _ => panic!("invalid key option"),
     }
 }
 
@@ -30,7 +29,7 @@ fn read_mouse_button(value: &Value, key: &str) -> MouseButton {
         Some("right") => MouseButton::Right,
         Some("left") => MouseButton::Left,
         Some("middle") => MouseButton::Middle,
-        _ => panic!("invalid mouse button option")
+        _ => panic!("invalid mouse button option"),
     }
 }
 
@@ -50,6 +49,6 @@ fn read() -> Result<Settings, std::io::Error> {
         extrusion_color: read_color(&settings, "extrusion color"),
         extrusion_node_color: read_color(&settings, "extrusion node color"),
         travel_color: read_color(&settings, "travel move color"),
-        save_suffix: settings.get("save suffix").unwrap().to_string()
+        save_suffix: settings.get("save suffix").unwrap().to_string(),
     })
 }
