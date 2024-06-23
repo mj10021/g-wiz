@@ -2,7 +2,6 @@ use super::{
     print_analyzer::Label, ForceRefresh, GCode, IdMap, PickableBundle, Pos, Tag, UiResource,
 };
 use bevy::prelude::*;
-use bevy::render::render_asset::RenderAssetUsages;
 
 pub fn render(
     mut commands: Commands,
