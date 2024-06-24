@@ -1,3 +1,4 @@
+use super::settings::*;
 use bevy::input::mouse::{MouseButton, MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -27,10 +28,11 @@ pub fn pan_orbit_camera(
     input_mouse: Res<ButtonInput<MouseButton>>,
     mut query: Query<(&mut PanOrbitCamera, &mut Transform, &Projection)>,
     primary_query: Query<&Window, With<PrimaryWindow>>,
+    settings: Res<Settings>,
 ) {
     // change input mapping for orbit and panning here
-    let orbit_button = MouseButton::Left;
-    let pan_button = MouseButton::Right;
+    let orbit_button = settings.orbit_mouse_button;
+    let pan_button = settings.pan_mouse_button;
     let zoom = 35.0;
     let mut pan = Vec2::ZERO;
     let mut rotation_move = Vec2::ZERO;

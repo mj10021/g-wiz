@@ -18,6 +18,7 @@ use print_analyzer::{Id, Parsed, Pos};
 use render::*;
 use select::*;
 use selection::send_selection_events;
+use settings::*;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
@@ -35,11 +36,14 @@ struct ForceRefresh;
 struct Tag {
     id: Id,
 }
-
+fn init_settings(mut commands: Commands) {
+    commands.insert_resource(read_settings());
+}
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    settings: Res<Settings>,
 ) {
     let args: Vec<String> = env::args().collect();
 
@@ -135,6 +139,7 @@ fn main() {
             DefaultPickingPlugins,
             EguiPlugin,
         ))
+        .add_systems(PreStartup, init_settings)
         .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(

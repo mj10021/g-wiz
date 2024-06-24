@@ -1,16 +1,16 @@
 {
     "colors" : {
-        "extrustion color": "yellow",
-        "extrusion node color" : "green",
-        "travel move color": "blue"
+        "extrusion color": "ff0000",
+        "extrusion node color" : "00ff00",
+        "travel move color": "0000ff"
     },
-    "buttons" : {
+    "keys" : {
         "hole delete": "del",
-        "merge delete": "backspace",
+        "merge delete": "backspace"
+   },
+    "buttons" : {
         "mouse orbit": "right",
-        "mouse pan": "left"
+        "mouse pan": "left" 
     },
-    "file" : {
-        "save suffix": "_edited"
-    }
+    "save suffix": "_edited"
 }

@@ -1,5 +1,5 @@
 use super::{
-    print_analyzer::Label, ForceRefresh, GCode, IdMap, PickableBundle, Pos, Tag, UiResource,
+    print_analyzer::Label, settings::*, ForceRefresh, GCode, IdMap, PickableBundle, Tag, UiResource,
 };
 use bevy::prelude::*;
 
@@ -10,6 +10,7 @@ pub fn render(
     mut map: ResMut<IdMap>,
     gcode: Res<GCode>,
     shapes: Query<Entity, With<Tag>>,
+    settings: Res<Settings>,
 ) {
     for shape in shapes.iter() {
         commands.entity(shape).despawn();
@@ -33,19 +34,11 @@ pub fn render(
     }
     for (id, start, end, flow) in pos_list {
         // Create a cylinder mesh
-        let sphere = Sphere { radius: 0.125 };
         let radius = (flow / std::f32::consts::PI).sqrt();
 
         // Create the mesh and material
-        //let mesh_handle = meshes.add(cylinder);
-        let sphere = meshes.add(sphere);
-        let line_material = materials.add(StandardMaterial {
-            base_color: Color::rgb(0.0, 1.0, 0.0),
-            emissive: Color::rgb(0.0, 1.0, 0.0),
-            ..Default::default()
-        });
         let sphere_material = materials.add(StandardMaterial {
-            base_color: Color::BLUE,
+            base_color: settings.extrusion_node_color,
             ..Default::default()
         });
 
@@ -63,12 +56,8 @@ pub fn render(
         let mesh_handle = meshes.add(cylinder);
         let sphere = meshes.add(sphere);
         let material_handle = materials.add(StandardMaterial {
-            base_color: Color::rgb(0.0, 1.0, 0.0),
-            emissive: Color::rgb(0.0, 1.0, 0.0),
-            ..Default::default()
-        });
-        let material_handle2 = materials.add(StandardMaterial {
-            base_color: Color::BLUE,
+            base_color: settings.extrusion_color,
+            emissive: settings.extrusion_color,
             ..Default::default()
         });
 
