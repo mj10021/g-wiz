@@ -1,6 +1,6 @@
 use bevy::prelude::{Color, KeyCode, MouseButton, Resource};
-use serde_json::{json, Value};
-use std::fs::read_to_string;
+use serde_json::{from_str, Value};
+use std::fs::{self, read_to_string};
 
 #[derive(Resource)]
 pub struct Settings {
@@ -42,14 +42,20 @@ fn read_color(settings: &Value, key: &str) -> Color {
 }
 
 pub fn read_settings() -> Settings {
-    let path = std::env::current_dir()
-        .expect("could not find working directory")
+    let path = std::env::current_exe()
+        .expect("could not find excecutable directory")
         .as_path()
-        .join(std::path::PathBuf::from("src/settings/settings.json"));
-    let settings = read_to_string(path).unwrap();
+        .join(std::path::PathBuf::from("settings.json"));
 
-    let settings = serde_json::from_str(&settings).unwrap();
-   // panic!("{:#?}", settings);
+    let Ok(settings) = ({
+        if let Ok(settings) = read_to_string(&path) {
+            from_str(&settings)
+        } else {
+            fs::write(&path, DEFAULT_SETTINGS).expect("failed to write default settings");
+            from_str(DEFAULT_SETTINGS)
+        }
+    }) else {panic!()};
+
     Settings {
         hole_delete_button: read_key(&settings, "hole delete"),
         merge_delete_button: read_key(&settings, "merge delete"),
@@ -61,3 +67,20 @@ pub fn read_settings() -> Settings {
         save_suffix: settings.get("save suffix").unwrap().to_string(),
     }
 }
+
+const DEFAULT_SETTINGS: &str = r#"{
+    "colors" : {
+        "extrusion color": "ff0000",
+        "extrusion node color" : "00ff00",
+        "travel move color": "0000ff"
+    },
+    "keys" : {
+        "hole delete": "del",
+        "merge delete": "backspace"
+   },
+    "buttons" : {
+        "mouse orbit": "right",
+        "mouse pan": "left" 
+    },
+    "save suffix": "_edited"
+}"#;

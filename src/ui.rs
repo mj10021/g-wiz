@@ -1,5 +1,5 @@
 use super::diff::{SelectionLog, SetSelections};
-use super::{EguiContext, PickSelection, PickingPluginsSettings};
+use super::{EguiContext, PickSelection, PickingPluginsSettings, Settings};
 use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -301,6 +301,7 @@ pub fn key_system(
     mut ui_res: ResMut<UiResource>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
     mut log: ResMut<SelectionLog>,
+    settings: Res<Settings>,
 ) {
     if keys.pressed(KeyCode::ArrowLeft) {
         if ui_res.vertex_counter == 0 {
@@ -331,6 +332,10 @@ pub fn key_system(
         }
         log.history_counter -= 1;
         commands.init_resource::<SetSelections>();
+    } else if keys.just_pressed(settings.hole_delete_button) {
+        todo!();
+    } else if keys.just_pressed(settings.merge_delete_button) {
+        todo!();
     }
     // clear key presses after read
     keys.clear();

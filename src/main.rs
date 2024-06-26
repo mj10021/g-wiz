@@ -14,7 +14,7 @@ use bevy_mod_picking::prelude::*;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
-use print_analyzer::{Id, Parsed, Pos};
+use print_analyzer::{Id, Parsed};
 use render::*;
 use select::*;
 use selection::send_selection_events;
@@ -36,14 +36,10 @@ struct ForceRefresh;
 struct Tag {
     id: Id,
 }
-fn init_settings(mut commands: Commands) {
-    commands.insert_resource(read_settings());
-}
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    settings: Res<Settings>,
 ) {
     let args: Vec<String> = env::args().collect();
 
@@ -83,7 +79,7 @@ fn setup(
             ..Default::default()
         },
     ));
-    let (w, l, h) = (300.0, 300.0, 300.0);
+    let (w, l, _h) = (300.0, 300.0, 300.0);
     let _ = commands.spawn(PbrBundle {
         mesh: meshes.add(Cuboid::new(w, l, -0.1)),
         material: materials.add(StandardMaterial {
@@ -117,7 +113,7 @@ fn setup(
             });
         }
     }
-
+    commands.insert_resource(read_settings());
     commands.insert_resource(VertexCounter::build(&gcode));
     commands.insert_resource(GCode(gcode));
     commands.init_resource::<ForceRefresh>();
@@ -139,7 +135,6 @@ fn main() {
             DefaultPickingPlugins,
             EguiPlugin,
         ))
-        .add_systems(PreStartup, init_settings)
         .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(
