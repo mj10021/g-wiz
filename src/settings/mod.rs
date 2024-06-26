@@ -42,20 +42,22 @@ fn read_color(settings: &Value, key: &str) -> Color {
 }
 
 pub fn read_settings() -> Settings {
+    use std::io::Write;
     let path = std::env::current_exe()
         .expect("could not find excecutable directory")
-        .as_path()
+        .parent()
+        .unwrap()
         .join(std::path::PathBuf::from("settings.json"));
-
-    let Ok(settings) = ({
-        if let Ok(settings) = read_to_string(&path) {
-            from_str(&settings)
+    let settings = {
+        if path.exists() {
+            &read_to_string(&path).unwrap()
         } else {
-            fs::write(&path, DEFAULT_SETTINGS).expect("failed to write default settings");
-            from_str(DEFAULT_SETTINGS)
+            let mut default = std::fs::File::create(&path).expect("msg");
+            default.write_all(DEFAULT_SETTINGS.as_bytes()).expect("msg");
+            DEFAULT_SETTINGS
         }
-    }) else {panic!()};
-
+    };
+    let settings = from_str(settings).expect("failed to parse json");
     Settings {
         hole_delete_button: read_key(&settings, "hole delete"),
         merge_delete_button: read_key(&settings, "merge delete"),
