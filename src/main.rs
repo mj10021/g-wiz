@@ -67,11 +67,11 @@ fn setup(
 
     commands.spawn((
         Camera3dBundle {
-            transform: Transform {
-                translation,
-                rotation,
-                scale: Vec3::new(1.0, 1.0, 1.0),
-            },
+            // transform: Transform {
+            //     translation,
+            //     rotation,
+            //     scale: Vec3::new(10.0, 10.0, 10.0),
+            // },
             ..Default::default()
         },
         PanOrbitCamera {
@@ -125,6 +125,7 @@ fn main() {
                 .run_if(resource_exists::<SetSelections>)
                 .after(send_selection_events),
         )
+        .add_systems(Update, update_selection_log.before(undo_redo_selections))
         .add_systems(
             Update,
             (
@@ -135,6 +136,7 @@ fn main() {
                 update_visibilities,
                 merge_delete.run_if(resource_exists::<MergeDelete>),
                 hole_delete.run_if(resource_exists::<HoleDelete>),
+                subdivide_selection.run_if(resource_exists::<SubdivideSelection>),
             )
                 .chain(),
         )
@@ -143,6 +145,6 @@ fn main() {
             pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
         )
         .add_systems(Update, render.run_if(resource_exists::<ForceRefresh>))
-        .add_systems(PostUpdate, (reset_ui_hover, update_selection_log))
+        .add_systems(PostUpdate, reset_ui_hover)
         .run();
 }

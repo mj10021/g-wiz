@@ -15,7 +15,7 @@ impl Default for PanOrbitCamera {
     fn default() -> Self {
         PanOrbitCamera {
             focus: Vec3::ZERO,
-            radius: 5.0,
+            radius: 50.0,
             upside_down: false,
         }
     }
@@ -67,9 +67,7 @@ pub fn pan_orbit_camera(
         let mut any = false;
         if rotation_move.length_squared() > 0.0 {
             any = true;
-            let Ok(window) = primary_query.get_single() else {
-                panic!()
-            };
+            let window = primary_query.get_single().unwrap();
             let delta_x = {
                 let delta = rotation_move.x / window.width() * std::f32::consts::PI * 2.0;
                 if pan_orbit.upside_down {
@@ -86,9 +84,7 @@ pub fn pan_orbit_camera(
         } else if pan.length_squared() > 0.0 {
             any = true;
             // make panning distance independent of resolution and FOV,
-            let Ok(window) = primary_query.get_single() else {
-                panic!()
-            }; //get_primary_window_size(&windows);
+            let window = primary_query.get_single().unwrap();
             if let Projection::Perspective(projection) = projection {
                 pan *= Vec2::new(projection.fov * projection.aspect_ratio, projection.fov)
                     / (window.height() * window.width());

@@ -528,7 +528,7 @@ impl Parsed {
             self.lines.insert(i, line);
         }
     }
-    fn subdivide_vertex(&mut self, id: &Id, count: u32) {
+    pub fn subdivide_vertex(&mut self, id: &Id, count: u32) {
         if count < 1 {
             return;
         }

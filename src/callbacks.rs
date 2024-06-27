@@ -1,6 +1,15 @@
 use super::*;
 use std::collections::HashSet;
 
+#[derive(Default, Resource)]
+pub struct MergeDelete;
+
+#[derive(Default, Resource)]
+pub struct HoleDelete;
+
+#[derive(Default, Resource)]
+pub struct SubdivideSelection(pub u32);
+
 fn get_selections(mut s_query: Query<(&PickSelection, &Tag)>) -> HashSet<Id> {
     s_query
         .iter_mut()
@@ -29,4 +38,18 @@ pub fn hole_delete(
     gcode.0.hole_delete(&mut selection);
     commands.init_resource::<ForceRefresh>();
     commands.remove_resource::<HoleDelete>();
+}
+
+pub fn subdivide_selection(
+    mut commands: Commands,
+    mut gcode: ResMut<GCode>,
+    s_query: Query<(&PickSelection, &Tag)>,
+    count: Res<SubdivideSelection>,
+) {
+    let selection = get_selections(s_query);
+    for id in selection.iter() {
+        gcode.0.subdivide_vertex(id, count.0);
+    }
+    commands.init_resource::<ForceRefresh>();
+    commands.remove_resource::<SubdivideSelection>();
 }

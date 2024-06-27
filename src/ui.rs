@@ -1,5 +1,8 @@
 use super::diff::{SelectionLog, SetSelections};
-use super::{EguiContext, PickSelection, PickingPluginsSettings, Settings};
+use super::{
+    EguiContext, HoleDelete, MergeDelete, PickSelection, PickingPluginsSettings, Settings,
+    SubdivideSelection,
+};
 use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -27,7 +30,7 @@ pub struct UiResource {
     pub display_z_min: f32,
     pub vertex_counter: u32,
     pub selection_enum: Choice,
-    subdivide_slider: f32,
+    subdivide_slider: u32,
     translation_input: String,
     pub gcode_emit: String,
     pub vis_select: VisibilitySelector,
@@ -45,7 +48,7 @@ impl Default for UiResource {
             display_z_min: 0.0,
             vertex_counter: 0,
             selection_enum: Choice::Vertex,
-            subdivide_slider: 100.0,
+            subdivide_slider: 1,
             translation_input: String::new(),
             gcode_emit: String::new(),
             vis_select: VisibilitySelector::default(),
@@ -176,11 +179,9 @@ pub fn ui_system(
                 });
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
-                    let _response =
-                        ui.add(egui::Slider::new(&mut ui_res.subdivide_slider, 0.0..=30.0));
+                    let _response = ui.add(egui::Slider::new(&mut ui_res.subdivide_slider, 1..=10));
                     if ui.button("Subdivide to max distance").clicked() {
-                        gcode.0.subdivide_all(ui_res.subdivide_slider);
-                        commands.insert_resource(ForceRefresh);
+                        commands.insert_resource(SubdivideSelection(ui_res.subdivide_slider));
                     }
                 });
                 ui.add_space(spacing);
@@ -342,12 +343,6 @@ pub fn key_system(
     // clear key presses after read
     keys.clear();
 }
-#[derive(Default, Resource)]
-pub struct MergeDelete;
-
-#[derive(Default, Resource)]
-pub struct HoleDelete;
-
 pub fn select_brush(
     mut commands: Commands,
     mut selection_plugin: ResMut<SelectionPluginSettings>,
