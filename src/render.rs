@@ -2,6 +2,12 @@ use super::{
     print_analyzer::Label, settings::*, ForceRefresh, GCode, IdMap, PickableBundle, Tag, UiResource,
 };
 use bevy::prelude::*;
+use bevy_mod_picking::{
+    focus::PickingInteraction, highlight::PickHighlight, selection::PickSelection,
+};
+use std::collections::HashSet;
+
+
 
 pub fn render(
     mut commands: Commands,
@@ -80,6 +86,7 @@ pub fn render(
                 },
                 PickableBundle::default(),
                 Tag { id },
+
             ))
             .id();
         // add the
@@ -128,5 +135,18 @@ pub fn update_visibilities(
                 *vis = Visibility::Hidden;
             }
         }
+    }
+}
+
+pub fn match_objects(mut p_query: Query<(&mut PickingInteraction, Entity, &Tag)>, id_map: Res<IdMap>) {
+    let mut p_map: std::collections::HashMap<Tag, PickingInteraction> = std::collections::HashMap::new();
+    let ids = id_map.0.values().collect::<HashSet<_>>();
+    for (p, e, t) in p_query.iter_mut() {
+        if ids.contains(&e) {
+            p_map.insert(*t, *p);
+        }
+    }
+    for (mut p, _, t) in p_query.iter_mut() {
+        *p = *p_map.get(t).unwrap();
     }
 }

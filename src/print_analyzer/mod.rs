@@ -625,7 +625,7 @@ impl Parsed {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(bevy::prelude::Component, Copy, Clone, Debug, PartialEq)]
 pub enum Label {
     Uninitialized,
     Home,

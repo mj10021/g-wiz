@@ -145,6 +145,6 @@ fn main() {
             pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
         )
         .add_systems(Update, render.run_if(resource_exists::<ForceRefresh>))
-        .add_systems(PostUpdate, reset_ui_hover)
+        .add_systems(PostUpdate, (reset_ui_hover, match_objects))
         .run();
 }
