@@ -334,6 +334,10 @@ pub fn key_system(
         commands.init_resource::<HoleDelete>();
     } else if keys.just_pressed(settings.merge_delete_button) {
         commands.init_resource::<MergeDelete>();
+    } else if keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
+        && keys.just_pressed(KeyCode::KeyR)
+    {
+        commands.init_resource::<ForceRefresh>();
     }
     // clear key presses after read
     keys.clear();

@@ -10,6 +10,7 @@ mod ui;
 use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
+use callbacks::*;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
@@ -21,7 +22,6 @@ use settings::*;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
-use callbacks::*;
 
 #[derive(Default, Resource)]
 struct IdMap(HashMap<Id, Entity>);
@@ -134,7 +134,7 @@ fn main() {
                 update_selections,
                 update_visibilities,
                 merge_delete.run_if(resource_exists::<MergeDelete>),
-                hole_delete.run_if(resource_exists::<HoleDelete>)
+                hole_delete.run_if(resource_exists::<HoleDelete>),
             )
                 .chain(),
         )
