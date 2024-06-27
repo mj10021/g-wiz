@@ -1,3 +1,4 @@
+mod callbacks;
 mod diff;
 mod pan_orbit;
 mod print_analyzer;
@@ -7,8 +8,6 @@ mod settings;
 mod ui;
 
 use bevy::prelude::*;
-use bevy::render::mesh::PrimitiveTopology;
-use bevy::render::render_asset::RenderAssetUsages;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
@@ -22,6 +21,7 @@ use settings::*;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
+use callbacks::*;
 
 #[derive(Default, Resource)]
 struct IdMap(HashMap<Id, Entity>);
@@ -59,7 +59,7 @@ fn setup(
     let gcode = print_analyzer::read(filename, false).expect("failed to read");
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 100.0,
+        brightness: 255.0,
     });
     let translation = Vec3::new(-360.0, -360.0, 346.53);
     let rotation = Quat::from_vec4(Vec4::new(0.44708318, -0.0770713, -0.30120307, 0.83872086));
@@ -93,26 +93,7 @@ fn setup(
         },
         ..Default::default()
     });
-    let step = 25;
-    for x in (0..=w as i32).step_by(step) {
-        for y in (0..=l as i32).step_by(step) {
-            let (x, y) = (x as f32, y as f32);
-            let _ = commands.spawn(PbrBundle {
-                mesh: meshes.add(
-                    Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::RENDER_WORLD)
-                        .with_inserted_attribute(
-                            Mesh::ATTRIBUTE_POSITION,
-                            Vec::from([Vec3::new(x, y, 0.0), Vec3::new(x, y, 300.0)]),
-                        ),
-                ),
-                material: materials.add(StandardMaterial {
-                    base_color: Color::WHITE,
-                    ..Default::default()
-                }),
-                ..Default::default()
-            });
-        }
-    }
+
     commands.insert_resource(read_settings());
     commands.insert_resource(VertexCounter::build(&gcode));
     commands.insert_resource(GCode(gcode));
@@ -135,6 +116,7 @@ fn main() {
             DefaultPickingPlugins,
             EguiPlugin,
         ))
+        .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(
@@ -151,6 +133,8 @@ fn main() {
                 ui_system,
                 update_selections,
                 update_visibilities,
+                merge_delete.run_if(resource_exists::<MergeDelete>),
+                hole_delete.run_if(resource_exists::<HoleDelete>)
             )
                 .chain(),
         )

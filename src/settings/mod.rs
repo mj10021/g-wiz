@@ -1,6 +1,7 @@
 use bevy::prelude::{Color, KeyCode, MouseButton, Resource};
 use serde_json::{from_str, Value};
-use std::fs::{self, read_to_string};
+use std::fs::{read_to_string, File};
+use std::io::Write;
 
 #[derive(Resource)]
 pub struct Settings {
@@ -42,7 +43,6 @@ fn read_color(settings: &Value, key: &str) -> Color {
 }
 
 pub fn read_settings() -> Settings {
-    use std::io::Write;
     let path = std::env::current_exe()
         .expect("could not find excecutable directory")
         .parent()
@@ -52,7 +52,7 @@ pub fn read_settings() -> Settings {
         if path.exists() {
             &read_to_string(&path).unwrap()
         } else {
-            let mut default = std::fs::File::create(&path).expect("msg");
+            let mut default = File::create(&path).expect("msg");
             default.write_all(DEFAULT_SETTINGS.as_bytes()).expect("msg");
             DEFAULT_SETTINGS
         }

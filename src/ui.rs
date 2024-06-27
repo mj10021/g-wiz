@@ -169,11 +169,9 @@ pub fn ui_system(
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
                     if ui.button("Merge Delete").clicked() {
-                        gcode.0.merge_delete(&mut selection);
-                        commands.init_resource::<ForceRefresh>();
+                        commands.init_resource::<MergeDelete>();
                     } else if ui.button("Hole Delete").clicked() {
-                        gcode.0.hole_delete(&mut selection);
-                        commands.init_resource::<ForceRefresh>();
+                        commands.init_resource::<HoleDelete>();
                     }
                 });
                 ui.add_space(spacing);
@@ -333,13 +331,18 @@ pub fn key_system(
         log.history_counter -= 1;
         commands.init_resource::<SetSelections>();
     } else if keys.just_pressed(settings.hole_delete_button) {
-        todo!();
+        commands.init_resource::<HoleDelete>();
     } else if keys.just_pressed(settings.merge_delete_button) {
-        todo!();
+        commands.init_resource::<MergeDelete>();
     }
     // clear key presses after read
     keys.clear();
 }
+#[derive(Default, Resource)]
+pub struct MergeDelete;
+
+#[derive(Default, Resource)]
+pub struct HoleDelete;
 
 pub fn select_brush(
     mut commands: Commands,
