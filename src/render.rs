@@ -2,10 +2,6 @@ use super::{
     print_analyzer::Label, settings::*, ForceRefresh, GCode, IdMap, PickableBundle, Tag, UiResource,
 };
 use bevy::prelude::*;
-use bevy_mod_picking::{
-    focus::PickingInteraction, highlight::PickHighlight, selection::PickSelection,
-};
-use std::collections::HashSet;
 
 pub fn render(
     mut commands: Commands,
@@ -47,26 +43,35 @@ pub fn render(
         let mut sphere = false;
 
         // Create the mesh and material
-        let mesh_handle = match label {
-            Label::PlanarExtrustion | Label::NonPlanarExtrusion | Label::PrePrintMove => meshes
-                .add(Cylinder {
+        let mesh_handle = {
+            if label == Label::PlanarExtrustion
+                || label == Label::NonPlanarExtrusion
+                || label == Label::PrePrintMove
+            {
+                meshes.add(Cylinder {
                     radius,
                     half_height: length / 2.0,
-                }),
-            Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
+                })
+            } else if label == Label::TravelMove
+                || label == Label::LiftZ
+                || label == Label::LowerZ
+                || label == Label::Wipe
+            {
                 meshes.add(Cylinder {
                     radius: 0.1,
                     half_height: length / 2.0,
                 })
-            }
-            Label::DeRetraction | Label::Retraction => {
-                sphere = true;
+            } else if label == Label::DeRetraction || label == Label::Retraction {
                 meshes.add(Sphere {
-                    radius: radius * 1.618,
+                    radius: 1.0,
                 })
+            } else {
+                panic!("{:?}", label)
             }
-            _ => panic!(),
         };
+        if label == Label::DeRetraction || label == Label::Retraction {
+            sphere = true;
+        }
         let material_handle = match label {
             Label::PlanarExtrustion | Label::NonPlanarExtrusion | Label::PrePrintMove => materials
                 .add(StandardMaterial {
@@ -91,13 +96,17 @@ pub fn render(
         };
 
         // Calculate the middle point and orientation of the cylinder
-        let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
+        let rotation = if sphere {
+            Transform::default().rotation
+        } else {
+            Quat::from_rotation_arc(Vec3::Y, direction.normalize())
+        };
         let translation = if sphere { end } else { (start + end) / 2.0 };
         let e_id = commands
             .spawn((
                 PbrBundle {
                     mesh: mesh_handle,
-                    material: material_handle,
+                    material: material_handle.clone(),
                     transform: Transform {
                         translation,
                         rotation,
@@ -110,6 +119,23 @@ pub fn render(
             ))
             .id();
         map.0.insert(id, e_id);
+
+       // if label == Label::Retraction || label == Label::DeRetraction {
+       //     commands.spawn((
+       //         PbrBundle {
+       //             mesh: meshes.add(Sphere { radius: 10.0 }),
+       //             material: material_handle,
+       //             transform: Transform {
+       //                 translation,
+       //                 rotation,
+       //                 ..Default::default()
+       //             },
+       //             ..Default::default()
+       //         },
+       //         PickableBundle::default(),
+       //         Tag { id },
+       //     ));
+       // }
     }
     commands.remove_resource::<ForceRefresh>();
 }
@@ -141,22 +167,5 @@ pub fn update_visibilities(
                 *vis = Visibility::Hidden;
             }
         }
-    }
-}
-
-pub fn match_objects(
-    mut p_query: Query<(&mut PickingInteraction, Entity, &Tag)>,
-    id_map: Res<IdMap>,
-) {
-    let mut p_map: std::collections::HashMap<Tag, PickingInteraction> =
-        std::collections::HashMap::new();
-    let ids = id_map.0.values().collect::<HashSet<_>>();
-    for (p, e, t) in p_query.iter_mut() {
-        if ids.contains(&e) {
-            p_map.insert(*t, *p);
-        }
-    }
-    for (mut p, _, t) in p_query.iter_mut() {
-        *p = *p_map.get(t).unwrap();
     }
 }

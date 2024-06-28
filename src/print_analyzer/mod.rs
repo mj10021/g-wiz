@@ -514,6 +514,7 @@ impl Parsed {
             scale = 0.0;
         }
         let v = self.vertices.get_mut(id).unwrap();
+        // FIXME: use feedrate to calculate flow if scale is 0
         v.to.e = init_flow * scale;
     }
     fn insert_lines_before(&mut self, mut lines: Vec<Id>, id: &Id) {

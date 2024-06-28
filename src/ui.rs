@@ -72,10 +72,10 @@ pub struct VisibilitySelector {
 impl Default for VisibilitySelector {
     fn default() -> Self {
         VisibilitySelector {
-            extrusion: true,
-            wipe: false,
-            retraction: false,
-            deretraction: false,
+            extrusion: false,
+            wipe: true,
+            retraction: true,
+            deretraction: true,
             travel: false,
             preprint: false,
         }

@@ -61,21 +61,12 @@ fn setup(
         color: Color::WHITE,
         brightness: 255.0,
     });
-    let translation = Vec3::new(-360.0, -360.0, 346.53);
-    let rotation = Quat::from_vec4(Vec4::new(0.44708318, -0.0770713, -0.30120307, 0.83872086));
-    let radius = translation.length();
 
     commands.spawn((
         Camera3dBundle {
-            // transform: Transform {
-            //     translation,
-            //     rotation,
-            //     scale: Vec3::new(10.0, 10.0, 10.0),
-            // },
             ..Default::default()
         },
         PanOrbitCamera {
-            radius,
             ..Default::default()
         },
     ));
@@ -145,6 +136,6 @@ fn main() {
             pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
         )
         .add_systems(Update, render.run_if(resource_exists::<ForceRefresh>))
-        .add_systems(PostUpdate, (reset_ui_hover, match_objects))
+        .add_systems(PostUpdate, reset_ui_hover)
         .run();
 }

@@ -76,7 +76,7 @@ const DEFAULT_SETTINGS: &str = r#"{
     "colors" : {
         "extrusion color": "ff0000",
         "retraction color" : "00ff00",
-        "deretraction color": "0ff000",
+        "deretraction color": "000000",
         "travel move color": "0000ff"
     },
     "keys" : {
