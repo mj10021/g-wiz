@@ -7,8 +7,6 @@ use bevy_mod_picking::{
 };
 use std::collections::HashSet;
 
-
-
 pub fn render(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -36,49 +34,73 @@ pub fn render(
         let (start, end) = (Vec3::new(xi, yi, zi), Vec3::new(xf, yf, zf));
         let dist = start.distance(end);
         let flow = v.to.e / dist;
-        pos_list.push((v.id, start, end, flow));
+        pos_list.push((v.id, start, end, flow, v.label));
     }
-    for (id, start, end, flow) in pos_list {
-        // Create a cylinder mesh
+    for (id, start, end, flow, label) in pos_list {
+        if label == Label::FeedrateChangeOnly || label == Label::Home || label == Label::MysteryMove
+        {
+            continue;
+        }
         let radius = (flow / std::f32::consts::PI).sqrt();
-
-        // Create the mesh and material
-        let sphere_material = materials.add(StandardMaterial {
-            base_color: settings.extrusion_node_color,
-            ..Default::default()
-        });
-
-        // Create a cylinder mesh
         let length = start.distance(end);
-        let cylinder = Cylinder {
-            radius,
-            half_height: length / 2.0,
-        };
-        let sphere = Sphere {
-            radius: radius * 1.618,
-        };
+        let direction = end - start;
+        let mut sphere = false;
 
         // Create the mesh and material
-        let mesh_handle = meshes.add(cylinder);
-        let sphere = meshes.add(sphere);
-        let material_handle = materials.add(StandardMaterial {
-            base_color: settings.extrusion_color,
-            emissive: settings.extrusion_color,
-            ..Default::default()
-        });
+        let mesh_handle = match label {
+            Label::PlanarExtrustion | Label::NonPlanarExtrusion | Label::PrePrintMove => meshes
+                .add(Cylinder {
+                    radius,
+                    half_height: length / 2.0,
+                }),
+            Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
+                meshes.add(Cylinder {
+                    radius: 0.1,
+                    half_height: length / 2.0,
+                })
+            }
+            Label::DeRetraction | Label::Retraction => {
+                sphere = true;
+                meshes.add(Sphere {
+                    radius: radius * 1.618,
+                })
+            }
+            _ => panic!(),
+        };
+        let material_handle = match label {
+            Label::PlanarExtrustion | Label::NonPlanarExtrusion | Label::PrePrintMove => materials
+                .add(StandardMaterial {
+                    base_color: settings.extrusion_color,
+                    ..Default::default()
+                }),
+            Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
+                materials.add(StandardMaterial {
+                    base_color: settings.travel_color,
+                    ..Default::default()
+                })
+            }
+            Label::DeRetraction => materials.add(StandardMaterial {
+                base_color: settings.deretraction_color,
+                ..Default::default()
+            }),
+            Label::Retraction => materials.add(StandardMaterial {
+                base_color: settings.retraction_color,
+                ..Default::default()
+            }),
+            _ => panic!(),
+        };
 
         // Calculate the middle point and orientation of the cylinder
         let middle = (start + end) / 2.0;
-        let direction = end - start;
         let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
-        // Add the cylinder to the scene
+        let translation = if sphere { end } else { middle };
         let e_id = commands
             .spawn((
                 PbrBundle {
                     mesh: mesh_handle,
                     material: material_handle,
                     transform: Transform {
-                        translation: middle,
+                        translation,
                         rotation,
                         ..Default::default()
                     },
@@ -86,23 +108,8 @@ pub fn render(
                 },
                 PickableBundle::default(),
                 Tag { id },
-
             ))
             .id();
-        // add the
-        commands.spawn((
-            PbrBundle {
-                mesh: sphere,
-                material: sphere_material,
-                transform: Transform {
-                    translation: end,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            PickableBundle::default(),
-            Tag { id },
-        ));
         map.0.insert(id, e_id);
     }
     commands.remove_resource::<ForceRefresh>();
@@ -138,8 +145,12 @@ pub fn update_visibilities(
     }
 }
 
-pub fn match_objects(mut p_query: Query<(&mut PickingInteraction, Entity, &Tag)>, id_map: Res<IdMap>) {
-    let mut p_map: std::collections::HashMap<Tag, PickingInteraction> = std::collections::HashMap::new();
+pub fn match_objects(
+    mut p_query: Query<(&mut PickingInteraction, Entity, &Tag)>,
+    id_map: Res<IdMap>,
+) {
+    let mut p_map: std::collections::HashMap<Tag, PickingInteraction> =
+        std::collections::HashMap::new();
     let ids = id_map.0.values().collect::<HashSet<_>>();
     for (p, e, t) in p_query.iter_mut() {
         if ids.contains(&e) {

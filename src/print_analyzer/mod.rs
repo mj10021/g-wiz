@@ -629,7 +629,6 @@ impl Parsed {
 pub enum Label {
     Uninitialized,
     Home,
-    _FirstG1,
     PrePrintMove,
     TravelMove,
     PlanarExtrustion,

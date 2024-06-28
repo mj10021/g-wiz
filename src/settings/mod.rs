@@ -10,7 +10,8 @@ pub struct Settings {
     pub orbit_mouse_button: MouseButton,
     pub pan_mouse_button: MouseButton,
     pub extrusion_color: Color,
-    pub extrusion_node_color: Color,
+    pub retraction_color: Color,
+    pub deretraction_color: Color,
     pub travel_color: Color,
     pub save_suffix: String,
 }
@@ -64,7 +65,8 @@ pub fn read_settings() -> Settings {
         orbit_mouse_button: read_mouse_button(&settings, "mouse orbit"),
         pan_mouse_button: read_mouse_button(&settings, "mouse pan"),
         extrusion_color: read_color(&settings, "extrusion color"),
-        extrusion_node_color: read_color(&settings, "extrusion node color"),
+        retraction_color: read_color(&settings, "retraction color"),
+        deretraction_color: read_color(&settings, "deretraction color"),
         travel_color: read_color(&settings, "travel move color"),
         save_suffix: settings.get("save suffix").unwrap().to_string(),
     }
@@ -73,7 +75,8 @@ pub fn read_settings() -> Settings {
 const DEFAULT_SETTINGS: &str = r#"{
     "colors" : {
         "extrusion color": "ff0000",
-        "extrusion node color" : "00ff00",
+        "retraction color" : "00ff00",
+        "deretraction color": "0ff000",
         "travel move color": "0000ff"
     },
     "keys" : {
