@@ -62,9 +62,7 @@ pub fn render(
                     half_height: length / 2.0,
                 })
             } else if label == Label::DeRetraction || label == Label::Retraction {
-                meshes.add(Sphere {
-                    radius: 1.0,
-                })
+                meshes.add(Sphere { radius: 1.0 })
             } else {
                 panic!("{:?}", label)
             }
@@ -120,22 +118,22 @@ pub fn render(
             .id();
         map.0.insert(id, e_id);
 
-       // if label == Label::Retraction || label == Label::DeRetraction {
-       //     commands.spawn((
-       //         PbrBundle {
-       //             mesh: meshes.add(Sphere { radius: 10.0 }),
-       //             material: material_handle,
-       //             transform: Transform {
-       //                 translation,
-       //                 rotation,
-       //                 ..Default::default()
-       //             },
-       //             ..Default::default()
-       //         },
-       //         PickableBundle::default(),
-       //         Tag { id },
-       //     ));
-       // }
+        // if label == Label::Retraction || label == Label::DeRetraction {
+        //     commands.spawn((
+        //         PbrBundle {
+        //             mesh: meshes.add(Sphere { radius: 10.0 }),
+        //             material: material_handle,
+        //             transform: Transform {
+        //                 translation,
+        //                 rotation,
+        //                 ..Default::default()
+        //             },
+        //             ..Default::default()
+        //         },
+        //         PickableBundle::default(),
+        //         Tag { id },
+        //     ));
+        // }
     }
     commands.remove_resource::<ForceRefresh>();
 }

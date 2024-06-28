@@ -72,10 +72,10 @@ pub struct VisibilitySelector {
 impl Default for VisibilitySelector {
     fn default() -> Self {
         VisibilitySelector {
-            extrusion: false,
-            wipe: true,
-            retraction: true,
-            deretraction: true,
+            extrusion: true,
+            wipe: false,
+            retraction: false,
+            deretraction: false,
             travel: false,
             preprint: false,
         }
@@ -89,7 +89,21 @@ pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     }
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
-
+pub fn toolbar(mut contexts: EguiContexts) {
+    egui::TopBottomPanel::top("toolbar").show(contexts.ctx_mut(), |ui| {
+        egui::menu::bar(ui, |ui| {
+            ui.menu_button("File", |ui| {
+                if ui.button("Open").clicked() {
+                    // …
+                }
+                else if ui.button("Export GCode").clicked() {}
+            });
+            ui.menu_button("Transform", |ui| {
+                if ui.button("Rotate").clicked() {}
+            })
+        })
+    });
+}
 pub fn ui_system(
     mut contexts: EguiContexts,
     mut commands: Commands,
@@ -343,6 +357,7 @@ pub fn key_system(
     // clear key presses after read
     keys.clear();
 }
+
 pub fn select_brush(
     mut commands: Commands,
     mut selection_plugin: ResMut<SelectionPluginSettings>,
@@ -393,6 +408,7 @@ pub fn capture_mouse(
         }
     }
 }
+
 pub fn reset_ui_hover(
     mut commands: Commands,
     mut pick_settings: ResMut<PickingPluginsSettings>,

@@ -413,13 +413,13 @@ impl Parsed {
     }
     fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self.vertices.get(id).expect("vertex not found in map");
-        if v.prev.is_none() {
-            return 0.0;
-        }
-        let p = self.vertices.get(&v.prev.unwrap()).unwrap();
+        let p = self
+            .vertices
+            .get(&v.prev.unwrap())
+            .expect("dist from vertex with no prev");
         p.to.dist(&v.to)
     }
-    // FIXME: this doesn't really work
+
     pub fn hole_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
         let mut temp = Vec::new();
         for line in &self.lines.clone() {
@@ -477,16 +477,9 @@ impl Parsed {
         let Some(v) = self.vertices.get(id) else {
             return;
         }; // in case a non-vertex instruction is searched, do nothing
-        if v.prev.is_none() {
-            let v = self.vertices.get_mut(id).unwrap();
-
-            // FIXME: need to adjust flow here
-            v.to.x += dx;
-            v.to.y += dy;
-            v.to.z += dz;
-            return;
+        if self.dist_from_prev(&v.id) < f32::EPSILON {
+            return; // dont translate moves without travel
         }
-
         let prev = v.prev.unwrap();
         let init_dist = self.dist_from_prev(id);
         let init_flow = self.vertices.get(id).unwrap().to.e;
@@ -514,7 +507,6 @@ impl Parsed {
             scale = 0.0;
         }
         let v = self.vertices.get_mut(id).unwrap();
-        // FIXME: use feedrate to calculate flow if scale is 0
         v.to.e = init_flow * scale;
     }
     fn insert_lines_before(&mut self, mut lines: Vec<Id>, id: &Id) {
@@ -529,7 +521,7 @@ impl Parsed {
             self.lines.insert(i, line);
         }
     }
-    pub fn subdivide_vertex(&mut self, id: &Id, count: u32) {
+    fn subdivide_vertex(&mut self, id: &Id, count: u32) {
         if count < 1 {
             return;
         }
@@ -557,7 +549,7 @@ impl Parsed {
             let i = i as f32;
             let mut new = Vertex {
                 id: self.id_counter.get(),
-                count: 0, //FIXME: duh
+                count: 0, // this then needs to be counted and set
                 label: Label::Uninitialized,
                 prev,
                 to: Pos {
@@ -567,8 +559,7 @@ impl Parsed {
                     e: ef / countf,
                     f,
                 },
-                // FIXME!!!
-                next: None,
+                next: None, // this gets set as part of set_counts
             };
             new.label(self);
             self.vertices.insert(new.id, new.clone());
@@ -576,7 +567,6 @@ impl Parsed {
             new_ids.push(new.id);
             vec.push(new);
         }
-        // FIXME: this does not seem efficient
         for id in &new_ids {
             prev = Some(*id);
         }
@@ -585,16 +575,20 @@ impl Parsed {
         v.to.e = ef / countf;
         v.prev = prev;
     }
-    pub fn subdivide_all(&mut self, max_dist: f32) {
-        // FIXME: this is probably dumb
-        let mut v = Vec::new();
-        for key in self.vertices.keys() {
-            v.push(*key);
+    pub fn subdivide_vertices(&mut self, vertices: HashSet<Id>, count: u32) {
+        for id in vertices {
+            self.subdivide_vertex(&id, count);
         }
-        for line in &v {
-            let dist = self.dist_from_prev(line);
-            let count = (dist / max_dist).round() as u32;
-            self.subdivide_vertex(line, count);
+        self.set_counts();
+    }
+    pub fn subdivide_all(&mut self, max_dist: f32) {
+        let vertices = self.vertices.clone();
+        for id in vertices.keys() {
+            if self.vertices.contains_key(&id) {
+                let dist = self.dist_from_prev(&id);
+                let count = (dist / max_dist).round() as u32;
+                self.subdivide_vertex(&id, count);
+            }
         }
     }
 
@@ -623,6 +617,18 @@ impl Parsed {
         f.write_all(out.as_bytes())?;
         println!("save successful");
         Ok(())
+    }
+    fn set_counts(&mut self) {
+        let mut count = 0;
+        let mut next = None;
+        for line in &self.lines {
+            if let Some(v) = self.vertices.get_mut(line) {
+                v.count = count;
+                v.next = next;
+                next = Some(v.id);
+                count += 1;
+            }
+        }
     }
 }
 

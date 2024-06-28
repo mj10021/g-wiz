@@ -47,9 +47,7 @@ pub fn subdivide_selection(
     count: Res<SubdivideSelection>,
 ) {
     let selection = get_selections(s_query);
-    for id in selection.iter() {
-        gcode.0.subdivide_vertex(id, count.0);
-    }
+    gcode.0.subdivide_vertices(selection, count.0);
     commands.init_resource::<ForceRefresh>();
     commands.remove_resource::<SubdivideSelection>();
 }

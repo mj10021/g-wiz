@@ -122,6 +122,7 @@ fn main() {
             (
                 select_brush,
                 key_system,
+                //toolbar,
                 ui_system,
                 update_selections,
                 update_visibilities,
