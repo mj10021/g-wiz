@@ -91,9 +91,8 @@ pub fn render(
         };
 
         // Calculate the middle point and orientation of the cylinder
-        let middle = (start + end) / 2.0;
         let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
-        let translation = if sphere { end } else { middle };
+        let translation = if sphere { end } else { (start + end) / 2.0 };
         let e_id = commands
             .spawn((
                 PbrBundle {
