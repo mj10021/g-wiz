@@ -104,6 +104,14 @@ pub fn toolbar(mut contexts: EguiContexts) {
         })
     });
 }
+pub fn right_click_menu(mut contexts: EguiContexts) {
+    egui::popup::show_tooltip_at_pointer(contexts.ctx_mut(), "right click popup".into(), |ui| {
+        egui::ComboBox::new("right click box", "context menu").show_ui(ui, |ui| {
+        });
+    });
+    
+}
+
 pub fn ui_system(
     mut contexts: EguiContexts,
     mut commands: Commands,

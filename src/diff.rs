@@ -26,19 +26,13 @@ impl SelectionDiff {
     fn forward_apply(&self, curr: &mut HashSet<Tag>) {
         curr.extend(self.add.clone());
         for elem in self.sub.iter() {
-            let dbg = !(curr.remove(elem));
-            if dbg {
-                println!("{:#?}\r\n\r\n{:#?}", self, curr);
-            }
+            assert!(curr.remove(elem)); // make sure element is actually removed
         }
     }
     fn reverse_apply(&self, curr: &mut HashSet<Tag>) {
         curr.extend(self.sub.clone());
         for elem in self.add.iter() {
-            let dbg = !(curr.remove(elem));
-            if dbg {
-                println!("{:#?}\r\n\r\n{:#?}", self, curr);
-            }
+            assert!(curr.remove(elem)); // make sure element is actually removed
         }
     }
     fn is_none(&self) -> bool {
@@ -62,6 +56,7 @@ pub fn update_selection_log(
         return;
     }
     // if the counter isn't current and a the selection is made, clear the selection
+    // FIXME: this should still keep the last move
     if log.history_counter != 0 {
         log.log = Vec::new();
         log.history_counter = 0;
