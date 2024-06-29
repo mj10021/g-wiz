@@ -8,6 +8,7 @@ use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiContexts;
 use bevy_mod_picking::{prelude::*, selection::SelectionPluginSettings};
+use egui::Pos2;
 use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -104,11 +105,30 @@ pub fn toolbar(mut contexts: EguiContexts) {
         })
     });
 }
-pub fn right_click_menu(mut contexts: EguiContexts) {
-    egui::popup::show_tooltip_at_pointer(contexts.ctx_mut(), "right click popup".into(), |ui| {
-        egui::ComboBox::new("right click box", "context menu").show_ui(ui, |ui| {
+
+#[derive(Default, Resource)]
+pub struct RightClick;
+
+pub fn right_click(mut commands: Commands, click: Res<ButtonInput<MouseButton>>) {
+    if click.just_pressed(MouseButton::Right) {
+        commands.init_resource::<RightClick>();
+    }
+    if click.just_pressed(MouseButton::Left) {
+        commands.remove_resource::<RightClick>();
+    }
+}
+
+pub fn right_click_menu(mut contexts: EguiContexts, window: Query<&Window, With<PrimaryWindow>>) {
+    let window = window.get_single().unwrap();
+    if let Some(Vec2{x,y}) = window.cursor_position(){
+        let min = Pos2 {x, y};
+        let max = Pos2 {x, y};
+        let rect = egui::Rect {min, max};
+        egui::popup::show_tooltip_for(contexts.ctx_mut(), "right click popup".into(), &rect, |ui| {
+            egui::ComboBox::new("right click box", "context menu").show_ui(ui, |ui| {
+            });
         });
-    });
+    }
     
 }
 

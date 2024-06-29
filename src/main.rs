@@ -7,7 +7,6 @@ mod select;
 mod settings;
 mod ui;
 
-use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_mod_picking::prelude::*;
@@ -121,10 +120,11 @@ fn main() {
         .add_systems(
             Update,
             (
+                right_click,
                 select_brush,
                 key_system,
                 //toolbar,
-                right_click_menu,
+                right_click_menu.run_if(resource_exists::<RightClick>),
                 ui_system,
                 update_selections,
                 update_visibilities,
