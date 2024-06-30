@@ -26,7 +26,7 @@ use ui::*;
 #[derive(Default, Resource)]
 struct IdMap(HashMap<Id, Entity>);
 
-#[derive(Resource)]
+#[derive(Clone, Resource)]
 struct GCode(Parsed);
 
 #[derive(Default, Resource)]

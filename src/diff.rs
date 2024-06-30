@@ -33,9 +33,21 @@ pub struct SelectionDiff {
 
 #[derive(Resource)]
 pub struct GCodeLog {
+    curr: GCode,
     log: Vec<GCodeDiff>,
     pub history_counter: u32,
     curr_counter: u32,
+}
+
+impl GCodeLog {
+    fn init(gcode: Res<GCode>) -> Self {
+        Self {
+            curr: gcode.clone(),
+            log: Vec::new(),
+            history_counter: 0,
+            curr_counter: 0,
+        }
+    }
 }
 
 pub struct GCodeDiff {
@@ -48,14 +60,17 @@ pub struct GCodeDiff {
 }
 
 impl GCodeDiff {
-    fn diff(gcode: Res<GCode>) {}
+    fn diff(next: Res<GCode>) -> Self {
+        
+
+    }
 }
 
 impl SelectionDiff {
-    fn diff(curr: &HashSet<Tag>, next: &HashSet<Tag>) -> SelectionDiff {
+    fn diff(curr: &HashSet<Tag>, next: &HashSet<Tag>) -> Self {
         let sub = curr.difference(next).copied().collect::<HashSet<_>>();
         let add = next.difference(curr).copied().collect::<HashSet<_>>();
-        SelectionDiff { add, sub }
+        Self { add, sub }
     }
     fn forward_apply(&self, curr: &mut HashSet<Tag>) {
         curr.extend(self.add.clone());

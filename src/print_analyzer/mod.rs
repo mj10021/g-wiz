@@ -230,7 +230,7 @@ impl Vertex {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Shape {
     pub id: Id,
     lines: Vec<Id>,
@@ -249,7 +249,7 @@ impl Shape {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Parsed {
     pub lines: Vec<Id>,
     pub vertices: HashMap<Id, Vertex>,
