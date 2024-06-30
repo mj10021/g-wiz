@@ -17,6 +17,10 @@ pub struct SelectionDiff {
     sub: HashSet<Tag>,
 }
 
+pub struct OperationDiff {
+    add: HashSet
+}
+
 impl SelectionDiff {
     fn diff(curr: &HashSet<Tag>, next: &HashSet<Tag>) -> SelectionDiff {
         let sub = curr.difference(next).copied().collect::<HashSet<_>>();

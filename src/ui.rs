@@ -1,12 +1,11 @@
 use super::diff::{SelectionLog, SetSelections};
 use super::{
-    EguiContext, HoleDelete, MergeDelete, PickSelection, PickingPluginsSettings, Settings,
-    SubdivideSelection,
+    HoleDelete, MergeDelete, PickSelection, PickingPluginsSettings, Settings, SubdivideSelection,
 };
 use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_egui::EguiContexts;
+use bevy_egui::{EguiContext, EguiContexts};
 use bevy_mod_picking::{prelude::*, selection::SelectionPluginSettings};
 use egui::Pos2;
 use std::collections::HashSet;
@@ -96,40 +95,44 @@ pub fn toolbar(mut contexts: EguiContexts) {
             ui.menu_button("File", |ui| {
                 if ui.button("Open").clicked() {
                     // …
+                } else if ui.button("Export GCode").clicked() {
                 }
-                else if ui.button("Export GCode").clicked() {}
             });
-            ui.menu_button("Transform", |ui| {
-                if ui.button("Rotate").clicked() {}
-            })
+            ui.menu_button("Transform", |ui| if ui.button("Rotate").clicked() {})
         })
     });
 }
 
-#[derive(Default, Resource)]
-pub struct RightClick;
+#[derive(Resource)]
+pub struct RightClick(Pos2);
 
-pub fn right_click(mut commands: Commands, click: Res<ButtonInput<MouseButton>>) {
-    if click.just_pressed(MouseButton::Right) {
-        commands.init_resource::<RightClick>();
-    }
-    if click.just_pressed(MouseButton::Left) {
-        commands.remove_resource::<RightClick>();
+pub fn right_click(
+    mut commands: Commands,
+    mut egui_context: Query<&mut EguiContext>,
+    click: Res<ButtonInput<MouseButton>>,
+    window: Query<&Window, With<PrimaryWindow>>,
+) {
+    if let Some(Vec2 { x, y }) = window.get_single().unwrap().cursor_position() {
+        if let Ok(mut context) = egui_context.get_single_mut() {
+            let context = context.get_mut();
+            let pos = Pos2 { x, y };
+            if click.just_pressed(MouseButton::Right) {
+                println!("adsf");
+                commands.insert_resource(RightClick(pos));
+            }
+            if click.just_pressed(MouseButton::Left) && !context.wants_pointer_input() {
+                commands.remove_resource::<RightClick>();
+            }
+        }
     }
 }
 
-pub fn right_click_menu(mut contexts: EguiContexts, window: Query<&Window, With<PrimaryWindow>>) {
-    let window = window.get_single().unwrap();
-    if let Some(Vec2{x,y}) = window.cursor_position(){
-        let min = Pos2 {x, y};
-        let max = Pos2 {x, y};
-        let rect = egui::Rect {min, max};
-        egui::popup::show_tooltip_for(contexts.ctx_mut(), "right click popup".into(), &rect, |ui| {
-            egui::ComboBox::new("right click box", "context menu").show_ui(ui, |ui| {
-            });
-        });
-    }
-    
+pub fn right_click_menu(mut contexts: EguiContexts, pos: Res<RightClick>) {
+    egui::Window::new("right click")
+        .title_bar(false)
+        .resizable(false)
+        .fixed_pos(pos.0)
+        .show(contexts.ctx_mut(), |ui| if ui.button("asdf").clicked() {});
 }
 
 pub fn ui_system(
@@ -418,20 +421,14 @@ pub fn select_brush(
 
 pub fn capture_mouse(
     mut commands: Commands,
-    window: Query<&Window, With<PrimaryWindow>>,
     mut pick_settings: ResMut<PickingPluginsSettings>,
     mut egui_context: Query<&mut EguiContext>,
 ) {
-    let Ok(mut width) = egui_context.get_single_mut() else {
-        return;
-    };
-    let width = width.get_mut().used_rect().width();
-    let Ok(window) = window.get_single() else {
-        return;
-    };
-    if let Some(Vec2 { x, .. }) = window.cursor_position() {
-        if x < width {
+    if let Ok(mut context) = egui_context.get_single_mut() {
+        let context = context.get_mut();
+        if context.wants_pointer_input() {
             pick_settings.is_enabled = false;
+            println!("mouse captured");
             commands.remove_resource::<EnablePanOrbit>();
         }
     }
