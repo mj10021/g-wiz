@@ -1,4 +1,4 @@
-use super::{Resource, Tag};
+use super::{Resource, Tag, Id, print_analyzer::{Vertex, Instruction}};
 use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
 use std::collections::HashSet;
@@ -17,8 +17,35 @@ pub struct SelectionDiff {
     sub: HashSet<Tag>,
 }
 
-pub struct OperationDiff {
-    add: HashSet
+
+// #[derive(Debug, PartialEq)]
+// pub struct Parsed {
+    // pub lines: Vec<Id>,
+    // pub vertices: HashMap<Id, Vertex>,
+    // pub instructions: HashMap<Id, Instruction>,
+    // pub shapes: Vec<Shape>,
+    // pub rel_xyz: bool,
+    // pub rel_e: bool,
+    // id_counter: Id,
+// }
+
+pub struct GCodeLog {
+    log: Vec<GCodeDiff>,
+    pub history_counter: u32,
+    curr_counter: u32,
+}
+
+pub struct GCodeDiff {
+    line_add: HashSet<(u32, Id)>,
+    line_sub: HashSet<(u32, Id)>,
+    vertex_add: HashSet<(Id, Vertex)>,
+    vertex_sub: HashSet<(Id, Vertex)>,
+    instruction_add: HashSet<(Id, Instruction)>,
+    instruction_sub: HashSet<(Id, Instruction)>,
+}
+
+impl GCodeDiff {
+    fn diff() {}
 }
 
 impl SelectionDiff {
