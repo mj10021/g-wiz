@@ -2,22 +2,43 @@ use super::{
     print_analyzer::{Instruction, Vertex},
     GCode, Id, Resource, Tag,
 };
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::hashbrown::hash_set::Difference};
 use bevy_mod_picking::selection::PickSelection;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default, Resource)]
 pub struct SelectionLog {
     curr: HashSet<Tag>,
-    pub log: Vec<SelectionDiff>,
+    pub log: Vec<(bool, HashSet<Tag>)>,
     pub history_counter: u32,
     curr_counter: u32,
 }
 
-#[derive(Clone, Debug)]
-pub struct SelectionDiff {
-    add: HashSet<Tag>,
-    sub: HashSet<Tag>,
+impl SelectionLog {
+    fn diff(&self, next: &HashSet<Tag>) -> (bool, HashSet<Tag>) {
+        set_diff(&self.curr, next)
+    }
+
+    fn forward_apply(&mut self, diff: (bool, HashSet<Tag>)) {
+        let (add, diff) = diff;
+        if add {
+            self.curr.extend(diff.clone());
+        } else {
+            for elem in diff.iter() {
+                assert!(self.curr.remove(elem)); // make sure element is actually removed
+            }
+        }
+    }
+    fn reverse_apply(&mut self, diff: (bool, HashSet<Tag>)) {
+        let (add, diff) = diff;
+        if add {
+            for elem in diff.iter() {
+                assert!(self.curr.remove(elem)); // make sure element is actually removed
+            }
+        } else {
+            self.curr.extend(diff.clone())
+        }
+    }
 }
 
 // #[derive(Debug, PartialEq)]
@@ -48,46 +69,96 @@ impl GCodeLog {
             curr_counter: 0,
         }
     }
+
+    fn diff(&self, next: &GCode) -> GCodeDiff {
+        let (curr, next) = (self.curr.0, next.0);
+        let line_diff = vec_diff(curr.lines, next.lines);
+        let vertex_diff = map_diff(&curr.vertices, &next.vertices);
+        let instruction_diff = map_diff(&curr.vertices, &next.vertices);
+    }
 }
 
 pub struct GCodeDiff {
-    line_add: HashSet<(u32, Id)>,
-    line_sub: HashSet<(u32, Id)>,
-    vertex_add: HashSet<(Id, Vertex)>,
-    vertex_sub: HashSet<(Id, Vertex)>,
-    instruction_add: HashSet<(Id, Instruction)>,
-    instruction_sub: HashSet<(Id, Instruction)>,
+    add: bool,
+    line_diff: HashSet<(u32, Id)>,
+    vertex_diff: HashSet<(Id, Vertex)>,
+    instruction_diff: HashSet<(Id, Instruction)>,
 }
 
-impl GCodeDiff {
-    fn diff(next: Res<GCode>) -> Self {
-        
-
-    }
-}
-
-impl SelectionDiff {
-    fn diff(curr: &HashSet<Tag>, next: &HashSet<Tag>) -> Self {
-        let sub = curr.difference(next).copied().collect::<HashSet<_>>();
-        let add = next.difference(curr).copied().collect::<HashSet<_>>();
-        Self { add, sub }
-    }
-    fn forward_apply(&self, curr: &mut HashSet<Tag>) {
-        curr.extend(self.add.clone());
-        for elem in self.sub.iter() {
-            assert!(curr.remove(elem)); // make sure element is actually removed
+fn vec_diff<T>(curr: Vec<T>, next: Vec<T>) -> (bool, HashSet<(u32, T)>)
+where
+    T: Copy + Eq + std::hash::Hash,
+{
+    let mut out = HashSet::new();
+    let mut i = 0;
+    let add = curr.len() < next.len(); // add (true) if curr < len
+    if add {
+        for j in 0..next.len() {
+            if i < curr.len() && curr[i] == next[j] {
+                i += 1;
+            } else {
+                assert!(out.insert((j as u32, next[j]))); // make sure the inserted value is unique
+            }
+        }
+    } else {
+        for j in 0..curr.len() {
+            if i < next.len() && next[i] == curr[j] {
+                i += 1;
+            } else {
+                assert!(out.insert((j as u32, next[j]))); // make sure the inserted value is unique
+            }
         }
     }
-    fn reverse_apply(&self, curr: &mut HashSet<Tag>) {
-        curr.extend(self.sub.clone());
-        for elem in self.add.iter() {
-            assert!(curr.remove(elem)); // make sure element is actually removed
-        }
-    }
-    fn is_none(&self) -> bool {
-        self.add.is_empty() && self.sub.is_empty()
+    (add, out)
+}
+
+fn set_diff<T>(curr: &HashSet<T>, next: &HashSet<T>) -> (bool, HashSet<T>)
+where
+    T: Copy + Eq + std::hash::Hash,
+{
+    if curr.len() < next.len() {
+        (true, next.difference(curr).copied().collect::<HashSet<T>>())
+    } else {
+        (
+            false,
+            curr.difference(next).copied().collect::<HashSet<T>>(),
+        )
     }
 }
+
+fn map_diff<S, T>(curr: &HashMap<S, T>, next: &HashMap<S, T>) -> (bool, HashMap<S, T>)
+where
+    S: Copy + PartialEq + Eq + core::hash::Hash,
+    T: Copy,
+{
+    let add = curr.len() < next.len();
+    let (curr_keys, next_keys) = (
+        curr.keys().copied().collect::<HashSet<_>>(),
+        next.keys().copied().collect::<HashSet<_>>(),
+    );
+    let diff_keys = {
+        if add {
+            curr_keys.difference(&next_keys)
+        } else {
+            next_keys.difference(&curr_keys)
+        }
+    }
+    .collect::<HashSet<&S>>();
+    let mut diff: HashMap<S, T> = HashMap::new();
+    if add {
+        for key in diff_keys.iter() {
+            let value = next.get(*key).unwrap();
+            diff.insert(**key, *value);
+        }
+    } else {
+        for key in diff_keys.iter() {
+            let value = curr.get(*key).unwrap();
+            diff.insert(**key, *value);
+        }
+    }
+    (add, diff)
+}
+
 #[derive(Resource, Default)]
 pub struct SetSelections;
 pub fn update_selection_log(
@@ -100,8 +171,8 @@ pub fn update_selection_log(
         .filter(|(s, _)| s.is_selected)
         .map(|(_, t)| *t)
         .collect::<HashSet<Tag>>();
-    let diff = SelectionDiff::diff(&log.curr, &new_set);
-    if diff.is_none() {
+    let diff = log.diff(&new_set);
+    if diff.1.is_empty() {
         return;
     }
     // if the counter isn't current and a the selection is made, clear the selection
@@ -131,14 +202,14 @@ pub fn undo_redo_selections(
     // ctrl+z
     while log.curr_counter < log.history_counter {
         let diff = log.log[log.log.len() - log.curr_counter as usize - 1].clone();
-        diff.reverse_apply(&mut log.curr);
+        log.reverse_apply(diff);
         log.curr_counter += 1;
         updated = true;
     }
     // ctrl+shift+z
     while log.curr_counter > log.history_counter {
         let diff = log.log[log.log.len() - log.curr_counter as usize].clone();
-        diff.forward_apply(&mut log.curr);
+        log.forward_apply(diff);
         log.curr_counter -= 1;
         updated = true;
     }

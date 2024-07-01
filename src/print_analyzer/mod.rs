@@ -98,6 +98,8 @@ pub struct Pos {
     pub e: f32,
     pub f: f32,
 }
+
+
 impl std::ops::Sub for Pos {
     type Output = (f32, f32, f32);
     fn sub(self, rhs: Pos) -> Self::Output {
@@ -140,7 +142,7 @@ fn pre_home(p: Pos) -> bool {
     }
     false
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Vertex {
     pub id: Id,
     pub count: u32,
@@ -632,7 +634,7 @@ impl Parsed {
     }
 }
 
-#[derive(bevy::prelude::Component, Copy, Clone, Debug, PartialEq)]
+#[derive(bevy::prelude::Component, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Label {
     Uninitialized,
     Home,
