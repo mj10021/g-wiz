@@ -71,21 +71,26 @@ impl GCodeLog {
     }
 
     fn diff(&self, next: &GCode) -> GCodeDiff {
-        let (curr, next) = (self.curr.0, next.0);
-        let line_diff = vec_diff(curr.lines, next.lines);
-        let vertex_diff = map_diff(&curr.vertices, &next.vertices);
-        let instruction_diff = map_diff(&curr.vertices, &next.vertices);
+        let line_diff = vec_diff(&self.curr.0.lines, &next.0.lines);
+        let vertex_diff = map_diff(&self.curr.0.vertices, &next.0.vertices);
+        let instruction_diff = map_diff(&self.curr.0.instructions, &next.0.instructions);
+        GCodeDiff {
+            add: line_diff.0,
+            line_diff: line_diff.1,
+            vertex_diff: vertex_diff.1,
+            instruction_diff: instruction_diff.1
+        }
     }
 }
 
 pub struct GCodeDiff {
     add: bool,
     line_diff: HashSet<(u32, Id)>,
-    vertex_diff: HashSet<(Id, Vertex)>,
-    instruction_diff: HashSet<(Id, Instruction)>,
+    vertex_diff: HashMap<Id, Vertex>,
+    instruction_diff: HashMap<Id, Instruction>,
 }
 
-fn vec_diff<T>(curr: Vec<T>, next: Vec<T>) -> (bool, HashSet<(u32, T)>)
+fn vec_diff<T>(curr: &Vec<T>, next: &Vec<T>) -> (bool, HashSet<(u32, T)>)
 where
     T: Copy + Eq + std::hash::Hash,
 {
@@ -129,7 +134,7 @@ where
 fn map_diff<S, T>(curr: &HashMap<S, T>, next: &HashMap<S, T>) -> (bool, HashMap<S, T>)
 where
     S: Copy + PartialEq + Eq + core::hash::Hash,
-    T: Copy,
+    T: Clone,
 {
     let add = curr.len() < next.len();
     let (curr_keys, next_keys) = (
@@ -148,12 +153,12 @@ where
     if add {
         for key in diff_keys.iter() {
             let value = next.get(*key).unwrap();
-            diff.insert(**key, *value);
+            diff.insert(**key, value.clone());
         }
     } else {
         for key in diff_keys.iter() {
             let value = curr.get(*key).unwrap();
-            diff.insert(**key, *value);
+            diff.insert(**key, value.clone());
         }
     }
     (add, diff)
