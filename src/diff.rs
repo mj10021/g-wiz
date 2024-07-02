@@ -86,7 +86,17 @@ where
 pub struct History {
     selection_log: SelectionLog,
     gcode_log: GCodeLog,
-    selection_or_gcode: Vec<bool>, // true means selection false means gcode
+    log: Vec<bool>, // true means selection false means gcode
+    pub history_counter: u32,
+    curr_counter: u32,
+    selection_counter: u32,
+    gcode_counter: u32
+}
+
+impl History {
+    fn forward_apply(&mut self) {
+
+    }
 }
 
 #[derive(Default, Resource)]
@@ -261,3 +271,41 @@ pub fn undo_redo_selections(
     }
     commands.remove_resource::<SetSelections>()
 }
+
+//pub fn undo_redo_history(
+//    mut commands: Commands,
+//    mut s_query: Query<(&mut PickSelection, &Tag)>,
+//    mut history: ResMut<History>,
+//) {
+//    if history.log.is_empty() {
+//        return;
+//    }
+//    let mut updated = false;
+//    // ctrl+z
+//    while history.curr_counter < history.history_counter {
+//
+//        let selection = history.log[history.log.len() - history.curr_counter as usize - 1];
+//        if selection {
+//            history.selection_counter += 1;
+//                        
+//        } else {
+//// 
+//        }
+//        log.reverse_apply(diff);
+//        history.curr_counter += 1;
+//        updated = true;
+//    }
+//    // ctrl+shift+z
+//    while log.curr_counter > log.history_counter {
+//        let diff = log.log[log.log.len() - log.curr_counter as usize].clone();
+//        log.forward_apply(diff);
+//        log.curr_counter -= 1;
+//        updated = true;
+//    }
+//    if updated {
+//        for (mut s, i) in s_query.iter_mut() {
+//            s.is_selected = log.curr.contains(i);
+//        }
+//    }
+//    commands.remove_resource::<SetSelections>()
+//}

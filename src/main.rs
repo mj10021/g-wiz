@@ -74,8 +74,7 @@ fn setup(
     let _ = commands.spawn(PbrBundle {
         mesh: meshes.add(Cuboid::new(w, l, -0.1)),
         material: materials.add(StandardMaterial {
-            base_color: Color::WHITE,
-            emissive: Color::WHITE,
+            base_color: Color::GRAY,
             ..Default::default()
         }),
         transform: Transform {

@@ -397,15 +397,12 @@ pub fn select_brush(
     mut s_query: Query<(Entity, &mut PickSelection)>,
     ui_res: Res<UiResource>,
     mut window: Query<&mut Window, With<PrimaryWindow>>,
-) {
+) { // FIXME: I never implemented eraser??????????????
     if let Ok(mut window) = window.get_single_mut() {
         window.cursor.icon = match ui_res.cursor_enum {
-            Cursor::Pointer => CursorIcon::Default,
+            Cursor::Pointer => return,
             Cursor::Brush | Cursor::Eraser => CursorIcon::Crosshair,
         }
-    }
-    if ui_res.cursor_enum == Cursor::Pointer {
-        return;
     }
     selection_plugin.click_nothing_deselect_all = false;
     commands.remove_resource::<EnablePanOrbit>();
@@ -414,6 +411,15 @@ pub fn select_brush(
     }
     for hover in hover_reader.read() {
         if let Ok((_, mut selection)) = s_query.get_mut(hover.target) {
+            match ui_res.cursor_enum {
+                Cursor::Brush => {
+                    selection.is_selected = true;
+                },
+                Cursor::Eraser => {
+                    selection.is_selected = false;
+                },
+                _ => return,
+            }
             selection.is_selected = ui_res.cursor_enum == Cursor::Brush;
         }
     }
@@ -423,14 +429,12 @@ pub fn capture_mouse(
     mut commands: Commands,
     mut pick_settings: ResMut<PickingPluginsSettings>,
     mut egui_context: Query<&mut EguiContext>,
-    ui_res: Res<UiResource>,
     mouse: Res<ButtonInput<MouseButton>>
 ) {
     if let Ok(mut context) = egui_context.get_single_mut() {
         let context = context.get_mut();
         if context.is_using_pointer()
             || context.wants_pointer_input()
-            || ui_res.cursor_enum != Cursor::Pointer
         {
             pick_settings.is_enabled = false;
             commands.remove_resource::<EnablePanOrbit>();
