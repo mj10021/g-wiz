@@ -99,7 +99,6 @@ pub struct Pos {
     pub f: f32,
 }
 
-
 impl std::ops::Sub for Pos {
     type Output = (f32, f32, f32);
     fn sub(self, rhs: Pos) -> Self::Output {

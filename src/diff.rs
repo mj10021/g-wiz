@@ -2,7 +2,7 @@ use super::{
     print_analyzer::{Instruction, Vertex},
     GCode, Id, Resource, Tag,
 };
-use bevy::{prelude::*, utils::hashbrown::hash_set::Difference};
+use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
 use std::collections::{HashMap, HashSet};
 
@@ -78,19 +78,35 @@ impl GCodeLog {
             add: line_diff.0,
             line_diff: line_diff.1,
             vertex_diff: vertex_diff.1,
-            instruction_diff: instruction_diff.1
+            instruction_diff: instruction_diff.1,
         }
     }
 }
 
 pub struct GCodeDiff {
     add: bool,
-    line_diff: HashSet<(u32, Id)>,
+    line_diff: HashSet<(usize, Id)>,
     vertex_diff: HashMap<Id, Vertex>,
     instruction_diff: HashMap<Id, Instruction>,
 }
 
-fn vec_diff<T>(curr: &Vec<T>, next: &Vec<T>) -> (bool, HashSet<(u32, T)>)
+impl GCodeDiff {
+    fn apply(&self, gcode: &mut GCode) {
+        if self.add {
+            for (i, id) in self.line_diff.iter() {
+                gcode.0.lines.insert(*i as usize, *id);
+            }
+            gcode.0.vertices.extend(self.vertex_diff.clone());
+            gcode.0.instructions.extend(self.instruction_diff.clone())
+        } else {
+            for (i, id) in self.line_diff.iter() {
+                gcode.0.lines.remove(*i);
+            }
+        }
+    }
+}
+
+fn vec_diff<T>(curr: &Vec<T>, next: &Vec<T>) -> (bool, HashSet<(usize, T)>)
 where
     T: Copy + Eq + std::hash::Hash,
 {
@@ -98,19 +114,19 @@ where
     let mut i = 0;
     let add = curr.len() < next.len(); // add (true) if curr < len
     if add {
-        for j in 0..next.len() {
+        for (j, elem) in next.iter().enumerate() {
             if i < curr.len() && curr[i] == next[j] {
                 i += 1;
             } else {
-                assert!(out.insert((j as u32, next[j]))); // make sure the inserted value is unique
+                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
             }
         }
     } else {
-        for j in 0..curr.len() {
+        for (j, elem) in curr.iter().enumerate() {
             if i < next.len() && next[i] == curr[j] {
                 i += 1;
             } else {
-                assert!(out.insert((j as u32, next[j]))); // make sure the inserted value is unique
+                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
             }
         }
     }
@@ -166,6 +182,7 @@ where
 
 #[derive(Resource, Default)]
 pub struct SetSelections;
+
 pub fn update_selection_log(
     mut commands: Commands,
     s_query: Query<(&PickSelection, &Tag)>,
@@ -193,6 +210,16 @@ pub fn update_selection_log(
     log.curr = new_set;
     log.log.push(diff);
     commands.init_resource::<SetSelections>()
+}
+
+pub fn update_gcode_log(
+    mut commands: Commands,
+    mut gcode: ResMut<GCode>,
+    mut log: ResMut<GCodeLog>,
+) {
+    let diff = log.diff(&gcode);
+    diff.apply(&mut gcode);
+    log.log.push(diff);
 }
 
 pub fn undo_redo_selections(
