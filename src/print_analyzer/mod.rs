@@ -364,7 +364,7 @@ impl Parsed {
         z /= count;
         Vec3::new(x, y, z)
     }
-    fn assign_shapes(&mut self) {
+    pub fn assign_shapes(&mut self) {
         let mut out = Vec::new();
         let mut temp_shape = Vec::new();
         let mut layer = -1.0;
@@ -563,7 +563,7 @@ impl Parsed {
                 next: None, // this gets set as part of set_counts
             };
             new.label(self);
-            self.vertices.insert(new.id, new.clone());
+            self.vertices.insert(new.id, new);
             prev = Some(new.id);
             new_ids.push(new.id);
             vec.push(new);

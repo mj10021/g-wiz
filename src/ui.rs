@@ -423,27 +423,24 @@ pub fn capture_mouse(
     mut commands: Commands,
     mut pick_settings: ResMut<PickingPluginsSettings>,
     mut egui_context: Query<&mut EguiContext>,
+    ui_res: Res<UiResource>,
+    mouse: Res<ButtonInput<MouseButton>>
 ) {
     if let Ok(mut context) = egui_context.get_single_mut() {
         let context = context.get_mut();
-        if context.wants_pointer_input() {
+        if context.is_using_pointer()
+            || context.wants_pointer_input()
+            || ui_res.cursor_enum != Cursor::Pointer
+        {
             pick_settings.is_enabled = false;
-            println!("mouse captured");
             commands.remove_resource::<EnablePanOrbit>();
+        } else if !mouse.any_pressed([MouseButton::Left, MouseButton::Right]){
+            pick_settings.is_enabled = true;
+            commands.init_resource::<EnablePanOrbit>();
         }
     }
 }
 
-pub fn reset_ui_hover(
-    mut commands: Commands,
-    mut pick_settings: ResMut<PickingPluginsSettings>,
-    ui_res: Res<UiResource>,
-) {
-    if ui_res.cursor_enum == Cursor::Pointer {
-        commands.init_resource::<EnablePanOrbit>();
-    }
-    pick_settings.is_enabled = true;
-}
 
 #[derive(Default, Resource)]
 pub struct EnablePanOrbit;

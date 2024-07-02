@@ -12,6 +12,18 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"type": "cargo",
+			"command": "cargo",
+			"args": [
+				"fmt"
+			],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "rust: cargo fmt"
 		}
 	]
 }

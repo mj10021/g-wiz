@@ -1,3 +1,5 @@
+use crate::ForceRefresh;
+
 use super::{
     print_analyzer::{Instruction, Vertex},
     GCode, Id, Resource, Tag,
@@ -5,6 +7,87 @@ use super::{
 use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
 use std::collections::{HashMap, HashSet};
+
+fn vec_diff<T>(curr: &Vec<T>, next: &Vec<T>) -> (bool, HashSet<(usize, T)>)
+where
+    T: Copy + Eq + std::hash::Hash,
+{
+    let mut out = HashSet::new();
+    let mut i = 0;
+    let add = curr.len() < next.len(); // add (true) if curr < len
+    if add {
+        for (j, elem) in next.iter().enumerate() {
+            if i < curr.len() && curr[i] == next[j] {
+                i += 1;
+            } else {
+                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
+            }
+        }
+    } else {
+        for (j, elem) in curr.iter().enumerate() {
+            if i < next.len() && next[i] == curr[j] {
+                i += 1;
+            } else {
+                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
+            }
+        }
+    }
+    (add, out)
+}
+
+fn set_diff<T>(curr: &HashSet<T>, next: &HashSet<T>) -> (bool, HashSet<T>)
+where
+    T: Copy + Eq + std::hash::Hash,
+{
+    if curr.len() < next.len() {
+        (true, next.difference(curr).copied().collect::<HashSet<T>>())
+    } else {
+        (
+            false,
+            curr.difference(next).copied().collect::<HashSet<T>>(),
+        )
+    }
+}
+
+fn map_diff<S, T>(curr: &HashMap<S, T>, next: &HashMap<S, T>) -> (bool, HashMap<S, T>)
+where
+    S: Copy + PartialEq + Eq + core::hash::Hash,
+    T: Clone,
+{
+    let add = curr.len() < next.len();
+    let (curr_keys, next_keys) = (
+        curr.keys().copied().collect::<HashSet<_>>(),
+        next.keys().copied().collect::<HashSet<_>>(),
+    );
+    let diff_keys = {
+        if add {
+            curr_keys.difference(&next_keys)
+        } else {
+            next_keys.difference(&curr_keys)
+        }
+    }
+    .collect::<HashSet<&S>>();
+    let mut diff: HashMap<S, T> = HashMap::new();
+    if add {
+        for key in diff_keys.iter() {
+            let value = next.get(*key).unwrap();
+            diff.insert(**key, value.clone());
+        }
+    } else {
+        for key in diff_keys.iter() {
+            let value = curr.get(*key).unwrap();
+            diff.insert(**key, value.clone());
+        }
+    }
+    (add, diff)
+}
+
+#[derive(Resource)]
+pub struct History {
+    selection_log: SelectionLog,
+    gcode_log: GCodeLog,
+    selection_or_gcode: Vec<bool>, // true means selection false means gcode
+}
 
 #[derive(Default, Resource)]
 pub struct SelectionLog {
@@ -99,87 +182,13 @@ impl GCodeDiff {
             gcode.0.vertices.extend(self.vertex_diff.clone());
             gcode.0.instructions.extend(self.instruction_diff.clone())
         } else {
-            for (i, id) in self.line_diff.iter() {
+            for (i, _id) in self.line_diff.iter() {
                 gcode.0.lines.remove(*i);
             }
         }
+        gcode.0.assign_shapes();
     }
 }
-
-fn vec_diff<T>(curr: &Vec<T>, next: &Vec<T>) -> (bool, HashSet<(usize, T)>)
-where
-    T: Copy + Eq + std::hash::Hash,
-{
-    let mut out = HashSet::new();
-    let mut i = 0;
-    let add = curr.len() < next.len(); // add (true) if curr < len
-    if add {
-        for (j, elem) in next.iter().enumerate() {
-            if i < curr.len() && curr[i] == next[j] {
-                i += 1;
-            } else {
-                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
-            }
-        }
-    } else {
-        for (j, elem) in curr.iter().enumerate() {
-            if i < next.len() && next[i] == curr[j] {
-                i += 1;
-            } else {
-                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
-            }
-        }
-    }
-    (add, out)
-}
-
-fn set_diff<T>(curr: &HashSet<T>, next: &HashSet<T>) -> (bool, HashSet<T>)
-where
-    T: Copy + Eq + std::hash::Hash,
-{
-    if curr.len() < next.len() {
-        (true, next.difference(curr).copied().collect::<HashSet<T>>())
-    } else {
-        (
-            false,
-            curr.difference(next).copied().collect::<HashSet<T>>(),
-        )
-    }
-}
-
-fn map_diff<S, T>(curr: &HashMap<S, T>, next: &HashMap<S, T>) -> (bool, HashMap<S, T>)
-where
-    S: Copy + PartialEq + Eq + core::hash::Hash,
-    T: Clone,
-{
-    let add = curr.len() < next.len();
-    let (curr_keys, next_keys) = (
-        curr.keys().copied().collect::<HashSet<_>>(),
-        next.keys().copied().collect::<HashSet<_>>(),
-    );
-    let diff_keys = {
-        if add {
-            curr_keys.difference(&next_keys)
-        } else {
-            next_keys.difference(&curr_keys)
-        }
-    }
-    .collect::<HashSet<&S>>();
-    let mut diff: HashMap<S, T> = HashMap::new();
-    if add {
-        for key in diff_keys.iter() {
-            let value = next.get(*key).unwrap();
-            diff.insert(**key, value.clone());
-        }
-    } else {
-        for key in diff_keys.iter() {
-            let value = curr.get(*key).unwrap();
-            diff.insert(**key, value.clone());
-        }
-    }
-    (add, diff)
-}
-
 #[derive(Resource, Default)]
 pub struct SetSelections;
 
@@ -198,9 +207,8 @@ pub fn update_selection_log(
         return;
     }
     // if the counter isn't current and a the selection is made, clear the selection
-    // FIXME: this should still keep the last move
     if log.history_counter != 0 {
-        log.log = Vec::new();
+        log.log = Vec::from([diff]);
         log.history_counter = 0;
         log.curr_counter = 0;
         log.curr = new_set;
@@ -220,6 +228,7 @@ pub fn update_gcode_log(
     let diff = log.diff(&gcode);
     diff.apply(&mut gcode);
     log.log.push(diff);
+    commands.init_resource::<ForceRefresh>();
 }
 
 pub fn undo_redo_selections(

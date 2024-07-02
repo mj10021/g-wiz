@@ -123,7 +123,7 @@ fn main() {
                 right_click,
                 select_brush,
                 key_system,
-                //toolbar,
+                toolbar,
                 right_click_menu.run_if(resource_exists::<RightClick>),
                 ui_system,
                 update_selections,
@@ -139,6 +139,5 @@ fn main() {
             pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
         )
         .add_systems(Update, render.run_if(resource_exists::<ForceRefresh>))
-        .add_systems(PostUpdate, reset_ui_hover)
         .run();
 }
