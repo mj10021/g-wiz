@@ -90,13 +90,11 @@ pub struct History {
     pub history_counter: u32,
     curr_counter: u32,
     selection_counter: u32,
-    gcode_counter: u32
+    gcode_counter: u32,
 }
 
 impl History {
-    fn forward_apply(&mut self) {
-
-    }
+    fn forward_apply(&mut self) {}
 }
 
 #[derive(Default, Resource)]
@@ -287,9 +285,9 @@ pub fn undo_redo_selections(
 //        let selection = history.log[history.log.len() - history.curr_counter as usize - 1];
 //        if selection {
 //            history.selection_counter += 1;
-//                        
+//
 //        } else {
-//// 
+////
 //        }
 //        log.reverse_apply(diff);
 //        history.curr_counter += 1;

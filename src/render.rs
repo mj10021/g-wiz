@@ -43,27 +43,20 @@ pub fn render(
         let mut sphere = false;
 
         // Create the mesh and material
-        let mesh_handle = {
-            if label == Label::PlanarExtrustion
-                || label == Label::NonPlanarExtrusion
-                || label == Label::PrePrintMove
-            {
-                meshes.add(Cylinder {
+        let mesh_handle = match label {
+            Label::PlanarExtrustion | Label::NonPlanarExtrusion | Label::PrePrintMove => meshes
+                .add(Cylinder {
                     radius,
                     half_height: length / 2.0,
-                })
-            } else if label == Label::TravelMove
-                || label == Label::LiftZ
-                || label == Label::LowerZ
-                || label == Label::Wipe
-            {
+                }),
+            Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
                 meshes.add(Cylinder {
                     radius: 0.1,
                     half_height: length / 2.0,
                 })
-            } else if label == Label::DeRetraction || label == Label::Retraction {
-                meshes.add(Sphere { radius: 1.0 })
-            } else {
+            }
+            Label::DeRetraction | Label::Retraction => meshes.add(Sphere { radius: 1.0 }),
+            _ => {
                 panic!("{:?}", label)
             }
         };

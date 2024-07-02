@@ -144,9 +144,7 @@ pub fn ui_system(
     mut gcode: ResMut<GCode>,
     s_query: Query<(&mut PickSelection, &Tag)>,
 ) {
-    let Ok(window) = window.get_single() else {
-        panic!();
-    };
+    let window = window.get_single().unwrap();
     let panel_width = window.width() / 6.0;
     let height = window.height();
     let spacing = height / 50.0;
@@ -397,7 +395,8 @@ pub fn select_brush(
     mut s_query: Query<(Entity, &mut PickSelection)>,
     ui_res: Res<UiResource>,
     mut window: Query<&mut Window, With<PrimaryWindow>>,
-) { // FIXME: I never implemented eraser??????????????
+) {
+    // FIXME: I never implemented eraser??????????????
     if let Ok(mut window) = window.get_single_mut() {
         window.cursor.icon = match ui_res.cursor_enum {
             Cursor::Pointer => return,
@@ -414,10 +413,10 @@ pub fn select_brush(
             match ui_res.cursor_enum {
                 Cursor::Brush => {
                     selection.is_selected = true;
-                },
+                }
                 Cursor::Eraser => {
                     selection.is_selected = false;
-                },
+                }
                 _ => return,
             }
             selection.is_selected = ui_res.cursor_enum == Cursor::Brush;
@@ -429,22 +428,19 @@ pub fn capture_mouse(
     mut commands: Commands,
     mut pick_settings: ResMut<PickingPluginsSettings>,
     mut egui_context: Query<&mut EguiContext>,
-    mouse: Res<ButtonInput<MouseButton>>
+    mouse: Res<ButtonInput<MouseButton>>,
 ) {
     if let Ok(mut context) = egui_context.get_single_mut() {
         let context = context.get_mut();
-        if context.is_using_pointer()
-            || context.wants_pointer_input()
-        {
+        if context.is_using_pointer() || context.wants_pointer_input() {
             pick_settings.is_enabled = false;
             commands.remove_resource::<EnablePanOrbit>();
-        } else if !mouse.any_pressed([MouseButton::Left, MouseButton::Right]){
+        } else if !mouse.any_pressed([MouseButton::Left, MouseButton::Right]) {
             pick_settings.is_enabled = true;
             commands.init_resource::<EnablePanOrbit>();
         }
     }
 }
-
 
 #[derive(Default, Resource)]
 pub struct EnablePanOrbit;
