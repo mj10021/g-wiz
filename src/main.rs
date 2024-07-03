@@ -17,7 +17,7 @@ use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed};
 use render::*;
 use select::*;
-use selection::send_selection_events;
+use selection::{send_selection_events, SelectionPluginSettings};
 use settings::*;
 use std::collections::HashMap;
 use std::env;
@@ -108,6 +108,7 @@ fn main() {
         ))
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, (setup, ui_setup).chain())
+        .add_systems(PreUpdate, select_erase_brush.before(send_selection_events))
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(
             Update,
@@ -120,7 +121,6 @@ fn main() {
             Update,
             (
                 right_click,
-                select_brush,
                 key_system,
                 toolbar,
                 right_click_menu.run_if(resource_exists::<RightClick>),
