@@ -17,7 +17,7 @@ use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed};
 use render::*;
 use select::*;
-use selection::{send_selection_events, SelectionPluginSettings};
+use selection::send_selection_events;
 use settings::*;
 use std::collections::HashMap;
 use std::env;
@@ -36,10 +36,15 @@ struct ForceRefresh;
 struct Tag {
     id: Id,
 }
+
+#[derive(Default, Resource)]
+struct FilePath(String);
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut filepath: ResMut<FilePath>,
 ) {
     let args: Vec<String> = env::args().collect();
 
@@ -56,6 +61,7 @@ fn setup(
             filename = name;
         }
     }
+    filepath.0 = filename.to_string();
     let gcode = print_analyzer::read(filename, false).expect("failed to read");
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
@@ -106,6 +112,7 @@ fn main() {
             DefaultPickingPlugins,
             EguiPlugin,
         ))
+        .init_resource::<FilePath>()
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, (setup, ui_setup).chain())
         .add_systems(PreUpdate, select_erase_brush.before(send_selection_events))
@@ -125,6 +132,7 @@ fn main() {
                 toolbar,
                 right_click_menu.run_if(resource_exists::<RightClick>),
                 ui_system,
+                export_dialogue.run_if(resource_exists::<ExportDialogue>),
                 update_selections,
                 update_visibilities,
                 merge_delete.run_if(resource_exists::<MergeDelete>),

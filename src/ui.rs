@@ -1,12 +1,14 @@
 use super::diff::{SelectionLog, SetSelections};
 use super::{
-    HoleDelete, MergeDelete, PickSelection, PickingPluginsSettings, Settings, SubdivideSelection,
+    FilePath, HoleDelete, MergeDelete, PickSelection, PickingPluginsSettings, Settings,
+    SubdivideSelection,
 };
 use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
+use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
-use bevy_mod_picking::{prelude::*, selection::SelectionPluginSettings};
+use bevy_mod_picking::prelude::*;
 use egui::Pos2;
 use std::collections::HashSet;
 
@@ -89,13 +91,14 @@ pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     }
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
-pub fn toolbar(mut contexts: EguiContexts) {
-    egui::TopBottomPanel::top("toolbar").show(contexts.ctx_mut(), |ui| {
+pub fn toolbar(mut commands: Commands, mut contexts: EguiContexts) {
+    let ctx = contexts.ctx_mut();
+    egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
-                if ui.button("Open").clicked() {
-                    // …
-                } else if ui.button("Export GCode").clicked() {
+                if ui.button("Export GCode (Ctrl+S)").clicked() {
+                    commands.remove_resource::<ExportDialogue>(); //reset open state to true
+                    commands.init_resource::<ExportDialogue>();
                 }
             });
             ui.menu_button("Transform", |ui| if ui.button("Rotate").clicked() {})
@@ -103,21 +106,54 @@ pub fn toolbar(mut contexts: EguiContexts) {
     });
 }
 
+pub fn export_dialogue(
+    mut commands: Commands,
+    mut egui_context: Query<&mut EguiContext>,
+    window: Query<&Window, With<PrimaryWindow>>,
+    mut path: ResMut<FilePath>,
+    mut open: ResMut<ExportDialogue>,
+    gcode: Res<GCode>,
+) {
+    if let Ok(window) = window.get_single() {
+        let x = window.width() / 2.0;
+        let y = window.height() / 3.0;
+        if let Ok(mut context) = egui_context.get_single_mut() {
+            egui::containers::Window::new("Export as...")
+                .open(&mut open.0)
+                .default_pos(Pos2{x,y})
+                .collapsible(false)
+                .show(context.get_mut(), |ui| {
+                    ui.label("Path:");
+                    ui.text_edit_singleline(&mut path.0);
+                    if ui.button("Export").clicked() {
+                        let path = std::path::PathBuf::from(path.0.clone());
+                        if let Some(path) = path.to_str() {
+                            let _ = gcode.0.write_to_file(path);
+                            commands.remove_resource::<ExportDialogue>();
+                        }
+                    }
+                });
+        }
+    }
+}
+
 #[derive(Resource)]
 pub struct RightClick(Pos2);
 
 pub fn right_click(
     mut commands: Commands,
+    motion_reader: EventReader<MouseMotion>,
     mut egui_context: Query<&mut EguiContext>,
     click: Res<ButtonInput<MouseButton>>,
     window: Query<&Window, With<PrimaryWindow>>,
 ) {
+    // FIXME: want to know if mouse moved at all
+    let drag = !motion_reader.is_empty();
     if let Some(Vec2 { x, y }) = window.get_single().unwrap().cursor_position() {
         if let Ok(mut context) = egui_context.get_single_mut() {
             let context = context.get_mut();
             let pos = Pos2 { x, y };
-            if click.just_pressed(MouseButton::Right) {
-                println!("adsf");
+            if click.just_released(MouseButton::Right) && !drag {
                 commands.insert_resource(RightClick(pos));
             }
             if click.just_pressed(MouseButton::Left) && !context.wants_pointer_input() {
@@ -382,6 +418,11 @@ pub fn key_system(
         && keys.just_pressed(KeyCode::KeyR)
     {
         commands.init_resource::<ForceRefresh>();
+    } else if keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
+        && keys.just_pressed(KeyCode::KeyS)
+    {
+        commands.remove_resource::<ExportDialogue>();
+        commands.init_resource::<ExportDialogue>();
     }
     // clear key presses after read
     keys.clear();
@@ -396,14 +437,15 @@ pub fn select_erase_brush(
     ui_res: Res<UiResource>,
     mut window: Query<&mut Window, With<PrimaryWindow>>,
 ) {
-
     if let Ok(mut window) = window.get_single_mut() {
         if ui_res.cursor_enum == Cursor::Pointer {
             window.cursor.icon = CursorIcon::Pointer;
             return;
         }
         window.cursor.icon = CursorIcon::Crosshair;
-    } else {return;}
+    } else {
+        return;
+    }
     shift.press(KeyCode::ShiftLeft);
     commands.remove_resource::<EnablePanOrbit>();
     if !mouse.pressed(MouseButton::Left) {
@@ -436,3 +478,11 @@ pub fn capture_mouse(
 
 #[derive(Default, Resource)]
 pub struct EnablePanOrbit;
+
+#[derive(Resource)]
+pub struct ExportDialogue(bool);
+impl Default for ExportDialogue {
+    fn default() -> Self {
+        ExportDialogue(true)
+    }
+}
