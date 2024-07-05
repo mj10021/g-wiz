@@ -200,7 +200,7 @@ impl GCodeDiff {
 #[derive(Resource, Default)]
 pub struct SetSelections;
 
-pub fn update_selection_log(
+fn update_selection_log(
     mut commands: Commands,
     s_query: Query<(&PickSelection, &Tag)>,
     mut log: ResMut<SelectionLog>,
@@ -228,15 +228,21 @@ pub fn update_selection_log(
     commands.init_resource::<SetSelections>()
 }
 
-pub fn update_gcode_log(
-    mut commands: Commands,
-    mut gcode: ResMut<GCode>,
-    mut log: ResMut<GCodeLog>,
-) {
+fn update_gcode_log(mut commands: Commands, mut gcode: ResMut<GCode>, mut log: ResMut<GCodeLog>) {
     let diff = log.diff(&gcode);
     diff.apply(&mut gcode);
     log.log.push(diff);
     commands.init_resource::<ForceRefresh>();
+}
+
+pub fn update_logs(mut commands: Commands, mut gcode: ResMut<GCode>, s_query: Query<(&PickSelection, &Tag)>, mut history: ResMut<History>) {
+    let gcode_diff = history.gcode_log.diff(&gcode);
+    let selection_set = s_query
+        .iter()
+        .filter(|(s, _)| s.is_selected)
+        .map(|(_, t)| *t)
+        .collect::<HashSet<Tag>>();
+    let selection_diff = history.selection_log.diff(&selection_set);
 }
 
 pub fn undo_redo_selections(
@@ -267,7 +273,7 @@ pub fn undo_redo_selections(
             s.is_selected = log.curr.contains(i);
         }
     }
-    commands.remove_resource::<SetSelections>()
+    commands.remove_resource::<SetSelections>();
 }
 
 //pub fn undo_redo_history(

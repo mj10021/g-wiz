@@ -120,7 +120,7 @@ pub fn export_dialogue(
         if let Ok(mut context) = egui_context.get_single_mut() {
             egui::containers::Window::new("Export as...")
                 .open(&mut open.0)
-                .default_pos(Pos2{x,y})
+                .default_pos(Pos2 { x, y })
                 .collapsible(false)
                 .show(context.get_mut(), |ui| {
                     ui.label("Path:");
