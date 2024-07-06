@@ -3,6 +3,75 @@ use super::{
 };
 use bevy::prelude::*;
 
+pub fn setup_render(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    gcode: Res<GCode>,
+) {
+    let (mut x_min, mut y_min, mut z_min): (f32, f32, f32) = (0.0, 0.0, 0.0);
+    let (mut x_max, mut y_max, mut z_max): (f32, f32, f32) = (500.0, 500.0, 500.0);
+    for v in gcode.0.vertices.values() {
+        if !v.extrusion_move() {
+            continue;
+        }
+        x_min = x_min.min(v.to.x);
+        y_min = y_min.min(v.to.y);
+        z_min = z_min.min(v.to.z);
+        x_max = x_max.max(v.to.x);
+        y_max = y_max.max(v.to.y);
+        z_max = z_max.max(v.to.z);
+    }
+    let origin = Vec3 {
+        x: x_min,
+        y: y_min,
+        z: z_min,
+    };
+    let pt1 = Vec3::new(x_max, y_min, z_min);
+    let pt2 = Vec3::new(x_min, y_max, z_min);
+    let max_pt = Vec3::new(x_max, y_max, z_max);
+    let w = x_max - x_min;
+    let l = y_max - y_min;
+    let h = z_max - z_min;
+    // FIXME: make these lines
+    let _ = commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::from_corners(origin, pt1)),
+        material: materials.add(StandardMaterial {
+            base_color: Color::GRAY,
+            ..Default::default()
+        }),
+        transform: Transform {
+            translation: Vec3::new(w / 2.0, 0.0, 0.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+    let _ = commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::from_corners(origin, pt2)),
+        material: materials.add(StandardMaterial {
+            base_color: Color::GRAY,
+            ..Default::default()
+        }),
+        transform: Transform {
+            translation: Vec3::new(0.0, l / 2.0, 0.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+    let _ = commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::from_corners(origin, max_pt)),
+        material: materials.add(StandardMaterial {
+            base_color: Color::GRAY,
+            ..Default::default()
+        }),
+        transform: Transform {
+            translation: Vec3::new(w / 2.0, l / 2.0, h / 2.0),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+}
+
 pub fn render(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

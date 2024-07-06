@@ -199,8 +199,8 @@ impl GCodeDiff {
 }
 #[derive(Resource, Default)]
 pub struct SetSelections;
-
-fn update_selection_log(
+// FIXME: make private
+pub fn update_selection_log(
     mut commands: Commands,
     s_query: Query<(&PickSelection, &Tag)>,
     mut log: ResMut<SelectionLog>,
@@ -235,7 +235,12 @@ fn update_gcode_log(mut commands: Commands, mut gcode: ResMut<GCode>, mut log: R
     commands.init_resource::<ForceRefresh>();
 }
 
-pub fn update_logs(mut commands: Commands, mut gcode: ResMut<GCode>, s_query: Query<(&PickSelection, &Tag)>, mut history: ResMut<History>) {
+pub fn update_logs(
+    mut commands: Commands,
+    mut gcode: ResMut<GCode>,
+    s_query: Query<(&PickSelection, &Tag)>,
+    mut history: ResMut<History>,
+) {
     let gcode_diff = history.gcode_log.diff(&gcode);
     let selection_set = s_query
         .iter()

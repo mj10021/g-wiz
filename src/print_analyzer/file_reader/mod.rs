@@ -20,6 +20,7 @@ pub fn parse_str(str: &str) -> Vec<String> {
 }
 
 pub fn split_line(line: &str) -> Vec<Word> {
+    // FIXME: G28 W bug
     let mut out = Vec::new();
     let words = line.split_whitespace();
     for word in words {
@@ -33,6 +34,7 @@ pub fn split_line(line: &str) -> Vec<Word> {
             }
         }
     }
+    // FIXME: add test for logical number N
     if let Word('N', ..) = out[0] {
         out.reverse();
         out.pop();
