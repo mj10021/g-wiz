@@ -52,7 +52,7 @@ fn setup(
     let filename = {
         if args.len() < 2 {
             println!("invalid file provided, opening demo");
-            crate::settings::DEFAULT_GCODE
+            "./"
         } else {
             &args[1]
         }
@@ -60,6 +60,7 @@ fn setup(
     filepath.0 = filename.to_string();
     let gcode = print_analyzer::read(filename, false)
         .unwrap_or(print_analyzer::read(crate::settings::DEFAULT_GCODE, true).unwrap());
+    panic!("{:?}",gcode);
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 255.0,

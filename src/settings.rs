@@ -87,4 +87,4 @@ const DEFAULT_SETTINGS: &str = r#"{
     }
 }"#;
 
-pub const DEFAULT_GCODE: &str = "G28\r\n\r\nG1X1Y1Z1\r\n\r\nG1X100Y100Z0.4\r\n\r\nG1X110Y110E2";
+pub const DEFAULT_GCODE: &str = "G28\r\n\r\nG1 X1 Y1 Z1 F800\r\n\r\nG1 X100 Y100 Z0.4\r\n\r\nG1 X110 Y110 E2";

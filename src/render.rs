@@ -29,35 +29,11 @@ pub fn setup_render(
     };
     let pt1 = Vec3::new(x_max, y_min, z_min);
     let pt2 = Vec3::new(x_min, y_max, z_min);
-    let max_pt = Vec3::new(x_max, y_max, z_max);
+    let max_pt = Vec3::new(x_max, y_max, z_min);
     let w = x_max - x_min;
     let l = y_max - y_min;
     let h = z_max - z_min;
     // FIXME: make these lines
-    let _ = commands.spawn(PbrBundle {
-        mesh: meshes.add(Cuboid::from_corners(origin, pt1)),
-        material: materials.add(StandardMaterial {
-            base_color: Color::GRAY,
-            ..Default::default()
-        }),
-        transform: Transform {
-            translation: Vec3::new(w / 2.0, 0.0, 0.0),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
-    let _ = commands.spawn(PbrBundle {
-        mesh: meshes.add(Cuboid::from_corners(origin, pt2)),
-        material: materials.add(StandardMaterial {
-            base_color: Color::GRAY,
-            ..Default::default()
-        }),
-        transform: Transform {
-            translation: Vec3::new(0.0, l / 2.0, 0.0),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
     let _ = commands.spawn(PbrBundle {
         mesh: meshes.add(Cuboid::from_corners(origin, max_pt)),
         material: materials.add(StandardMaterial {
@@ -65,11 +41,35 @@ pub fn setup_render(
             ..Default::default()
         }),
         transform: Transform {
-            translation: Vec3::new(w / 2.0, l / 2.0, h / 2.0),
+            translation: Vec3::new(w / 2.0, l/2.0, 0.0),
             ..Default::default()
         },
         ..Default::default()
     });
+    // let _ = commands.spawn(PbrBundle {
+    //     mesh: meshes.add(Cuboid::from_corners(origin, pt2)),
+    //     material: materials.add(StandardMaterial {
+    //         base_color: Color::GRAY,
+    //         ..Default::default()
+    //     }),
+    //     transform: Transform {
+    //         translation: Vec3::new(0.0, l / 2.0, 0.0),
+    //         ..Default::default()
+    //     },
+    //     ..Default::default()
+    // });
+    // let _ = commands.spawn(PbrBundle {
+    //     mesh: meshes.add(Cuboid::from_corners(origin, max_pt)),
+    //     material: materials.add(StandardMaterial {
+    //         base_color: Color::GRAY,
+    //         ..Default::default()
+    //     }),
+    //     transform: Transform {
+    //         translation: Vec3::new(w / 2.0, l / 2.0, h / 2.0),
+    //         ..Default::default()
+    //     },
+    //     ..Default::default()
+    // });
 }
 
 pub fn render(
