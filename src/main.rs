@@ -49,20 +49,17 @@ fn setup(
     let args: Vec<String> = env::args().collect();
 
     // Check if a filename was provided
-    let filename: &str;
-    if args.len() < 2 {
-        println!("invalid file provided, opening test cube instead");
-        filename = "../print_analyzer/test.gcode";
-    } else {
-        let name = &args[1];
-        if name == "goblin" {
-            filename = "../print_analyzer/Goblin Janitor_0.4n_0.2mm_PLA_MINIIS_10m.gcode";
+    let filename = {
+        if args.len() < 2 {
+            println!("invalid file provided, opening demo");
+            crate::settings::DEFAULT_GCODE
         } else {
-            filename = name;
+            &args[1]
         }
-    }
+    };
     filepath.0 = filename.to_string();
-    let gcode = print_analyzer::read(filename, false).expect("failed to read");
+    let gcode = print_analyzer::read(filename, false)
+        .unwrap_or(print_analyzer::read(crate::settings::DEFAULT_GCODE, true).unwrap());
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 255.0,

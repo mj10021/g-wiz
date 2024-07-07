@@ -86,3 +86,5 @@ const DEFAULT_SETTINGS: &str = r#"{
         "mouse pan": "left" 
     }
 }"#;
+
+pub const DEFAULT_GCODE: &str = "G28\r\n\r\nG1X1Y1Z1\r\n\r\nG1X100Y100Z0.4\r\n\r\nG1X110Y110E2";
