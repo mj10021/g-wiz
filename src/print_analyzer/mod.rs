@@ -422,29 +422,11 @@ impl Parsed {
     }
 
     pub fn hole_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
-        let mut temp = Vec::new();
-        for line in &self.lines.clone() {
-            if lines_to_delete.is_empty() {
-                break;
-            }
-            if lines_to_delete.contains(line) {
-                lines_to_delete.remove(line);
-                let v_id = {
-                    let vertex = self.vertices.get_mut(line).unwrap();
-                    vertex.to.e = 0.0;
-                    vertex.label = Label::TravelMove;
-                    vertex.id
-                };
-                let retract = Instruction::insert_temp_retraction(self);
-                let deretract = Instruction::insert_temp_deretraction(self);
-                temp.push(retract);
-                temp.push(v_id);
-                temp.push(deretract);
-            } else {
-                temp.push(*line)
+        for (id, v) in self.vertices.iter_mut() {
+            if lines_to_delete.contains(id) {
+                v.to.e = 0.0;
             }
         }
-        self.lines = temp;
     }
     pub fn merge_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
         let mut temp = Vec::new();

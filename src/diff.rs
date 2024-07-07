@@ -132,17 +132,6 @@ impl SelectionLog {
     }
 }
 
-// #[derive(Debug, PartialEq)]
-// pub struct Parsed {
-// pub lines: Vec<Id>,
-// pub vertices: HashMap<Id, Vertex>,
-// pub instructions: HashMap<Id, Instruction>,
-// pub shapes: Vec<Shape>,
-// pub rel_xyz: bool,
-// pub rel_e: bool,
-// id_counter: Id,
-// }
-
 #[derive(Resource)]
 pub struct GCodeLog {
     curr: GCode,
@@ -200,7 +189,7 @@ impl GCodeDiff {
 #[derive(Resource, Default)]
 pub struct SetSelections;
 
-fn update_selection_log(
+pub fn update_selection_log(
     mut commands: Commands,
     s_query: Query<(&PickSelection, &Tag)>,
     mut log: ResMut<SelectionLog>,

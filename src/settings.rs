@@ -13,7 +13,6 @@ pub struct Settings {
     pub retraction_color: Color,
     pub deretraction_color: Color,
     pub travel_color: Color,
-    pub save_suffix: String,
 }
 
 fn read_key(settings: &Value, key: &str) -> KeyCode {
@@ -68,7 +67,6 @@ pub fn read_settings() -> Settings {
         retraction_color: read_color(&settings, "retraction color"),
         deretraction_color: read_color(&settings, "deretraction color"),
         travel_color: read_color(&settings, "travel move color"),
-        save_suffix: settings.get("save suffix").unwrap().to_string(),
     }
 }
 
@@ -86,6 +84,5 @@ const DEFAULT_SETTINGS: &str = r#"{
     "buttons" : {
         "mouse orbit": "right",
         "mouse pan": "left" 
-    },
-    "save suffix": "_edited"
+    }
 }"#;
