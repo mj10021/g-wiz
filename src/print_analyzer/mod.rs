@@ -742,3 +742,9 @@ fn specific_random_gcode_issue() {
     let mut f = File::create("asdf_test.gcode").expect("failed to create file");
     let _ = f.write_all(gcode.emit(&gcode, false).as_bytes());
 }
+
+#[test]
+fn g28_bug() {
+    let gcode = "G28 W\n G1 X1";
+    let gcode = read(gcode, true).expect("asdf");
+}

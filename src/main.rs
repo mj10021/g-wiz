@@ -76,20 +76,6 @@ fn setup(
             ..Default::default()
         },
     ));
-    let (w, l, _h) = (300.0, 300.0, 300.0);
-    let _ = commands.spawn(PbrBundle {
-        mesh: meshes.add(Cuboid::new(w, l, -0.1)),
-        material: materials.add(StandardMaterial {
-            base_color: Color::GRAY,
-            ..Default::default()
-        }),
-        transform: Transform {
-            translation: Vec3::new(w / 2.0, l / 2.0, 0.0),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
-
     commands.insert_resource(read_settings());
     commands.insert_resource(VertexCounter::build(&gcode));
     commands.insert_resource(GCode(gcode));
@@ -114,7 +100,7 @@ fn main() {
         ))
         .init_resource::<FilePath>()
         .insert_resource(ClearColor(Color::BLACK))
-        .add_systems(Startup, (setup, ui_setup).chain())
+        .add_systems(Startup, (setup, ui_setup, setup_render).chain())
         .add_systems(PreUpdate, select_erase_brush.before(send_selection_events))
         .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
         .add_systems(
