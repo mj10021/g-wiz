@@ -146,8 +146,9 @@ pub struct Vertex {
     pub id: Id,
     pub count: u32,
     pub label: Label,
-    // this id of previous extrusion move
+    // this is the id of the previous extrusion move
     pub prev: Option<Id>,
+    // this is the id of the next extrusion move
     pub next: Option<Id>,
     pub to: Pos,
 }
@@ -252,7 +253,7 @@ impl Shape {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Parsed {
-    pub lines: Vec<Id>,
+    pub lines: Vec<Id>, // keep track of line order
     pub vertices: HashMap<Id, Vertex>,
     pub instructions: HashMap<Id, Instruction>,
     pub shapes: Vec<Shape>,
@@ -505,6 +506,7 @@ impl Parsed {
         }
     }
     fn subdivide_vertex(&mut self, id: &Id, count: u32) {
+        // FIXME: THIS IS DELETING MOVES
         if count < 1 {
             return;
         }
