@@ -1,5 +1,5 @@
 ## Quickstart Guide
-Clone this repository with `git clone https://github.com/mj10021/g-wiz/` and run with cargo run <valid.gcode> in the repo directory.
+Clone this repository with `git clone https://github.com/mj10021/g-wiz/` and run with `cargo run <valid.gcode>` in the repo directory.
 
 To install cargo: https://www.rust-lang.org/tools/install
 
