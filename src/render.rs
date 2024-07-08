@@ -41,7 +41,7 @@ pub fn setup_render(
             ..Default::default()
         }),
         transform: Transform {
-            translation: Vec3::new(w / 2.0, l/2.0, 0.0),
+            translation: Vec3::new(w / 2.0, l / 2.0, 0.0),
             ..Default::default()
         },
         ..Default::default()

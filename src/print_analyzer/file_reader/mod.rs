@@ -26,13 +26,16 @@ pub fn split_line(line: &str) -> Vec<Word> {
     for word in words {
         let mut slice = word.chars();
         if let Some(letter) = slice.next() {
-            assert!(letter.is_ascii_alphabetic());
+            assert!(letter.is_ascii_alphabetic(), "{:?}",word);
             if let Ok(num) = slice.collect::<String>().parse::<f32>() {
                 out.push(Word(letter, num, None));
             } else {
                 return Vec::from([Word('X', f32::NEG_INFINITY, Some(line.to_owned()))]);
             }
         }
+    }
+    if out.is_empty() {
+        return out;
     }
     // FIXME: add test for logical number N
     if let Word('N', ..) = out[0] {
