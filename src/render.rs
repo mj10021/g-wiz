@@ -46,30 +46,6 @@ pub fn setup_render(
         },
         ..Default::default()
     });
-    // let _ = commands.spawn(PbrBundle {
-    //     mesh: meshes.add(Cuboid::from_corners(origin, pt2)),
-    //     material: materials.add(StandardMaterial {
-    //         base_color: Color::GRAY,
-    //         ..Default::default()
-    //     }),
-    //     transform: Transform {
-    //         translation: Vec3::new(0.0, l / 2.0, 0.0),
-    //         ..Default::default()
-    //     },
-    //     ..Default::default()
-    // });
-    // let _ = commands.spawn(PbrBundle {
-    //     mesh: meshes.add(Cuboid::from_corners(origin, max_pt)),
-    //     material: materials.add(StandardMaterial {
-    //         base_color: Color::GRAY,
-    //         ..Default::default()
-    //     }),
-    //     transform: Transform {
-    //         translation: Vec3::new(w / 2.0, l / 2.0, h / 2.0),
-    //         ..Default::default()
-    //     },
-    //     ..Default::default()
-    // });
 }
 
 pub fn render(
