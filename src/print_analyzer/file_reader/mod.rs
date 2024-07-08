@@ -4,8 +4,14 @@ pub fn parse_file(path: &str) -> Result<Vec<String>, Box<dyn std::error::Error>>
     let out = String::from_utf8(std::fs::read(path)?)?
         .lines()
         // ignore ';' comments
-        .map(|s| s.split(';').next().unwrap().to_string())
-        .filter(|s| !s.is_empty())
+        .filter_map(|s| {
+            let s = s.split(';').next().unwrap();
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_string())
+            }
+        })
         .collect();
     Ok(out)
 }

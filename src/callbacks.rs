@@ -13,9 +13,8 @@ pub struct SubdivideSelection(pub u32);
 fn get_selections(mut s_query: Query<(&PickSelection, &Tag)>) -> HashSet<Id> {
     s_query
         .iter_mut()
-        .filter(|(s, _)| s.is_selected)
-        .map(|(_, t)| t.id)
-        .collect::<HashSet<Id>>()
+        .filter_map(|(s, t)| if !s.is_selected { None } else { Some(t.id) })
+        .collect()
 }
 
 pub fn merge_delete(
