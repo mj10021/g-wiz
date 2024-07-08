@@ -1,6 +1,8 @@
 ## Quickstart Guide
 Clone the repository and run with cargo run <valid.gcode> in the repo directory.
 
+To install cargo: https://www.rust-lang.org/tools/install
+
 Please report any/all bugs!
 
 # Warning!
