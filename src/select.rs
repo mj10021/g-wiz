@@ -32,7 +32,9 @@ pub fn update_selections(
                 }
             } else if select_type == Choice::Layer {
                 for id in gcode.0.get_same_z(&id.id) {
-                    let entity = map.0.get(&id).unwrap();
+                    let Some(entity) = map.0.get(&id) else {
+                        continue;
+                    };
                     let (mut select_me, _) =
                         selectables.get_mut(*entity).expect("entity not found");
                     select_me.is_selected = true;
@@ -53,6 +55,7 @@ pub fn update_selections(
                 }
             } else if select_type == Choice::Layer {
                 for id in gcode.0.get_same_z(&id.id) {
+                    // FIXME: should this be unwrap?
                     let Some(entity) = map.0.get(&id) else {
                         continue;
                     };
