@@ -55,7 +55,6 @@ pub fn update_selections(
                 }
             } else if select_type == Choice::Layer {
                 for id in gcode.0.get_same_z(&id.id) {
-                    // FIXME: should this be unwrap?
                     let Some(entity) = map.0.get(&id) else {
                         continue;
                     };
