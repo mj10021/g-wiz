@@ -53,7 +53,9 @@ pub fn update_selections(
                 }
             } else if select_type == Choice::Layer {
                 for id in gcode.0.get_same_z(&id.id) {
-                    let entity = map.0.get(&id).unwrap();
+                    let Some(entity) = map.0.get(&id) else {
+                        continue;
+                    };
                     let (mut deselect_me, _) =
                         selectables.get_mut(*entity).expect("entity not found");
                     deselect_me.is_selected = false;
