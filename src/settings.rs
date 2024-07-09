@@ -87,7 +87,8 @@ const DEFAULT_SETTINGS: &str = r#"{
     }
 }"#;
 
-pub const DEFAULT_GCODE: &str = r#"G28
+pub const DEFAULT_GCODE: &str = 
+r#"G28
 F800
 G1 X1 Y1 Z1
 G1 X100 Y100 Z0.4
@@ -99,3 +100,4 @@ G1 Y100 E2.0
 G1 E-1.0"#;
 
 pub const SHAPE_THRESHOLD: f32 = 0.1;
+

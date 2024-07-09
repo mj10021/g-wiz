@@ -8,7 +8,7 @@ mod settings;
 mod ui;
 
 use bevy::prelude::*;
-use bevy_egui::{EguiContext, EguiPlugin};
+use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use callbacks::*;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
@@ -42,8 +42,6 @@ struct FilePath(String);
 
 fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut filepath: ResMut<FilePath>,
 ) {
     let args: Vec<String> = env::args().collect();
