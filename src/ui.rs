@@ -393,7 +393,9 @@ pub fn key_system(
         ui_res.display_z_max.0 += 0.2;
     } else if keys.pressed(KeyCode::ArrowDown) {
         ui_res.display_z_max.0 -= 0.2;
-    } else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft]) {
+    } 
+    // check for ctrl press, and then check if shift also held
+    else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft]) {
         if !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
             if keys.just_pressed(KeyCode::KeyZ) {
                 if log.history_counter as usize >= log.log.len() {
