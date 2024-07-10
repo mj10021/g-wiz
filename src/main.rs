@@ -40,10 +40,7 @@ struct Tag {
 #[derive(Default, Resource)]
 struct FilePath(String);
 
-fn setup(
-    mut commands: Commands,
-    mut filepath: ResMut<FilePath>,
-) {
+fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     let args: Vec<String> = env::args().collect();
 
     // Check if a filename was provided

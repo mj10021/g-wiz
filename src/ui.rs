@@ -5,6 +5,7 @@ use super::{
 };
 use crate::print_analyzer::Parsed;
 use crate::{ForceRefresh, GCode, Tag};
+use bevy::input::keyboard::Key;
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
@@ -392,37 +393,31 @@ pub fn key_system(
         ui_res.display_z_max.0 += 0.2;
     } else if keys.pressed(KeyCode::ArrowDown) {
         ui_res.display_z_max.0 -= 0.2;
-    } else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft])
-        && keys.just_pressed(KeyCode::KeyZ)
-        && !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight])
-    {
-        if log.history_counter as usize >= log.log.len() {
-            return;
+    } else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft]) {
+        if !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
+            if keys.just_pressed(KeyCode::KeyZ) {
+                if log.history_counter as usize >= log.log.len() {
+                    return;
+                }
+                log.history_counter += 1;
+                commands.init_resource::<SetSelections>();
+            } else if keys.just_pressed(KeyCode::KeyR) {
+                commands.init_resource::<ForceRefresh>()
+            } else if keys.just_pressed(KeyCode::KeyS) {
+                commands.remove_resource::<ExportDialogue>();
+                commands.init_resource::<ExportDialogue>();
+            }
+        } else if keys.just_pressed(KeyCode::KeyZ) {
+            if log.history_counter == 0 {
+                return;
+            }
+            log.history_counter -= 1;
+            commands.init_resource::<SetSelections>();
         }
-        log.history_counter += 1;
-        commands.init_resource::<SetSelections>();
-    } else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft])
-        && keys.just_pressed(KeyCode::KeyZ)
-        && keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight])
-    {
-        if log.history_counter == 0 {
-            return;
-        }
-        log.history_counter -= 1;
-        commands.init_resource::<SetSelections>();
     } else if keys.just_pressed(settings.hole_delete_button) {
         commands.init_resource::<HoleDelete>();
     } else if keys.just_pressed(settings.merge_delete_button) {
         commands.init_resource::<MergeDelete>();
-    } else if keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
-        && keys.just_pressed(KeyCode::KeyR)
-    {
-        commands.init_resource::<ForceRefresh>();
-    } else if keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
-        && keys.just_pressed(KeyCode::KeyS)
-    {
-        commands.remove_resource::<ExportDialogue>();
-        commands.init_resource::<ExportDialogue>();
     }
     // clear key presses after read
     keys.clear();
