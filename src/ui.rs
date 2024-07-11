@@ -411,9 +411,7 @@ pub fn key_system(
                 commands.remove_resource::<ExportDialogue>();
                 commands.init_resource::<ExportDialogue>();
             } else if keys.just_pressed(KeyCode::KeyA) {
-                if s_query.iter().filter(|s| !s.is_selected).next().is_none() {
-                    select_all.0 = false;
-                } else {select_all.0 = true;}
+                select_all.0 = s_query.iter().any(|s| !s.is_selected);
             }
         } else if keys.just_pressed(KeyCode::KeyZ) {
             if log.history_counter == 0 {
