@@ -4,8 +4,7 @@ use super::{
     SubdivideSelection,
 };
 use crate::print_analyzer::Parsed;
-use crate::{ForceRefresh, GCode, Tag};
-use bevy::input::keyboard::Key;
+use crate::{select::{self, *}, ForceRefresh, GCode, Tag};
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
@@ -381,6 +380,8 @@ pub fn key_system(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     mut log: ResMut<SelectionLog>,
     settings: Res<Settings>,
+    s_query: Query<&PickSelection>,
+    mut select_all: ResMut<SelectAll>,
 ) {
     if keys.pressed(KeyCode::ArrowLeft) {
         if ui_res.vertex_counter == 0 {
@@ -393,9 +394,10 @@ pub fn key_system(
         ui_res.display_z_max.0 += 0.2;
     } else if keys.pressed(KeyCode::ArrowDown) {
         ui_res.display_z_max.0 -= 0.2;
-    } 
+    }
     // check for ctrl press, and then check if shift also held
     else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft]) {
+        // if not shift
         if !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
             if keys.just_pressed(KeyCode::KeyZ) {
                 if log.history_counter as usize >= log.log.len() {
@@ -408,6 +410,10 @@ pub fn key_system(
             } else if keys.just_pressed(KeyCode::KeyS) {
                 commands.remove_resource::<ExportDialogue>();
                 commands.init_resource::<ExportDialogue>();
+            } else if keys.just_pressed(KeyCode::KeyA) {
+                if s_query.iter().filter(|s| !s.is_selected).next().is_none() {
+                    select_all.0 = false;
+                } else {select_all.0 = true;}
             }
         } else if keys.just_pressed(KeyCode::KeyZ) {
             if log.history_counter == 0 {

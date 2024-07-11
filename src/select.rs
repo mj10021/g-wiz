@@ -2,6 +2,17 @@ use super::{Choice, GCode, IdMap, PickSelection, Tag, UiResource};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
+#[derive(Resource, Default)]
+pub struct SelectAll(pub bool);
+pub fn select_deselect_all(
+    mut selections: Query<&mut PickSelection>,
+    select_all: Res<SelectAll>,
+) {
+    for mut selection in selections.iter_mut() {
+        selection.is_selected = select_all.0;
+    }
+}
+
 #[derive(Default, Resource, Clone, PartialEq, Hash)]
 struct Selection(Vec<Tag>);
 /// Update entity selection component state from pointer events.

@@ -76,6 +76,7 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
     commands.init_resource::<SelectionLog>();
+    commands.init_resource::<SelectAll>();
 }
 fn main() {
     App::new()
@@ -94,7 +95,8 @@ fn main() {
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, (setup, ui_setup, setup_render).chain())
         .add_systems(PreUpdate, select_erase_brush.before(send_selection_events))
-        .add_systems(PreUpdate, capture_mouse.before(send_selection_events))
+        .add_systems(PreUpdate, (capture_mouse).before(send_selection_events))
+        .add_systems(PreUpdate, select_deselect_all.run_if(resource_changed::<SelectAll>))
         .add_systems(
             Update,
             undo_redo_selections
