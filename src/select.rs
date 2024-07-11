@@ -8,7 +8,9 @@ pub fn select_deselect_all(
     mut selections: Query<&mut PickSelection>,
     select_all: Res<SelectAll>,
 ) {
-    selections.iter_mut().map(|mut s| s.is_selected = select_all.0);
+    for mut selection in selections.iter_mut() {
+        selection.is_selected = select_all.0;
+    }
 }
 
 #[derive(Default, Resource, Clone, PartialEq, Hash)]
