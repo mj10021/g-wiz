@@ -1,50 +1,85 @@
+use crate::BoundingBox;
+
 use super::{
     print_analyzer::Label, settings::*, ForceRefresh, GCode, IdMap, PickableBundle, Tag, UiResource,
 };
-use bevy::prelude::*;
+use bevy::{
+    pbr::{MaterialPipeline, MaterialPipelineKey},
+    prelude::*,
+    reflect::TypePath,
+    render::{
+        mesh::{MeshVertexBufferLayout, PrimitiveTopology},
+        render_asset::RenderAssetUsages,
+        render_resource::{
+            AsBindGroup, PolygonMode, RenderPipelineDescriptor, ShaderRef,
+            SpecializedMeshPipelineError,
+        },
+    },
+};
+
+/// A list of lines with a start and end position
+#[derive(Debug, Clone)]
+struct LineList {
+    lines: Vec<(Vec3, Vec3)>,
+}
+
+#[derive(Asset, TypePath, Default, AsBindGroup, Debug, Clone)]
+pub struct LineMaterial {
+    #[uniform(0)]
+    color: Color,
+}
+
+impl Material for LineMaterial {
+    //fn fragment_shader() -> ShaderRef {
+    //    "shaders/line_material.wgsl".into()
+    //}
+
+    fn specialize(
+        _pipeline: &MaterialPipeline<Self>,
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayout,
+        _key: MaterialPipelineKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        // This is the important part to tell bevy to render this material as a line between vertices
+        descriptor.primitive.polygon_mode = PolygonMode::Line;
+        Ok(())
+    }
+}
+
+impl From<LineList> for Mesh {
+    fn from(line: LineList) -> Self {
+        let vertices: Vec<_> = line.lines.into_iter().flat_map(|(a, b)| [a, b]).collect();
+
+        Mesh::new(
+            // This tells wgpu that the positions are list of lines
+            // where every pair is a start and end point
+            PrimitiveTopology::LineList,
+            RenderAssetUsages::RENDER_WORLD,
+        )
+        // Add the vertices positions as an attribute
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)
+    }
+}
 
 pub fn setup_render(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    gcode: Res<GCode>,
+    mut line_material: ResMut<Assets<LineMaterial>>,
+    bounding_box: Res<BoundingBox>,
 ) {
-    let (mut x_min, mut y_min, mut z_min): (f32, f32, f32) = (0.0, 0.0, 0.0);
-    let (mut x_max, mut y_max, mut z_max): (f32, f32, f32) = (500.0, 500.0, 500.0);
-    for v in gcode.0.vertices.values() {
-        if !v.extrusion_move() {
-            continue;
-        }
-        x_min = x_min.min(v.to.x);
-        y_min = y_min.min(v.to.y);
-        z_min = z_min.min(v.to.z);
-        x_max = x_max.max(v.to.x);
-        y_max = y_max.max(v.to.y);
-        z_max = z_max.max(v.to.z);
+    let mut lines = Vec::new();
+    let border = 4.0;
+    for x in (bounding_box.min.x as u32 * border as u32..=bounding_box.max.x as u32 * border as u32).step_by(10) {
+        let start = Vec3::new(x as f32, bounding_box.min.y * border, bounding_box.min.z*border);
+        let end = Vec3::new(x as f32, bounding_box.max.y*border, bounding_box.min.z*border);
+        lines.push((start, end));
     }
-    let origin = Vec3 {
-        x: x_min,
-        y: y_min,
-        z: z_min,
-    };
-    let pt1 = Vec3::new(x_max, y_min, z_min);
-    let pt2 = Vec3::new(x_min, y_max, z_min);
-    let max_pt = Vec3::new(x_max, y_max, z_min);
-    let w = x_max - x_min;
-    let l = y_max - y_min;
-    let h = z_max - z_min;
-    // FIXME: make these lines
-    let _ = commands.spawn(PbrBundle {
-        mesh: meshes.add(Cuboid::from_corners(origin, max_pt)),
-        material: materials.add(StandardMaterial {
-            base_color: Color::GRAY,
-            ..Default::default()
+    commands.spawn(MaterialMeshBundle {
+        mesh: meshes.add(LineList { lines }),
+        material: line_material.add(LineMaterial {
+            color: Color::GREEN,
         }),
-        transform: Transform {
-            translation: Vec3::new(w / 2.0, l / 2.0, 0.0),
-            ..Default::default()
-        },
-        ..Default::default()
+        ..default()
     });
 }
 

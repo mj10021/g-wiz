@@ -349,6 +349,7 @@ impl Parsed {
         parsed.assign_shapes();
         Ok(parsed)
     }
+    // FIXME: use this to point camera
     pub fn centroid(&self) -> Vec3 {
         let (mut x, mut y, mut z) = (0.0, 0.0, 0.0);
         let mut count = 0.0;
@@ -566,6 +567,7 @@ impl Parsed {
         }
         self.set_counts();
     }
+    // FIXME: add ui for this
     pub fn subdivide_all(&mut self, max_dist: f32) {
         let vertices = self.vertices.clone();
         for id in vertices.keys() {

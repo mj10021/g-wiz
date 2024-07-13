@@ -97,5 +97,3 @@ G1 Y110 E2.0
 G1 X100 E2.0
 G1 Y100 E2.0
 G1 E-1.0"#;
-
-pub const SHAPE_THRESHOLD: f32 = 0.1;

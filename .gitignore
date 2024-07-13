@@ -1,3 +1,4 @@
 .*
 /target
 *.gcode
+justfile

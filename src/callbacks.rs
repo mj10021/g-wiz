@@ -10,6 +10,18 @@ pub struct HoleDelete;
 #[derive(Default, Resource)]
 pub struct SubdivideSelection(pub u32);
 
+#[derive(Default, Resource)]
+pub struct RecalcBounds;
+
+pub fn recalc_bounding_box(
+    mut commands: Commands,
+    mut bounding_box: ResMut<BoundingBox>,
+    gcode: Res<GCode>,
+) {
+    bounding_box.recalculate(&gcode.0);
+    commands.remove_resource::<RecalcBounds>();
+}
+
 fn get_selections(mut s_query: Query<(&PickSelection, &Tag)>) -> HashSet<Id> {
     s_query
         .iter_mut()

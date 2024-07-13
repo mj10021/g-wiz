@@ -4,7 +4,7 @@ use super::{
     SubdivideSelection,
 };
 use crate::print_analyzer::Parsed;
-use crate::{select::{self, *}, ForceRefresh, GCode, Tag};
+use crate::{select::*, ForceRefresh, GCode, Tag};
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
