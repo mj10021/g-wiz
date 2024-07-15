@@ -79,6 +79,15 @@ pub fn setup_render(
         let start = Vec3::new(bounding_box.min.x - border as f32, y as f32, bounding_box.min.z);
         let end = Vec3::new(bounding_box.max.x + border as f32, y as f32, bounding_box.min.z);
         lines.push((start, end));
+
+    }
+    for z in (bounding_box.min.z as u32 - border..=bounding_box.max.z as u32 + border).step_by(step) {
+        let start_x = Vec3::new(bounding_box.min.x - border as f32, bounding_box.min.y, z as f32);
+        let end_x = Vec3::new(bounding_box.max.x + border as f32, bounding_box.min.y, z as f32);
+        let start_y = Vec3::new(bounding_box.min.x, bounding_box.min.y - border as f32,z as f32);
+        let end_y = Vec3::new(bounding_box.min.x, bounding_box.max.y + border as f32, z as f32);
+        lines.push((start_x, end_x));
+        lines.push((start_y, end_y));
     }
     commands.spawn(MaterialMeshBundle {
         mesh: meshes.add(LineList { lines }),
