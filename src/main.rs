@@ -40,7 +40,7 @@ struct Tag {
 #[derive(Default, Resource)]
 struct FilePath(String);
 
-#[derive(Resource)]
+#[derive(Debug, Resource)]
 pub struct BoundingBox {
     min: Vec3,
     max: Vec3,

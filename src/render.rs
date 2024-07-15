@@ -11,7 +11,7 @@ use bevy::{
         mesh::{MeshVertexBufferLayout, PrimitiveTopology},
         render_asset::RenderAssetUsages,
         render_resource::{
-            AsBindGroup, PolygonMode, RenderPipelineDescriptor, ShaderRef,
+            AsBindGroup, PolygonMode, RenderPipelineDescriptor,
             SpecializedMeshPipelineError,
         },
     },
@@ -68,10 +68,16 @@ pub fn setup_render(
     bounding_box: Res<BoundingBox>,
 ) {
     let mut lines = Vec::new();
-    let border = 4.0;
-    for x in (bounding_box.min.x as u32 * border as u32..=bounding_box.max.x as u32 * border as u32).step_by(10) {
-        let start = Vec3::new(x as f32, bounding_box.min.y * border, bounding_box.min.z*border);
-        let end = Vec3::new(x as f32, bounding_box.max.y*border, bounding_box.min.z*border);
+    let border = 20;
+    let step = 5;
+    for x in (bounding_box.min.x as u32 - border..=bounding_box.max.x as u32 + border).step_by(step) {
+        let start = Vec3::new(x as f32, bounding_box.min.y - border as f32, bounding_box.min.z);
+        let end = Vec3::new(x as f32, bounding_box.max.y + border as f32, bounding_box.min.z);
+        lines.push((start, end));
+    }
+    for y in (bounding_box.min.y as u32 - border..=bounding_box.max.y as u32 + border).step_by(step) {
+        let start = Vec3::new(bounding_box.min.x - border as f32, y as f32, bounding_box.min.z);
+        let end = Vec3::new(bounding_box.max.x + border as f32, y as f32, bounding_box.min.z);
         lines.push((start, end));
     }
     commands.spawn(MaterialMeshBundle {
