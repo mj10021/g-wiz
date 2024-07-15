@@ -11,8 +11,7 @@ use bevy::{
         mesh::{MeshVertexBufferLayout, PrimitiveTopology},
         render_asset::RenderAssetUsages,
         render_resource::{
-            AsBindGroup, PolygonMode, RenderPipelineDescriptor,
-            SpecializedMeshPipelineError,
+            AsBindGroup, PolygonMode, RenderPipelineDescriptor, SpecializedMeshPipelineError,
         },
     },
 };
@@ -70,22 +69,65 @@ pub fn setup_render(
     let mut lines = Vec::new();
     let border = 20;
     let step = 5;
-    for x in (bounding_box.min.x as u32 - border..=bounding_box.max.x as u32 + border).step_by(step) {
-        let start = Vec3::new(x as f32, bounding_box.min.y - border as f32, bounding_box.min.z);
-        let end = Vec3::new(x as f32, bounding_box.max.y + border as f32, bounding_box.min.z);
+    let mut x_iter = (bounding_box.min.x as i32 - border..=bounding_box.max.x as i32 + border)
+        .step_by(step)
+        .peekable();
+    let mut y_iter = (bounding_box.min.y as i32 - border..=bounding_box.max.y as i32 + border)
+        .step_by(step)
+        .peekable();
+    let mut z_iter = (bounding_box.min.z as i32 - border..=bounding_box.max.z as i32 + border)
+        .step_by(step)
+        .peekable();
+    while let Some(x) = x_iter.next() {
+        let start = Vec3::new(
+            x as f32,
+            bounding_box.min.y - border as f32,
+            bounding_box.min.z,
+        );
+        let end = Vec3::new(
+            x as f32,
+            bounding_box.max.y + border as f32,
+            bounding_box.min.z,
+        );
+        if x_iter.peek().is_none() {
+            while let Some(z) = z_iter.next() {}
+        }
         lines.push((start, end));
     }
-    for y in (bounding_box.min.y as u32 - border..=bounding_box.max.y as u32 + border).step_by(step) {
-        let start = Vec3::new(bounding_box.min.x - border as f32, y as f32, bounding_box.min.z);
-        let end = Vec3::new(bounding_box.max.x + border as f32, y as f32, bounding_box.min.z);
+    for y in y_iter {
+        let start = Vec3::new(
+            bounding_box.min.x - border as f32,
+            y as f32,
+            bounding_box.min.z,
+        );
+        let end = Vec3::new(
+            bounding_box.max.x + border as f32,
+            y as f32,
+            bounding_box.min.z,
+        );
         lines.push((start, end));
-
     }
-    for z in (bounding_box.min.z as u32 - border..=bounding_box.max.z as u32 + border).step_by(step) {
-        let start_x = Vec3::new(bounding_box.min.x - border as f32, bounding_box.min.y, z as f32);
-        let end_x = Vec3::new(bounding_box.max.x + border as f32, bounding_box.min.y, z as f32);
-        let start_y = Vec3::new(bounding_box.min.x, bounding_box.min.y - border as f32,z as f32);
-        let end_y = Vec3::new(bounding_box.min.x, bounding_box.max.y + border as f32, z as f32);
+    for z in z_iter {
+        let start_x = Vec3::new(
+            bounding_box.min.x - border as f32,
+            bounding_box.min.y,
+            z as f32,
+        );
+        let end_x = Vec3::new(
+            bounding_box.max.x + border as f32,
+            bounding_box.min.y,
+            z as f32,
+        );
+        let start_y = Vec3::new(
+            bounding_box.min.x,
+            bounding_box.min.y - border as f32,
+            z as f32,
+        );
+        let end_y = Vec3::new(
+            bounding_box.min.x,
+            bounding_box.max.y + border as f32,
+            z as f32,
+        );
         lines.push((start_x, end_x));
         lines.push((start_y, end_y));
     }

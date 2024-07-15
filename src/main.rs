@@ -110,11 +110,8 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     });
     let bounding_box = BoundingBox::from(&gcode);
     let center = bounding_box.midpoint();
-    let transform = Transform::from_xyz(
-                bounding_box.min.x - center.x,
-                center.y,
-                200.0,
-            ).looking_at(center, Vec3::Y);
+    let transform = Transform::from_xyz(bounding_box.min.x - center.x, center.y, 200.0)
+        .looking_at(center, Vec3::Y);
     let radius = transform.translation.distance(center);
     commands.spawn((
         Camera3dBundle {
