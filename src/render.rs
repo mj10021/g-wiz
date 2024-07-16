@@ -75,7 +75,7 @@ pub fn setup_render(
     let mut y_iter = (bounding_box.min.y as i32 - border..=bounding_box.max.y as i32 + border)
         .step_by(step)
         .peekable();
-    let mut z_iter = (bounding_box.min.z as i32 - border..=bounding_box.max.z as i32 + border)
+    let z_iter = (bounding_box.min.z as i32 - border..=bounding_box.max.z as i32 + border)
         .step_by(step)
         .peekable();
     while let Some(x) = x_iter.next() {
@@ -90,7 +90,11 @@ pub fn setup_render(
             bounding_box.min.z,
         );
         if x_iter.peek().is_none() {
-            while let Some(z) = z_iter.next() {}
+            for z in z_iter.clone() {
+                let start = Vec3::new(start.x, start.y, z as f32);
+                let end = Vec3::new(end.x, end.y, z as f32);
+                lines.push((start,end));
+            }
         }
         lines.push((start, end));
     }
