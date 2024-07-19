@@ -89,16 +89,17 @@ pub fn setup_render(
             bounding_box.max.y + border as f32,
             bounding_box.min.z,
         );
+        lines.push((start, end));
         if x_iter.peek().is_none() {
+            // FIXME: clone???
             for z in z_iter.clone() {
                 let start = Vec3::new(start.x, start.y, z as f32);
                 let end = Vec3::new(end.x, end.y, z as f32);
-                lines.push((start,end));
+                lines.push((start, end));
             }
         }
-        lines.push((start, end));
     }
-    for y in y_iter {
+    while let Some(y) = y_iter.next() {
         let start = Vec3::new(
             bounding_box.min.x - border as f32,
             y as f32,
@@ -110,30 +111,14 @@ pub fn setup_render(
             bounding_box.min.z,
         );
         lines.push((start, end));
-    }
-    for z in z_iter {
-        let start_x = Vec3::new(
-            bounding_box.min.x - border as f32,
-            bounding_box.min.y,
-            z as f32,
-        );
-        let end_x = Vec3::new(
-            bounding_box.max.x + border as f32,
-            bounding_box.min.y,
-            z as f32,
-        );
-        let start_y = Vec3::new(
-            bounding_box.min.x,
-            bounding_box.min.y - border as f32,
-            z as f32,
-        );
-        let end_y = Vec3::new(
-            bounding_box.min.x,
-            bounding_box.max.y + border as f32,
-            z as f32,
-        );
-        lines.push((start_x, end_x));
-        lines.push((start_y, end_y));
+        if y_iter.peek().is_none() {
+            // FIXME: clone???
+            for z in z_iter.clone() {
+                let start = Vec3::new(start.x, start.y, z as f32);
+                let end = Vec3::new(end.x, end.y, z as f32);
+                lines.push((start, end));
+            }
+        }
     }
     commands.spawn(MaterialMeshBundle {
         mesh: meshes.add(LineList { lines }),

@@ -6,6 +6,7 @@ mod render;
 mod select;
 mod settings;
 mod ui;
+mod load_assets;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;

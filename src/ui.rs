@@ -4,13 +4,36 @@ use super::{
     SubdivideSelection,
 };
 use crate::print_analyzer::Parsed;
-use crate::{select::*, ForceRefresh, GCode, Tag};
+use crate::{callbacks, select::*, ForceRefresh, GCode, Tag};
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
 use bevy_mod_picking::prelude::*;
 use egui::Pos2;
 use std::collections::HashSet;
+
+struct Icon<T: Default + Resource + Sized + Copy> {
+    image: Image,
+    callback: callbacks::Callback<T>,
+    hint_text: String,
+}
+
+impl<T> Icon<T>
+where
+    T: Default + Resource + Sized + Copy,
+{
+    fn callback(&self) -> T
+    where
+        T: Default + Resource + Sized + Clone + Copy,
+    {
+        self.callback.0
+    }
+    fn display(ui: &mut egui::Ui) {
+        if ui.menu_image_button(image, |ui| {
+
+        })
+    }
+}
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Choice {

@@ -99,10 +99,9 @@ pub struct Pos {
     pub f: f32,
 }
 
-impl std::ops::Sub for Pos {
-    type Output = (f32, f32, f32);
-    fn sub(self, rhs: Pos) -> Self::Output {
-        (self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+impl Into<Vec3> for Pos {
+    fn into(self) -> Vec3 {
+        Vec3::new(self.x, self.y, self.z)
     }
 }
 impl Pos {

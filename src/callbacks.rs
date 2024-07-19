@@ -1,16 +1,19 @@
 use super::*;
 use std::collections::HashSet;
 
-#[derive(Default, Resource)]
+#[derive()]
+pub struct Callback<T: Default + Resource + Copy + Sized>(pub T);
+
+#[derive(Copy, Clone, Default, Resource)]
 pub struct MergeDelete;
 
-#[derive(Default, Resource)]
+#[derive(Copy, Clone, Default, Resource)]
 pub struct HoleDelete;
 
-#[derive(Default, Resource)]
+#[derive(Copy, Clone, Default, Resource)]
 pub struct SubdivideSelection(pub u32);
 
-#[derive(Default, Resource)]
+#[derive(Copy, Clone, Default, Resource)]
 pub struct RecalcBounds;
 
 pub fn recalc_bounding_box(
