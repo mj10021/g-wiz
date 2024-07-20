@@ -69,55 +69,47 @@ pub fn setup_render(
     let mut lines = Vec::new();
     let border = 20;
     let step = 5;
-    let mut x_iter = (bounding_box.min.x as i32 - border..=bounding_box.max.x as i32 + border)
-        .step_by(step)
-        .peekable();
-    let mut y_iter = (bounding_box.min.y as i32 - border..=bounding_box.max.y as i32 + border)
-        .step_by(step)
-        .peekable();
-    let z_iter = (bounding_box.min.z as i32 - border..=bounding_box.max.z as i32 + border)
-        .step_by(step)
-        .peekable();
-    while let Some(x) = x_iter.next() {
-        let start = Vec3::new(
-            x as f32,
-            bounding_box.min.y - border as f32,
-            bounding_box.min.z,
-        );
-        let end = Vec3::new(
-            x as f32,
-            bounding_box.max.y + border as f32,
-            bounding_box.min.z,
-        );
+    let (x_max, y_max, z_max) = (
+        bounding_box.max.x as u32 + border,
+        bounding_box.max.y as u32 + border,
+        bounding_box.max.z as u32 + border,
+    );
+    let (x_min, y_min, z_min) = (
+        bounding_box.min.x as u32 - border,
+        bounding_box.min.y as u32 - border,
+        bounding_box.min.z as u32,
+    );
+    // FIXME: make this casting beter
+    for x in (x_min..=x_max).step_by(step) {
+        let start = Vec3::new(x as f32, y_min as f32, z_min as f32);
+        let end = Vec3::new(x as f32, y_max as f32, z_min as f32);
         lines.push((start, end));
-        if x_iter.peek().is_none() {
-            // FIXME: clone???
-            for z in z_iter.clone() {
-                let start = Vec3::new(start.x, start.y, z as f32);
-                let end = Vec3::new(end.x, end.y, z as f32);
-                lines.push((start, end));
-            }
-        }
+        let start = Vec3::new(x as f32, y_max as f32, z_min as f32);
+        let end = Vec3::new(x as f32, y_max as f32, z_max as f32);
+        lines.push((start, end));
     }
-    while let Some(y) = y_iter.next() {
+    for y in (y_min..=y_max).step_by(step) {
         let start = Vec3::new(
-            bounding_box.min.x - border as f32,
+            x_min as f32,
             y as f32,
-            bounding_box.min.z,
+            z_min as f32,
         );
         let end = Vec3::new(
-            bounding_box.max.x + border as f32,
+            x_max as f32,
             y as f32,
-            bounding_box.min.z,
+            z_min as f32,
         );
         lines.push((start, end));
-        if y_iter.peek().is_none() {
-            // FIXME: clone???
-            for z in z_iter.clone() {
-                let start = Vec3::new(start.x, start.y, z as f32);
-                let end = Vec3::new(end.x, end.y, z as f32);
-                lines.push((start, end));
-            }
+        let start = Vec3::new(x_max as f32, y as f32, z_min as f32);
+        let end = Vec3::new(x_max as f32, y as f32, z_max as f32);
+        lines.push((start, end));
+        for z in (z_min..=z_max).step_by(step) {
+            let start = Vec3::new(x_min as f32, y_max as f32, z as f32);
+            let end = Vec3::new(x_max as f32, y_max as f32, z as f32);
+            lines.push((start, end));
+            let start = Vec3::new(x_max as f32, y_min as f32, z as f32);
+            let end = Vec3::new(x_max as f32, y_max as f32, z as f32);
+            lines.push((start, end));
         }
     }
     commands.spawn(MaterialMeshBundle {

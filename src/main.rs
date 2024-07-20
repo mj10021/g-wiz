@@ -1,12 +1,12 @@
 mod callbacks;
 mod diff;
+mod load_assets;
 mod pan_orbit;
 mod print_analyzer;
 mod render;
 mod select;
 mod settings;
 mod ui;
-mod load_assets;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;

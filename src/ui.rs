@@ -12,26 +12,28 @@ use bevy_mod_picking::prelude::*;
 use egui::Pos2;
 use std::collections::HashSet;
 
-struct Icon<T: Default + Resource + Sized + Copy> {
+struct ToolbarIcon<T: Default + Resource + Sized + Copy> {
     image: Image,
     callback: callbacks::Callback<T>,
     hint_text: String,
 }
 
-impl<T> Icon<T>
+impl<T> ToolbarIcon<T>
 where
     T: Default + Resource + Sized + Copy,
 {
+    fn build(image: Image, callback: callbacks::Callback<T>, hint_text: String) -> Self {
+        Self {
+            image,
+            callback,
+            hint_text,
+        }
+    }
     fn callback(&self) -> T
     where
         T: Default + Resource + Sized + Clone + Copy,
     {
         self.callback.0
-    }
-    fn display(ui: &mut egui::Ui) {
-        if ui.menu_image_button(image, |ui| {
-
-        })
     }
 }
 
