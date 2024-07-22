@@ -9,7 +9,7 @@ use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
 use bevy_mod_picking::prelude::*;
-use egui::Pos2;
+use egui::{Pos2, TopBottomPanel};
 use std::collections::HashSet;
 
 struct ToolbarIcon<T: Default + Resource + Sized + Copy> {
@@ -66,6 +66,8 @@ pub struct UiResource {
     pub rotate_z: f32,
     pub scale: f32,
     cursor_enum: Cursor,
+    console_input: String,
+    console_output: String
 }
 
 impl Default for UiResource {
@@ -84,6 +86,8 @@ impl Default for UiResource {
             rotate_z: 0.0,
             scale: 1.0,
             cursor_enum: Cursor::Pointer,
+            console_output: String::from("g-wiz console:"),
+            console_input: String::new(),
         }
     }
 }
@@ -195,7 +199,13 @@ pub fn right_click_menu(mut contexts: EguiContexts, pos: Res<RightClick>) {
         .fixed_pos(pos.0)
         .show(contexts.ctx_mut(), |ui| if ui.button("asdf").clicked() {});
 }
-
+pub fn console(mut contexts: EguiContexts, mut console: ResMut<UiResource>) {
+    egui::TopBottomPanel::bottom("console").show(contexts.ctx_mut(), |ui| {
+        ui.sc
+        ui.code(&console.console_output);
+        ui.text_edit_singleline(&mut console.console_input);
+    });
+}
 pub fn ui_system(
     mut contexts: EguiContexts,
     mut commands: Commands,
@@ -421,6 +431,7 @@ pub fn key_system(
         ui_res.display_z_max.0 -= 0.2;
     }
     // check for ctrl press, and then check if shift also held
+    // i should also check here if i should be entering into the console
     else if keys.any_pressed([KeyCode::ControlRight, KeyCode::ControlLeft]) {
         // if not shift
         if !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
@@ -449,6 +460,8 @@ pub fn key_system(
         commands.init_resource::<HoleDelete>();
     } else if keys.just_pressed(settings.merge_delete_button) {
         commands.init_resource::<MergeDelete>();
+    } else {
+        //otherwise, use the key press for the console
     }
     // clear key presses after read
     keys.clear();

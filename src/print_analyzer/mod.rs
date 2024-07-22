@@ -261,19 +261,17 @@ pub struct Parsed {
     id_counter: Id,
 }
 impl Parsed {
-    pub fn new() -> Parsed {
-        Parsed {
+
+    pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
+        let mut parsed = Parsed {
             lines: Vec::new(),
             vertices: HashMap::new(),
             instructions: HashMap::new(),
             shapes: Vec::new(),
             rel_xyz: false,
             rel_e: true,
-            id_counter: Id(0),
-        }
-    }
-    pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
-        let mut parsed = Parsed::new();
+            id_counter: Id(0)
+        };
         let lines = {
             if !testing {
                 file_reader::parse_file(path)?
@@ -348,23 +346,7 @@ impl Parsed {
         parsed.assign_shapes();
         Ok(parsed)
     }
-    // FIXME: use this to point camera
-    pub fn centroid(&self) -> Vec3 {
-        let (mut x, mut y, mut z) = (0.0, 0.0, 0.0);
-        let mut count = 0.0;
-        for v in self.vertices.values() {
-            if v.extrusion_move() {
-                x += v.to.x;
-                y += v.to.y;
-                z += v.to.z;
-                count += 1.0;
-            }
-        }
-        x /= count;
-        y /= count;
-        z /= count;
-        Vec3::new(x, y, z)
-    }
+
     pub fn assign_shapes(&mut self) {
         let mut out = Vec::new();
         let mut temp_shape = Vec::new();
@@ -570,10 +552,10 @@ impl Parsed {
     pub fn subdivide_all(&mut self, max_dist: f32) {
         let vertices = self.vertices.clone();
         for id in vertices.keys() {
-            if self.vertices.contains_key(&id) {
-                let dist = self.dist_from_prev(&id);
+            if self.vertices.contains_key(id) {
+                let dist = self.dist_from_prev(id);
                 let count = (dist / max_dist).round() as u32;
-                self.subdivide_vertex(&id, count);
+                self.subdivide_vertex(id, count);
             }
         }
     }

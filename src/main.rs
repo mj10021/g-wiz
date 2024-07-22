@@ -7,6 +7,7 @@ mod render;
 mod select;
 mod settings;
 mod ui;
+mod console;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
@@ -87,6 +88,21 @@ impl BoundingBox {
             y: (self.max.y - self.min.y) / 2.0,
             z: (self.max.z - self.min.z) / 2.0,
         }
+    }
+}
+
+fn centroid(vertices: &Vec<Vec3>) -> Vec3 {
+    let (mut i, mut j, mut k) = (0.0, 0.0, 0.0);
+    let count = vertices.len() as f32;
+    for Vec3 { x, y, z } in vertices {
+        i += x;
+        j += y;
+        k += z;
+    }
+    Vec3 {
+        x: i / count,
+        y: j / count,
+        z: k / count,
     }
 }
 
@@ -174,6 +190,7 @@ fn main() {
                 toolbar,
                 right_click_menu.run_if(resource_exists::<RightClick>),
                 ui_system,
+                console,
                 export_dialogue.run_if(resource_exists::<ExportDialogue>),
                 update_selections,
                 update_visibilities,

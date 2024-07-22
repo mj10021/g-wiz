@@ -89,16 +89,8 @@ pub fn setup_render(
         lines.push((start, end));
     }
     for y in (y_min..=y_max).step_by(step) {
-        let start = Vec3::new(
-            x_min as f32,
-            y as f32,
-            z_min as f32,
-        );
-        let end = Vec3::new(
-            x_max as f32,
-            y as f32,
-            z_min as f32,
-        );
+        let start = Vec3::new(x_min as f32, y as f32, z_min as f32);
+        let end = Vec3::new(x_max as f32, y as f32, z_min as f32);
         lines.push((start, end));
         let start = Vec3::new(x_max as f32, y as f32, z_min as f32);
         let end = Vec3::new(x_max as f32, y as f32, z_max as f32);
