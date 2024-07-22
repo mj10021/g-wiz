@@ -201,7 +201,6 @@ pub fn right_click_menu(mut contexts: EguiContexts, pos: Res<RightClick>) {
 }
 pub fn console(mut contexts: EguiContexts, mut console: ResMut<UiResource>) {
     egui::TopBottomPanel::bottom("console").show(contexts.ctx_mut(), |ui| {
-        ui.sc
         ui.code(&console.console_output);
         ui.text_edit_singleline(&mut console.console_input);
     });
