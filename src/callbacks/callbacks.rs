@@ -1,7 +1,7 @@
 use super::*;
 use std::collections::HashSet;
 
-#[derive()]
+
 pub struct Callback<T: Default + Resource + Copy + Sized>(pub T);
 
 #[derive(Copy, Clone, Default, Resource)]
