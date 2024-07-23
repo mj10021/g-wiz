@@ -1,8 +1,7 @@
 use super::events::*;
 use crate::{GCode, Tag, UiResource};
-use bevy::{math::bounding, prelude::*};
+use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
-use egui::Ui;
 pub enum Command<T: Default + bevy::prelude::Resource + Copy + Sized> {
     // t is the actual callback
     MergeDelete(T),
@@ -17,7 +16,7 @@ fn ui_handler(mut event: EventReader<UiEvent>) {
     for event in event.read() {
         match event {
             UiEvent::ForceRefresh => {
-                // do something
+                // this should run render
             }
             UiEvent::Undo => {
                 // do something
@@ -32,6 +31,7 @@ fn ui_handler(mut event: EventReader<UiEvent>) {
     }
 }
 
+
 pub fn command_handler(
     mut gcode: ResMut<GCode>,
     s_query: Query<(&PickSelection, &Tag)>,
@@ -41,7 +41,7 @@ pub fn command_handler(
     ui_res: Res<UiResource>,
 ) {
     let count = ui_res.subdivide_slider;
-    let mut selection = crate::callbacks::callbacks::get_selections(s_query);
+    let mut selection = s_query.iter().filter_map(f);
     for event in event.read() {
         match event {
             CommandEvent::MergeDelete => {

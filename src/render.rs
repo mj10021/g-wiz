@@ -1,7 +1,7 @@
 use crate::BoundingBox;
 
 use super::{
-    print_analyzer::Label, settings::*, ForceRefresh, GCode, IdMap, PickableBundle, Tag, UiResource,
+    print_analyzer::Label, settings::*, GCode, IdMap, PickableBundle, Tag, UiResource,
 };
 use bevy::{
     pbr::{MaterialPipeline, MaterialPipelineKey},
@@ -221,7 +221,6 @@ pub fn render(
             .id();
         map.0.insert(id, e_id);
     }
-    commands.remove_resource::<ForceRefresh>();
 }
 
 pub fn update_visibilities(

@@ -31,8 +31,6 @@ struct IdMap(HashMap<Id, Entity>);
 #[derive(Clone, Resource)]
 struct GCode(Parsed);
 
-#[derive(Default, Resource)]
-struct ForceRefresh;
 
 #[derive(Component, PartialEq, Copy, Clone, Hash, Eq, Debug)]
 struct Tag {
