@@ -12,7 +12,7 @@ use bevy::ecs::event;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
-use callbacks::*;
+use callbacks::handlers::command_handler;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
@@ -193,10 +193,7 @@ fn main() {
                 export_dialogue.run_if(resource_exists::<ExportDialogue>),
                 update_selections,
                 update_visibilities,
-                merge_delete.run_if(event::<MergeDelete>),
-                hole_delete.run_if(resource_exists::<HoleDelete>),
-                subdivide_selection.run_if(resource_exists::<SubdivideSelection>),
-                recalc_bounding_box.run_if(resource_exists::<RecalcBounds>),
+                command_handler,
             )
                 .chain(),
         )

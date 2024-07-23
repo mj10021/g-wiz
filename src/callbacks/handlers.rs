@@ -32,7 +32,7 @@ fn ui_handler(mut event: EventReader<UiEvent>) {
     }
 }
 
-fn command_handler(
+pub fn command_handler(
     mut gcode: ResMut<GCode>,
     s_query: Query<(&PickSelection, &Tag)>,
     mut bounding_box: ResMut<crate::BoundingBox>,
