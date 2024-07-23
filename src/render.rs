@@ -1,6 +1,6 @@
-use crate::BoundingBox;
-use crate::callbacks::handlers::ForceRefresh;
 use super::{print_analyzer::Label, settings::*, GCode, IdMap, PickableBundle, Tag, UiResource};
+use crate::callbacks::handlers::ForceRefresh;
+use crate::BoundingBox;
 use bevy::{
     pbr::{MaterialPipeline, MaterialPipelineKey},
     prelude::*,

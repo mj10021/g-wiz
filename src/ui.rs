@@ -108,7 +108,6 @@ pub fn toolbar(mut contexts: EguiContexts, mut ui_writer: EventWriter<UiEvent>) 
 }
 
 pub fn export_dialogue(
-    mut commands: Commands,
     mut egui_context: Query<&mut EguiContext>,
     window: Query<&Window, With<PrimaryWindow>>,
     mut path: ResMut<FilePath>,
@@ -184,7 +183,6 @@ pub fn ui_system(
     window: Query<&Window, With<PrimaryWindow>>,
     mut gcode: ResMut<GCode>,
     s_query: Query<(&mut PickSelection, &Tag)>,
-    mut ui_writer: EventWriter<UiEvent>,
     mut command_writer: EventWriter<CommandEvent>,
 ) {
     let window = window.get_single().unwrap();
@@ -376,9 +374,7 @@ impl VertexCounter {
 
 pub fn key_system(
     mut commands: Commands,
-    mut ui_res: ResMut<UiResource>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
-    mut log: ResMut<SelectionLog>,
     settings: Res<Settings>,
     s_query: Query<&PickSelection>,
     mut select_all: ResMut<SelectAll>,
@@ -386,16 +382,13 @@ pub fn key_system(
     mut command_writer: EventWriter<CommandEvent>,
 ) {
     if keys.pressed(KeyCode::ArrowLeft) {
-        if ui_res.vertex_counter == 0 {
-            return;
-        }
-        ui_res.vertex_counter -= 1;
+        ui_writer.send(UiEvent::MoveDisplay(false, false, 1.0));
     } else if keys.pressed(KeyCode::ArrowRight) {
-        ui_res.vertex_counter += 1;
+        ui_writer.send(UiEvent::MoveDisplay(true, false, 1.0));
     } else if keys.pressed(KeyCode::ArrowUp) {
-        ui_res.display_z_max.0 += 0.2;
+        ui_writer.send(UiEvent::MoveDisplay(true, true, 0.2));
     } else if keys.pressed(KeyCode::ArrowDown) {
-        ui_res.display_z_max.0 -= 0.2;
+        ui_writer.send(UiEvent::MoveDisplay(false, true, -0.2));
     }
     // check for ctrl press, and then check if shift also held
     // i should also check here if i should be entering into the console
@@ -403,11 +396,7 @@ pub fn key_system(
         // if not shift
         if !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
             if keys.just_pressed(KeyCode::KeyZ) {
-                if log.history_counter as usize >= log.log.len() {
-                    return;
-                }
-                log.history_counter += 1;
-                commands.init_resource::<SetSelections>();
+                ui_writer.send(UiEvent::Undo);
             } else if keys.just_pressed(KeyCode::KeyR) {
                 commands.init_resource::<ForceRefresh>()
             } else if keys.just_pressed(KeyCode::KeyS) {
@@ -416,11 +405,7 @@ pub fn key_system(
                 select_all.0 = s_query.iter().any(|s| !s.is_selected);
             }
         } else if keys.just_pressed(KeyCode::KeyZ) {
-            if log.history_counter == 0 {
-                return;
-            }
-            log.history_counter -= 1;
-            commands.init_resource::<SetSelections>();
+            ui_writer.send(UiEvent::Redo);
         }
     } else if keys.just_pressed(settings.hole_delete_button) {
         command_writer.send(CommandEvent::HoleDelete);

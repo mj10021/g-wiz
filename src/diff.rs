@@ -215,7 +215,11 @@ pub fn update_selection_log(
     commands.init_resource::<SetSelections>()
 }
 use crate::callbacks::events::UiEvent;
-fn update_gcode_log(mut gcode: ResMut<GCode>, mut log: ResMut<GCodeLog>, mut refresh: EventWriter<UiEvent>) {
+fn update_gcode_log(
+    mut gcode: ResMut<GCode>,
+    mut log: ResMut<GCodeLog>,
+    mut refresh: EventWriter<UiEvent>,
+) {
     let diff = log.diff(&gcode);
     diff.apply(&mut gcode);
     log.log.push(diff);

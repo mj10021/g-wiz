@@ -8,7 +8,6 @@ mod select;
 mod settings;
 mod ui;
 
-use bevy::ecs::event;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;

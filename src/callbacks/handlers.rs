@@ -6,7 +6,11 @@ use bevy_mod_picking::selection::PickSelection;
 #[derive(Default, Resource)]
 pub struct ForceRefresh;
 
-fn ui_handler(mut event: EventReader<UiEvent>, mut commands: Commands) {
+fn ui_handler(
+    mut event: EventReader<UiEvent>,
+    mut commands: Commands,
+    mut ui_res: ResMut<UiResource>,
+) {
     for event in event.read() {
         match event {
             UiEvent::ForceRefresh => {
@@ -20,6 +24,22 @@ fn ui_handler(mut event: EventReader<UiEvent>, mut commands: Commands) {
             }
             UiEvent::ExportDialogue => {
                 // do something
+            }
+            UiEvent::MoveDisplay(forward, layer, count) => {
+                if *layer && *forward {
+                    ui_res.display_z_max.1 += count;
+                    }
+                else if *layer {
+                        ui_res.display_z_max.0 += count;
+                    }
+                else if *forward {
+                    ui_res.vertex_counter += *count as u32;
+                } else {
+                    if ui_res.vertex_counter == 0 {
+                        return;
+                    }
+                    ui_res.vertex_counter -= *count as u32;
+                }
             }
         }
     }
