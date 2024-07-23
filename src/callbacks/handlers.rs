@@ -1,22 +1,16 @@
 use super::events::*;
 use crate::{GCode, Tag, UiResource};
-use bevy::prelude::*;
+use bevy::{prelude::*, transform::commands};
 use bevy_mod_picking::selection::PickSelection;
-pub enum Command<T: Default + bevy::prelude::Resource + Copy + Sized> {
-    // t is the actual callback
-    MergeDelete(T),
-    HoleDelete(T),
-    Subdivide(T),
-    RecalcBounds(T),
-    Undo(T),
-    Redo(T),
-}
 
-fn ui_handler(mut event: EventReader<UiEvent>) {
+#[derive(Default, Resource)]
+pub struct ForceRefresh;
+
+fn ui_handler(mut event: EventReader<UiEvent>, mut commands: Commands) {
     for event in event.read() {
         match event {
             UiEvent::ForceRefresh => {
-                // this should run render
+                commands.init_resource::<ForceRefresh>();
             }
             UiEvent::Undo => {
                 // do something
@@ -31,7 +25,6 @@ fn ui_handler(mut event: EventReader<UiEvent>) {
     }
 }
 
-
 pub fn command_handler(
     mut gcode: ResMut<GCode>,
     s_query: Query<(&PickSelection, &Tag)>,
@@ -41,7 +34,10 @@ pub fn command_handler(
     ui_res: Res<UiResource>,
 ) {
     let count = ui_res.subdivide_slider;
-    let mut selection = s_query.iter().filter_map(f);
+    let mut selection = s_query
+        .iter()
+        .filter_map(|(s, t)| if !s.is_selected { None } else { Some(t.id) })
+        .collect();
     for event in event.read() {
         match event {
             CommandEvent::MergeDelete => {
@@ -49,7 +45,6 @@ pub fn command_handler(
             }
             CommandEvent::HoleDelete => {
                 gcode.0.hole_delete(&mut selection);
-
             }
             CommandEvent::Subdivide => {
                 gcode.0.subdivide_vertices(selection.clone(), count);

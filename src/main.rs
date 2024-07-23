@@ -12,7 +12,7 @@ use bevy::ecs::event;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
-use callbacks::handlers::command_handler;
+use callbacks::handlers::{command_handler, ForceRefresh};
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
@@ -30,7 +30,6 @@ struct IdMap(HashMap<Id, Entity>);
 
 #[derive(Clone, Resource)]
 struct GCode(Parsed);
-
 
 #[derive(Component, PartialEq, Copy, Clone, Hash, Eq, Debug)]
 struct Tag {

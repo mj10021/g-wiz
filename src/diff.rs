@@ -1,5 +1,3 @@
-use crate::ForceRefresh;
-
 use super::{
     print_analyzer::{Instruction, Vertex},
     GCode, Id, Resource, Tag,
@@ -216,12 +214,12 @@ pub fn update_selection_log(
     log.log.push(diff);
     commands.init_resource::<SetSelections>()
 }
-
-fn update_gcode_log(mut commands: Commands, mut gcode: ResMut<GCode>, mut log: ResMut<GCodeLog>) {
+use crate::callbacks::events::UiEvent;
+fn update_gcode_log(mut gcode: ResMut<GCode>, mut log: ResMut<GCodeLog>, mut refresh: EventWriter<UiEvent>) {
     let diff = log.diff(&gcode);
     diff.apply(&mut gcode);
     log.log.push(diff);
-    commands.init_resource::<ForceRefresh>();
+    refresh.send(UiEvent::ForceRefresh);
 }
 
 pub fn update_logs(
