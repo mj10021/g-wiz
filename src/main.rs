@@ -7,8 +7,8 @@ mod render;
 mod select;
 mod settings;
 mod ui;
-mod console;
 
+use bevy::ecs::event;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
@@ -145,7 +145,6 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.insert_resource(read_settings());
     commands.insert_resource(VertexCounter::build(&gcode));
     commands.insert_resource(GCode(gcode));
-    commands.init_resource::<ForceRefresh>();
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<EnablePanOrbit>();
@@ -194,7 +193,7 @@ fn main() {
                 export_dialogue.run_if(resource_exists::<ExportDialogue>),
                 update_selections,
                 update_visibilities,
-                merge_delete.run_if(resource_exists::<MergeDelete>),
+                merge_delete.run_if(event::<MergeDelete>),
                 hole_delete.run_if(resource_exists::<HoleDelete>),
                 subdivide_selection.run_if(resource_exists::<SubdivideSelection>),
                 recalc_bounding_box.run_if(resource_exists::<RecalcBounds>),

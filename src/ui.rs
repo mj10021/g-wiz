@@ -1,41 +1,14 @@
 use super::diff::{SelectionLog, SetSelections};
-use super::{
-    FilePath, HoleDelete, MergeDelete, PickSelection, PickingPluginsSettings, Settings,
-    SubdivideSelection,
-};
+use super::{FilePath, PickSelection, PickingPluginsSettings, Settings};
+use crate::callbacks::events::{CommandEvent, UiEvent};
 use crate::print_analyzer::Parsed;
-use crate::{callbacks, select::*, ForceRefresh, GCode, Tag};
+use crate::{select::*, ForceRefresh, GCode, Tag};
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
 use bevy_mod_picking::prelude::*;
-use egui::{Pos2, TopBottomPanel};
+use egui::Pos2;
 use std::collections::HashSet;
-
-struct ToolbarIcon<T: Default + Resource + Sized + Copy> {
-    image: Image,
-    callback: callbacks::Callback<T>,
-    hint_text: String,
-}
-
-impl<T> ToolbarIcon<T>
-where
-    T: Default + Resource + Sized + Copy,
-{
-    fn build(image: Image, callback: callbacks::Callback<T>, hint_text: String) -> Self {
-        Self {
-            image,
-            callback,
-            hint_text,
-        }
-    }
-    fn callback(&self) -> T
-    where
-        T: Default + Resource + Sized + Clone + Copy,
-    {
-        self.callback.0
-    }
-}
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Choice {
@@ -57,7 +30,7 @@ pub struct UiResource {
     pub display_z_min: f32,
     pub vertex_counter: u32,
     pub selection_enum: Choice,
-    subdivide_slider: u32,
+    pub subdivide_slider: u32,
     translation_input: String,
     pub gcode_emit: String,
     pub vis_select: VisibilitySelector,
@@ -67,7 +40,7 @@ pub struct UiResource {
     pub scale: f32,
     cursor_enum: Cursor,
     console_input: String,
-    console_output: String
+    console_output: String,
 }
 
 impl Default for UiResource {
@@ -120,14 +93,13 @@ pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     }
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
-pub fn toolbar(mut commands: Commands, mut contexts: EguiContexts) {
+pub fn toolbar(mut contexts: EguiContexts, mut ui_writer: EventWriter<UiEvent>) {
     let ctx = contexts.ctx_mut();
     egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
                 if ui.button("Export GCode (Ctrl+S)").clicked() {
-                    commands.remove_resource::<ExportDialogue>(); //reset open state to true
-                    commands.init_resource::<ExportDialogue>();
+                    ui_writer.send(UiEvent::ExportDialogue);
                 }
             });
             ui.menu_button("Transform", |ui| if ui.button("Rotate").clicked() {})
@@ -158,7 +130,6 @@ pub fn export_dialogue(
                         let path = std::path::PathBuf::from(path.0.clone());
                         if let Some(path) = path.to_str() {
                             let _ = gcode.0.write_to_file(path);
-                            commands.remove_resource::<ExportDialogue>();
                         }
                     }
                 });
@@ -213,6 +184,8 @@ pub fn ui_system(
     window: Query<&Window, With<PrimaryWindow>>,
     mut gcode: ResMut<GCode>,
     s_query: Query<(&mut PickSelection, &Tag)>,
+    mut ui_writer: EventWriter<UiEvent>,
+    mut command_writer: EventWriter<CommandEvent>,
 ) {
     let window = window.get_single().unwrap();
     let panel_width = window.width() / 6.0;
@@ -285,16 +258,9 @@ pub fn ui_system(
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
                     if ui.button("Merge Delete").clicked() {
-                        commands.init_resource::<MergeDelete>();
+                        command_writer.send(CommandEvent::MergeDelete);
                     } else if ui.button("Hole Delete").clicked() {
-                        commands.init_resource::<HoleDelete>();
-                    }
-                });
-                ui.add_space(spacing);
-                ui.horizontal(|ui| {
-                    let _response = ui.add(egui::Slider::new(&mut ui_res.subdivide_slider, 1..=10));
-                    if ui.button("Subdivide to max distance").clicked() {
-                        commands.insert_resource(SubdivideSelection(ui_res.subdivide_slider));
+                        command_writer.send(CommandEvent::HoleDelete);
                     }
                 });
                 ui.add_space(spacing);
@@ -416,6 +382,8 @@ pub fn key_system(
     settings: Res<Settings>,
     s_query: Query<&PickSelection>,
     mut select_all: ResMut<SelectAll>,
+    mut ui_writer: EventWriter<UiEvent>,
+    mut command_writer: EventWriter<CommandEvent>,
 ) {
     if keys.pressed(KeyCode::ArrowLeft) {
         if ui_res.vertex_counter == 0 {
@@ -443,8 +411,7 @@ pub fn key_system(
             } else if keys.just_pressed(KeyCode::KeyR) {
                 commands.init_resource::<ForceRefresh>()
             } else if keys.just_pressed(KeyCode::KeyS) {
-                commands.remove_resource::<ExportDialogue>();
-                commands.init_resource::<ExportDialogue>();
+                ui_writer.send(UiEvent::ExportDialogue);
             } else if keys.just_pressed(KeyCode::KeyA) {
                 select_all.0 = s_query.iter().any(|s| !s.is_selected);
             }
@@ -456,9 +423,9 @@ pub fn key_system(
             commands.init_resource::<SetSelections>();
         }
     } else if keys.just_pressed(settings.hole_delete_button) {
-        commands.init_resource::<HoleDelete>();
+        command_writer.send(CommandEvent::HoleDelete);
     } else if keys.just_pressed(settings.merge_delete_button) {
-        commands.init_resource::<MergeDelete>();
+        command_writer.send(CommandEvent::MergeDelete);
     } else {
         //otherwise, use the key press for the console
     }
@@ -517,10 +484,5 @@ pub fn capture_mouse(
 #[derive(Default, Resource)]
 pub struct EnablePanOrbit;
 
-#[derive(Resource)]
+#[derive(Default, Resource)]
 pub struct ExportDialogue(bool);
-impl Default for ExportDialogue {
-    fn default() -> Self {
-        ExportDialogue(true)
-    }
-}

@@ -261,7 +261,6 @@ pub struct Parsed {
     id_counter: Id,
 }
 impl Parsed {
-
     pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
         let mut parsed = Parsed {
             lines: Vec::new(),
@@ -270,7 +269,7 @@ impl Parsed {
             shapes: Vec::new(),
             rel_xyz: false,
             rel_e: true,
-            id_counter: Id(0)
+            id_counter: Id(0),
         };
         let lines = {
             if !testing {
