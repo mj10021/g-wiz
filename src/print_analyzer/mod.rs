@@ -438,42 +438,6 @@ impl Parsed {
         }
     }
 
-    pub fn translate(&mut self, id: &Id, dx: f32, dy: f32, dz: f32) {
-        let Some(v) = self.vertices.get(id) else {
-            return;
-        }; // in case a non-vertex instruction is searched, do nothing
-        if self.dist_from_prev(&v.id) < f32::EPSILON {
-            return; // dont translate moves without travel
-        }
-        let prev = v.prev.unwrap();
-        let init_dist = self.dist_from_prev(id);
-        let init_flow = self.vertices.get(id).unwrap().to.e;
-        let prev_dist = self.dist_from_prev(&prev);
-        {
-            let pv = self.vertices.get_mut(&prev).unwrap();
-            pv.to.x += dx;
-            pv.to.y += dy;
-            pv.to.z += dz;
-        }
-
-        let new_prev_dist = self.dist_from_prev(&prev);
-
-        let prev = self.vertices.get_mut(&prev).unwrap();
-
-        let mut scale = new_prev_dist / prev_dist;
-        if scale.is_infinite() || scale.is_nan() {
-            scale = 0.0;
-        }
-        prev.to.e *= scale;
-
-        let new_dist = self.dist_from_prev(id);
-        let mut scale = new_dist / init_dist;
-        if scale.is_infinite() || scale.is_nan() {
-            scale = 0.0;
-        }
-        let v = self.vertices.get_mut(id).unwrap();
-        v.to.e = init_flow * scale;
-    }
     fn insert_lines_before(&mut self, mut lines: Vec<Id>, id: &Id) {
         let mut i = 0;
         for line in &self.lines {
@@ -623,7 +587,7 @@ fn tran_test() {
     let mut gcode = read(test, true).expect("failed to parse");
     for line in gcode.lines.clone() {
         if gcode.vertices.contains_key(&line) {
-            gcode.translate(&line, 0.0, 1.0, 0.0);
+            gcode.translate(&line, &Vec3::new(0.0, 1.0, 0.0));
         }
     }
 }

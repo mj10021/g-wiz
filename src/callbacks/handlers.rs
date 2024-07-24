@@ -1,5 +1,5 @@
 use super::events::*;
-use crate::{GCode, Tag, UiResource};
+use crate::{centroid, GCode, Tag, UiResource};
 use bevy::{prelude::*, transform::commands};
 use bevy_mod_picking::selection::PickSelection;
 
@@ -28,11 +28,9 @@ fn ui_handler(
             UiEvent::MoveDisplay(forward, layer, count) => {
                 if *layer && *forward {
                     ui_res.display_z_max.1 += count;
-                    }
-                else if *layer {
-                        ui_res.display_z_max.0 += count;
-                    }
-                else if *forward {
+                } else if *layer {
+                    ui_res.display_z_max.0 += count;
+                } else if *forward {
                     ui_res.vertex_counter += *count as u32;
                 } else {
                     if ui_res.vertex_counter == 0 {
@@ -58,6 +56,7 @@ pub fn command_handler(
         .iter()
         .filter_map(|(s, t)| if !s.is_selected { None } else { Some(t.id) })
         .collect();
+    let centroid = gcode.0.get_centroid(&selection);
     for event in event.read() {
         match event {
             CommandEvent::MergeDelete => {
@@ -74,6 +73,21 @@ pub fn command_handler(
             }
             CommandEvent::Draw => {
                 todo!();
+            }
+            CommandEvent::Translate(vec) => {
+                for id in selection.iter() {
+                    gcode.0.translate(id, vec);
+                }
+            }
+            CommandEvent::Rotate(vec) => {
+                for id in selection.iter() {
+                    gcode.0.rotate(id, &centroid, vec);
+                }
+            }
+            CommandEvent::Scale(v) => {
+                for id in selection.iter() {
+                    gcode.0.scale(id, &centroid, v);
+                }
             }
         }
         refresh.send(UiEvent::ForceRefresh);

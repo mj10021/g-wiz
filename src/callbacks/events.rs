@@ -1,4 +1,4 @@
-use bevy::prelude::Event;
+use bevy::prelude::*;
 #[derive(Event)]
 pub enum UiEvent {
     ForceRefresh,
@@ -14,4 +14,7 @@ pub enum CommandEvent {
     Subdivide,
     RecalcBounds,
     Draw,
+    Translate(Vec3),
+    Rotate(Vec3),
+    Scale(Vec3),
 }

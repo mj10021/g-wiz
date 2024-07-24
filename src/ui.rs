@@ -177,7 +177,7 @@ pub fn console(mut contexts: EguiContexts, mut console: ResMut<UiResource>) {
 }
 pub fn ui_system(
     mut contexts: EguiContexts,
-    mut commands: Commands,
+    mut refresh: EventWriter<UiEvent>,
     vertex: Res<VertexCounter>,
     mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
@@ -273,50 +273,24 @@ pub fn ui_system(
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
                     let _response = ui.text_edit_singleline(&mut ui_res.translation_input);
-
-                    let enu = ui_res.selection_enum;
                     if ui.button("Translate").clicked() && !selection.is_empty() {
                         if ui_res.translation_input.is_empty() {
                             return;
                         }
-                        let mut params = ui_res.translation_input.split_whitespace();
-                        let x = params.next().unwrap().parse::<f32>().unwrap();
-                        let y = params.next().unwrap().parse::<f32>().unwrap();
-                        let z = params.next().unwrap().parse::<f32>().unwrap();
-                        match enu {
-                            Choice::Vertex => {
-                                for selection in &selection {
-                                    gcode.0.translate(selection, x, y, z);
-                                }
-                            }
-                            Choice::Shape => {
-                                let mut shapes = HashSet::new();
-                                for selection in &selection {
-                                    let shape = gcode.0.get_shape(selection);
-                                    shapes.extend(&shape);
-                                }
-                                for vertex in shapes.iter() {
-                                    gcode.0.translate(vertex, x, y, z);
-                                }
-                            }
-                            Choice::Layer => {
-                                let mut layers = HashSet::new();
-                                for selection in &selection {
-                                    let layer = gcode.0.get_same_z(selection);
-                                    layers.extend(&layer);
-                                }
-                                for vertex in layers.iter() {
-                                    gcode.0.translate(vertex, x, y, z);
-                                }
-                            }
-                        }
-                        commands.init_resource::<ForceRefresh>();
+                        let mut params = ui_res
+                            .translation_input
+                            .split_whitespace()
+                            .map(|p| p.parse::<f32>().unwrap())
+                            .collect::<Vec<_>>();
+                        let v = Vec3::from_array([params[0], params[1], params[2]]);
+                        command_writer.send(CommandEvent::Translate(v));
+                        refresh.send(UiEvent::ForceRefresh);
                     }
                 });
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
                     if ui.button("refresh").clicked() {
-                        commands.insert_resource(ForceRefresh);
+                        refresh.send(UiEvent::ForceRefresh);
                     }
                 });
                 ui.add_space(spacing);
@@ -328,28 +302,9 @@ pub fn ui_system(
                     ui.add(egui::Slider::new(&mut ui_res.rotate_y, -180.0..=180.0).vertical());
                     ui.add(egui::Slider::new(&mut ui_res.rotate_z, -180.0..=180.0).vertical());
                     if ui.button("Rotate").clicked() {
-                        let origin = gcode.0.get_centroid(&selection);
-                        for vertex in &selection {
-                            gcode.0.rotate(
-                                vertex,
-                                origin,
-                                ui_res.rotate_x,
-                                ui_res.rotate_y,
-                                ui_res.rotate_z,
-                            );
-                        }
-                        commands.init_resource::<ForceRefresh>();
-                    }
-                });
-                ui.add_space(spacing);
-                ui.horizontal(|ui| {
-                    ui.add(egui::Slider::new(&mut ui_res.scale, 0.1..=10.0));
-                    if ui.button("Scale").clicked() {
-                        let origin = gcode.0.get_centroid(&selection);
-                        for vertex in &selection {
-                            gcode.0.scale(vertex, origin, ui_res.scale);
-                        }
-                        commands.init_resource::<ForceRefresh>();
+                        let v = Vec3::from((ui_res.rotate_x, ui_res.rotate_y, ui_res.rotate_z));
+                        command_writer.send(CommandEvent::Rotate(v));
+                        refresh.send(UiEvent::ForceRefresh);
                     }
                 });
                 if ui.button("Save").clicked() {
