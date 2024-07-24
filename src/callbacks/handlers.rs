@@ -71,7 +71,7 @@ pub fn command_handler(
             CommandEvent::RecalcBounds => {
                 bounding_box.recalculate(&gcode.0);
             }
-            CommandEvent::Draw => {
+            CommandEvent::InsertPoint => {
                 todo!();
             }
             CommandEvent::Translate(vec) => {
@@ -88,6 +88,12 @@ pub fn command_handler(
                 for id in selection.iter() {
                     gcode.0.scale(id, &centroid, v);
                 }
+            }
+            CommandEvent::Undo => {
+                // do something
+            }
+            CommandEvent::Redo => {
+                // do something
             }
         }
         refresh.send(UiEvent::ForceRefresh);

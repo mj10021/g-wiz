@@ -1,6 +1,5 @@
-use super::diff::{SelectionLog, SetSelections};
 use super::{FilePath, PickSelection, PickingPluginsSettings, Settings};
-use crate::callbacks::events::{CommandEvent, UiEvent};
+use crate::callbacks::events::*;
 use crate::print_analyzer::Parsed;
 use crate::{select::*, ForceRefresh, GCode, Tag};
 use bevy::input::mouse::MouseMotion;
@@ -93,13 +92,13 @@ pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     }
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
-pub fn toolbar(mut contexts: EguiContexts, mut ui_writer: EventWriter<UiEvent>) {
+pub fn toolbar(mut contexts: EguiContexts, mut file_writer: EventWriter<FileEvent>) {
     let ctx = contexts.ctx_mut();
     egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
                 if ui.button("Export GCode (Ctrl+S)").clicked() {
-                    ui_writer.send(UiEvent::ExportDialogue);
+                    file_writer.send(FileEvent::SaveAs);
                 }
             });
             ui.menu_button("Transform", |ui| if ui.button("Rotate").clicked() {})
@@ -328,13 +327,14 @@ impl VertexCounter {
 }
 
 pub fn key_system(
-    mut commands: Commands,
+    //mut commands: Commands,
     mut keys: ResMut<ButtonInput<KeyCode>>,
     settings: Res<Settings>,
     s_query: Query<&PickSelection>,
     mut select_all: ResMut<SelectAll>,
-    mut ui_writer: EventWriter<UiEvent>,
+    mut file_writer: EventWriter<FileEvent>,
     mut command_writer: EventWriter<CommandEvent>,
+    mut ui_writer: EventWriter<UiEvent>,
 ) {
     if keys.pressed(KeyCode::ArrowLeft) {
         ui_writer.send(UiEvent::MoveDisplay(false, false, 1.0));
@@ -351,16 +351,16 @@ pub fn key_system(
         // if not shift
         if !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
             if keys.just_pressed(KeyCode::KeyZ) {
-                ui_writer.send(UiEvent::Undo);
+                command_writer.send(CommandEvent::Undo);
             } else if keys.just_pressed(KeyCode::KeyR) {
-                commands.init_resource::<ForceRefresh>()
+                ui_writer.send(UiEvent::ForceRefresh);
             } else if keys.just_pressed(KeyCode::KeyS) {
-                ui_writer.send(UiEvent::ExportDialogue);
+                file_writer.send(FileEvent::SaveAs);
             } else if keys.just_pressed(KeyCode::KeyA) {
                 select_all.0 = s_query.iter().any(|s| !s.is_selected);
             }
         } else if keys.just_pressed(KeyCode::KeyZ) {
-            ui_writer.send(UiEvent::Redo);
+            command_writer.send(CommandEvent::Redo);
         }
     } else if keys.just_pressed(settings.hole_delete_button) {
         command_writer.send(CommandEvent::HoleDelete);
