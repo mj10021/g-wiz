@@ -3,6 +3,7 @@ use crate::callbacks::events::*;
 use crate::print_analyzer::Parsed;
 use crate::{select::*, ForceRefresh, GCode, Tag};
 use bevy::input::mouse::MouseMotion;
+use bevy::ui;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
 use bevy_mod_picking::prelude::*;
@@ -357,6 +358,7 @@ pub fn key_system(
             } else if keys.just_pressed(KeyCode::KeyS) {
                 file_writer.send(FileEvent::SaveAs);
             } else if keys.just_pressed(KeyCode::KeyA) {
+                ui_writer.send(UiEvent::SelectAll);
                 select_all.0 = s_query.iter().any(|s| !s.is_selected);
             }
         } else if keys.just_pressed(KeyCode::KeyZ) {

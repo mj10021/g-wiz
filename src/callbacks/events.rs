@@ -4,7 +4,7 @@ use bevy::prelude::*;
 pub enum UiEvent {
     ForceRefresh,
     MoveDisplay(bool, bool, f32),
-    SetSelections,
+    SelectAll,
 }
 #[derive(Event)]
 pub enum CommandEvent {

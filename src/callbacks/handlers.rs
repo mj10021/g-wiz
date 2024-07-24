@@ -10,20 +10,12 @@ fn ui_handler(
     mut event: EventReader<UiEvent>,
     mut commands: Commands,
     mut ui_res: ResMut<UiResource>,
+    mut s_query: Query<(&mut PickSelection)>,
 ) {
     for event in event.read() {
         match event {
             UiEvent::ForceRefresh => {
                 commands.init_resource::<ForceRefresh>();
-            }
-            UiEvent::Undo => {
-                // do something
-            }
-            UiEvent::Redo => {
-                // do something
-            }
-            UiEvent::ExportDialogue => {
-                // do something
             }
             UiEvent::MoveDisplay(forward, layer, count) => {
                 if *layer && *forward {
@@ -37,6 +29,12 @@ fn ui_handler(
                         return;
                     }
                     ui_res.vertex_counter -= *count as u32;
+                }
+            }
+            UiEvent::SelectAll => {
+                let all_selected = s_query.iter().any(|s| !s.is_selected);
+                for mut selection in s_query.iter_mut() {
+                    selection.is_selected = all_selected;
                 }
             }
         }
