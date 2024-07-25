@@ -1,6 +1,6 @@
 use super::events::*;
-use crate::{centroid, PanOrbit, GCode, Tag, UiResource};
-use bevy::{prelude::*, transform::commands};
+use crate::{PanOrbit, GCode, Tag, UiResource};
+use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
 
 #[derive(Default, Resource)]
@@ -86,9 +86,9 @@ pub fn command_handler(
                     gcode.0.rotate(id, &centroid, vec);
                 }
             }
-            CommandEvent::Scale(v) => {
+            CommandEvent::Scale(vec) => {
                 for id in selection.iter() {
-                    gcode.0.scale(id, &centroid, v);
+                    gcode.0.scale(id, &centroid, vec);
                 }
             }
             CommandEvent::Undo => {

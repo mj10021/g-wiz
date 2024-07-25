@@ -1,6 +1,6 @@
 use super::{
     print_analyzer::{Instruction, Vertex},
-    GCode, Id, Resource, Tag,
+    GCode, Id, Resource, Tag, CommandEvent
 };
 use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
@@ -80,16 +80,22 @@ where
     (add, diff)
 }
 
+struct State {
+    selections: HashSet<Tag>,
+    lines: Vec<Id>,
+    vertices: HashMap<Id, Vertex>,
+    instructions: HashMap<Id, Instruction>,
+}
+
 #[derive(Resource)]
 pub struct History {
-    selection_log: SelectionLog,
-    gcode_log: GCodeLog,
-    log: Vec<bool>, // true means selection false means gcode
-    pub history_counter: u32,
-    curr_counter: u32,
-    selection_counter: u32,
-    gcode_counter: u32,
+    // does this need to be more than diffs of the gcode and selections
+    // maybe i can just send an event to reverse the event under the counter
+    log: Vec<CommandEvent>,
+    pub counter: u32,
 }
+
+
 
 impl History {
     fn forward_apply(&mut self) {}
@@ -185,8 +191,7 @@ impl GCodeDiff {
     }
 }
 #[derive(Resource, Default)]
-pub struct SetSelections;
-// FIXME: make private
+struct SetSelections;
 pub fn update_selection_log(
     mut commands: Commands,
     s_query: Query<(&PickSelection, &Tag)>,
@@ -214,7 +219,7 @@ pub fn update_selection_log(
     log.log.push(diff);
     commands.init_resource::<SetSelections>()
 }
-use crate::callbacks::events::UiEvent;
+use crate::{callbacks::events::UiEvent, print_analyzer::Parsed};
 fn update_gcode_log(
     mut gcode: ResMut<GCode>,
     mut log: ResMut<GCodeLog>,

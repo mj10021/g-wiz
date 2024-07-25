@@ -1,5 +1,5 @@
 mod callbacks;
-mod diff;
+mod history;
 mod load_assets;
 mod pan_orbit;
 mod print_analyzer;
@@ -13,7 +13,7 @@ use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use callbacks::events::*;
 use callbacks::handlers::*;
-use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
+use history::{undo_redo_selections, update_selection_log, SelectionLog};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed};
