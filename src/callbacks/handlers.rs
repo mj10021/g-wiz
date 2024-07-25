@@ -1,16 +1,17 @@
 use super::events::*;
-use crate::{centroid, GCode, Tag, UiResource};
+use crate::{centroid, PanOrbit, GCode, Tag, UiResource};
 use bevy::{prelude::*, transform::commands};
 use bevy_mod_picking::selection::PickSelection;
 
 #[derive(Default, Resource)]
 pub struct ForceRefresh;
 
-fn ui_handler(
+pub fn ui_handler(
     mut event: EventReader<UiEvent>,
     mut commands: Commands,
+    mut pan_orbit: ResMut<PanOrbit>,
     mut ui_res: ResMut<UiResource>,
-    mut s_query: Query<(&mut PickSelection)>,
+    mut s_query: Query<&mut PickSelection>,
 ) {
     for event in event.read() {
         match event {
@@ -36,6 +37,9 @@ fn ui_handler(
                 for mut selection in s_query.iter_mut() {
                     selection.is_selected = all_selected;
                 }
+            }
+            UiEvent::SetPanOrbit(on) => {
+                pan_orbit.0 = *on;
             }
         }
     }

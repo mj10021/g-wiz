@@ -5,6 +5,7 @@ pub enum UiEvent {
     ForceRefresh,
     MoveDisplay(bool, bool, f32),
     SelectAll,
+    SetPanOrbit(bool),
 }
 #[derive(Event)]
 pub enum CommandEvent {

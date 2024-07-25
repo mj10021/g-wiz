@@ -11,7 +11,8 @@ mod ui;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
-use callbacks::handlers::{command_handler, ForceRefresh};
+use callbacks::events::*;
+use callbacks::handlers::*;
 use diff::{undo_redo_selections, update_selection_log, SelectionLog, SetSelections};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
@@ -87,7 +88,7 @@ impl BoundingBox {
     }
 }
 
-fn centroid(vertices: &Vec<Vec3>) -> Vec3 {
+    fn centroid(vertices: &Vec<Vec3>) -> Vec3 {
     let (mut i, mut j, mut k) = (0.0, 0.0, 0.0);
     let count = vertices.len() as f32;
     for Vec3 { x, y, z } in vertices {
@@ -143,9 +144,10 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.insert_resource(GCode(gcode));
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
-    commands.init_resource::<EnablePanOrbit>();
+    commands.init_resource::<PanOrbit>();
     commands.init_resource::<SelectionLog>();
     commands.init_resource::<SelectAll>();
+    commands.init_resource::<ForceRefresh>();
 }
 fn main() {
     App::new()
@@ -161,6 +163,9 @@ fn main() {
             EguiPlugin,
             MaterialPlugin::<LineMaterial>::default(),
         ))
+        .add_event::<UiEvent>()
+        .add_event::<CommandEvent>()
+        .add_event::<FileEvent>()
         .init_resource::<FilePath>()
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, (setup, ui_setup, setup_render).chain())
@@ -169,12 +174,6 @@ fn main() {
         .add_systems(
             PreUpdate,
             select_deselect_all.run_if(resource_changed::<SelectAll>),
-        )
-        .add_systems(
-            Update,
-            undo_redo_selections
-                .run_if(resource_exists::<SetSelections>)
-                .after(send_selection_events),
         )
         .add_systems(Update, update_selection_log.before(undo_redo_selections))
         .add_systems(
@@ -189,13 +188,14 @@ fn main() {
                 export_dialogue.run_if(resource_exists::<ExportDialogue>),
                 update_selections,
                 update_visibilities,
+                ui_handler,
                 command_handler,
             )
                 .chain(),
         )
         .add_systems(
             Update,
-            pan_orbit_camera.run_if(resource_exists::<EnablePanOrbit>),
+            pan_orbit_camera.run_if(resource_equals::<PanOrbit>(PanOrbit(true))),
         )
         .add_systems(Update, render.run_if(resource_exists::<ForceRefresh>))
         .run();

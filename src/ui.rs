@@ -359,7 +359,6 @@ pub fn key_system(
                 file_writer.send(FileEvent::SaveAs);
             } else if keys.just_pressed(KeyCode::KeyA) {
                 ui_writer.send(UiEvent::SelectAll);
-                select_all.0 = s_query.iter().any(|s| !s.is_selected);
             }
         } else if keys.just_pressed(KeyCode::KeyZ) {
             command_writer.send(CommandEvent::Redo);
@@ -376,13 +375,13 @@ pub fn key_system(
 }
 
 pub fn select_erase_brush(
-    mut commands: Commands,
     mut shift: ResMut<ButtonInput<KeyCode>>,
     mut hover_reader: EventReader<Pointer<Over>>,
     mouse: Res<ButtonInput<MouseButton>>,
     mut s_query: Query<(Entity, &mut PickSelection)>,
     ui_res: Res<UiResource>,
     mut window: Query<&mut Window, With<PrimaryWindow>>,
+    mut ui_writer: EventWriter<UiEvent>,
 ) {
     if let Ok(mut window) = window.get_single_mut() {
         if ui_res.cursor_enum == Cursor::Pointer {
@@ -394,7 +393,7 @@ pub fn select_erase_brush(
         return;
     }
     shift.press(KeyCode::ShiftLeft);
-    commands.remove_resource::<EnablePanOrbit>();
+    ui_writer.send(UiEvent::SetPanOrbit(false));
     if !mouse.pressed(MouseButton::Left) {
         return;
     }
@@ -406,25 +405,30 @@ pub fn select_erase_brush(
 }
 
 pub fn capture_mouse(
-    mut commands: Commands,
     mut pick_settings: ResMut<PickingPluginsSettings>,
     mut egui_context: Query<&mut EguiContext>,
     mouse: Res<ButtonInput<MouseButton>>,
+    mut pan_orbit: EventWriter<UiEvent>,
 ) {
     if let Ok(mut context) = egui_context.get_single_mut() {
         let context = context.get_mut();
         if context.is_using_pointer() || context.wants_pointer_input() {
             pick_settings.is_enabled = false;
-            commands.remove_resource::<EnablePanOrbit>();
+            pan_orbit.send(UiEvent::SetPanOrbit(false));
         } else if !mouse.any_pressed([MouseButton::Left, MouseButton::Right]) {
             pick_settings.is_enabled = true;
-            commands.init_resource::<EnablePanOrbit>();
+            pan_orbit.send(UiEvent::SetPanOrbit(true));
         }
     }
 }
 
-#[derive(Default, Resource)]
-pub struct EnablePanOrbit;
+#[derive(Resource, PartialEq, Eq)]
+pub struct PanOrbit(pub bool);
+impl Default for PanOrbit {
+    fn default() -> Self {
+        PanOrbit(true)
+    }
+}
 
 #[derive(Default, Resource)]
 pub struct ExportDialogue(bool);
