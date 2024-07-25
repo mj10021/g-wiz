@@ -33,9 +33,9 @@ pub fn ui_handler(
                 }
             }
             UiEvent::SelectAll => {
-                let all_selected = s_query.iter().any(|s| !s.is_selected);
+                let select_all = s_query.iter().any(|s| !s.is_selected);
                 for mut selection in s_query.iter_mut() {
-                    selection.is_selected = all_selected;
+                    selection.is_selected = select_all;
                 }
             }
             UiEvent::SetPanOrbit(on) => {

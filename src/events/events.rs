@@ -6,6 +6,8 @@ pub enum UiEvent {
     MoveDisplay(bool, bool, f32),
     SelectAll,
     SetPanOrbit(bool),
+    ConsoleEnter(&str),
+    ConsoleResponse(&str),
 }
 #[derive(Event)]
 pub enum CommandEvent {

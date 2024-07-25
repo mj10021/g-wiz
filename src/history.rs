@@ -219,7 +219,7 @@ pub fn update_selection_log(
     log.log.push(diff);
     commands.init_resource::<SetSelections>()
 }
-use crate::{callbacks::events::UiEvent, print_analyzer::Parsed};
+use crate::{events::events::UiEvent, print_analyzer::Parsed};
 fn update_gcode_log(
     mut gcode: ResMut<GCode>,
     mut log: ResMut<GCodeLog>,
