@@ -1,6 +1,6 @@
 use super::{
     print_analyzer::{Instruction, Vertex},
-    GCode, Id, Resource, Tag, CommandEvent
+    CommandEvent, GCode, Id, Resource, Tag,
 };
 use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
@@ -94,8 +94,6 @@ pub struct History {
     log: Vec<CommandEvent>,
     pub counter: u32,
 }
-
-
 
 impl History {
     fn forward_apply(&mut self) {}

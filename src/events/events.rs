@@ -6,8 +6,8 @@ pub enum UiEvent {
     MoveDisplay(bool, bool, f32),
     SelectAll,
     SetPanOrbit(bool),
-    ConsoleEnter(&str),
-    ConsoleResponse(&str),
+    ConsoleEnter(String),
+    ConsoleResponse(String),
 }
 #[derive(Event)]
 pub enum CommandEvent {
@@ -20,7 +20,7 @@ pub enum CommandEvent {
     Rotate(Vec3),
     Scale(Vec3),
     Undo,
-    Redo
+    Redo,
 }
 
 #[derive(Event)]

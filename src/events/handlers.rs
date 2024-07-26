@@ -1,5 +1,5 @@
 use super::events::*;
-use crate::{PanOrbit, GCode, Tag, UiResource};
+use crate::{GCode, PanOrbit, Tag, UiResource};
 use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;
 

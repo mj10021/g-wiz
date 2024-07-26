@@ -1,7 +1,7 @@
 use super::{FilePath, PickSelection, PickingPluginsSettings, Settings};
 use crate::events::events::*;
 use crate::print_analyzer::Parsed;
-use crate::{select::*, ForceRefresh, GCode, Tag};
+use crate::{ForceRefresh, GCode, Tag};
 use bevy::input::mouse::MouseMotion;
 use bevy::ui;
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -332,7 +332,6 @@ pub fn key_system(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     settings: Res<Settings>,
     s_query: Query<&PickSelection>,
-    mut select_all: ResMut<SelectAll>,
     mut file_writer: EventWriter<FileEvent>,
     mut command_writer: EventWriter<CommandEvent>,
     mut ui_writer: EventWriter<UiEvent>,

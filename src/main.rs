@@ -1,24 +1,23 @@
-mod callbacks;
+mod events;
 mod history;
 mod load_assets;
 mod pan_orbit;
 mod print_analyzer;
 mod render;
-mod select;
 mod settings;
 mod ui;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
-use callbacks::events::*;
-use callbacks::handlers::*;
+use events::events::*;
+use events::handlers::*;
+use events::readers::*;
 use history::{undo_redo_selections, update_selection_log, SelectionLog};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed};
 use render::*;
-use select::*;
 use selection::send_selection_events;
 use settings::*;
 use std::collections::HashMap;
@@ -88,7 +87,7 @@ impl BoundingBox {
     }
 }
 
-    fn centroid(vertices: &Vec<Vec3>) -> Vec3 {
+fn centroid(vertices: &Vec<Vec3>) -> Vec3 {
     let (mut i, mut j, mut k) = (0.0, 0.0, 0.0);
     let count = vertices.len() as f32;
     for Vec3 { x, y, z } in vertices {
@@ -146,7 +145,6 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.init_resource::<IdMap>();
     commands.init_resource::<PanOrbit>();
     commands.init_resource::<SelectionLog>();
-    commands.init_resource::<SelectAll>();
     commands.init_resource::<ForceRefresh>();
 }
 fn main() {
@@ -171,10 +169,6 @@ fn main() {
         .add_systems(Startup, (setup, ui_setup, setup_render).chain())
         .add_systems(PreUpdate, select_erase_brush.before(send_selection_events))
         .add_systems(PreUpdate, (capture_mouse).before(send_selection_events))
-        .add_systems(
-            PreUpdate,
-            select_deselect_all.run_if(resource_changed::<SelectAll>),
-        )
         .add_systems(Update, update_selection_log.before(undo_redo_selections))
         .add_systems(
             Update,
@@ -186,7 +180,7 @@ fn main() {
                 ui_system,
                 console,
                 export_dialogue.run_if(resource_exists::<ExportDialogue>),
-                update_selections,
+                selection_reader,
                 update_visibilities,
                 ui_handler,
                 command_handler,
