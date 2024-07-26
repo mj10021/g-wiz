@@ -328,10 +328,8 @@ impl VertexCounter {
 }
 
 pub fn key_system(
-    //mut commands: Commands,
     mut keys: ResMut<ButtonInput<KeyCode>>,
     settings: Res<Settings>,
-    s_query: Query<&PickSelection>,
     mut file_writer: EventWriter<FileEvent>,
     mut command_writer: EventWriter<CommandEvent>,
     mut ui_writer: EventWriter<UiEvent>,

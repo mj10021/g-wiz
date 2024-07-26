@@ -1,8 +1,9 @@
 use bevy::prelude::*;
-
+use super::console::*;
 #[derive(Event)]
 pub enum UiEvent {
-    ForceRefresh,
+    MergeDelete,
+    HoleDelete,
     MoveDisplay(bool, bool, f32),
     SelectAll,
     SetPanOrbit(bool),
@@ -11,21 +12,21 @@ pub enum UiEvent {
 }
 #[derive(Event)]
 pub enum CommandEvent {
-    MergeDelete,
-    HoleDelete,
-    Subdivide,
+    Subdivide(Subdivide),
     RecalcBounds,
-    InsertPoint,
-    Translate(Vec3),
-    Rotate(Vec3),
-    Scale(Vec3),
+    Draw(Draw),
+    Translate(Translate),
+    Rotate(Rotate),
+    Scale(Rotate),
     Undo,
     Redo,
 }
 
 #[derive(Event)]
-pub enum FileEvent {
+pub enum SystemEvent {
     Open,
     Save,
     SaveAs,
+    RecalcBounds,
+    ForceRefresh
 }
