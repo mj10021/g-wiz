@@ -93,47 +93,18 @@ pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     }
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
-pub fn toolbar(mut contexts: EguiContexts, mut file_writer: EventWriter<FileEvent>) {
+pub fn toolbar(mut contexts: EguiContexts, mut system_writer: EventWriter<SystemEvent>) {
     let ctx = contexts.ctx_mut();
     egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("File", |ui| {
                 if ui.button("Export GCode (Ctrl+S)").clicked() {
-                    file_writer.send(FileEvent::SaveAs);
+                    system_writer.send(SystemEvent::SaveAs);
                 }
             });
             ui.menu_button("Transform", |ui| if ui.button("Rotate").clicked() {})
         })
     });
-}
-
-pub fn export_dialogue(
-    mut egui_context: Query<&mut EguiContext>,
-    window: Query<&Window, With<PrimaryWindow>>,
-    mut path: ResMut<FilePath>,
-    mut open: ResMut<ExportDialogue>,
-    gcode: Res<GCode>,
-) {
-    if let Ok(window) = window.get_single() {
-        let x = window.width() / 2.0;
-        let y = window.height() / 3.0;
-        if let Ok(mut context) = egui_context.get_single_mut() {
-            egui::containers::Window::new("Export as...")
-                .open(&mut open.0)
-                .default_pos(Pos2 { x, y })
-                .collapsible(false)
-                .show(context.get_mut(), |ui| {
-                    ui.label("Path:");
-                    ui.text_edit_singleline(&mut path.0);
-                    if ui.button("Export").clicked() {
-                        let path = std::path::PathBuf::from(path.0.clone());
-                        if let Some(path) = path.to_str() {
-                            let _ = gcode.0.write_to_file(path);
-                        }
-                    }
-                });
-        }
-    }
 }
 
 #[derive(Resource)]
@@ -177,13 +148,14 @@ pub fn console(mut contexts: EguiContexts, mut console: ResMut<UiResource>) {
 }
 pub fn ui_system(
     mut contexts: EguiContexts,
-    mut refresh: EventWriter<UiEvent>,
+    mut system_writer: EventWriter<SystemEvent>,
     vertex: Res<VertexCounter>,
     mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
-    mut gcode: ResMut<GCode>,
+    gcode: ResMut<GCode>,
     s_query: Query<(&mut PickSelection, &Tag)>,
-    mut command_writer: EventWriter<CommandEvent>,
+    // mut command_writer: EventWriter<CommandEvent>,
+    mut ui_writer: EventWriter<UiEvent>,
 ) {
     let window = window.get_single().unwrap();
     let panel_width = window.width() / 6.0;
@@ -253,14 +225,7 @@ pub fn ui_system(
                     ui.radio_value(&mut ui_res.selection_enum, Choice::Shape, "Shape");
                     ui.radio_value(&mut ui_res.selection_enum, Choice::Layer, "Layer");
                 });
-                ui.add_space(spacing);
-                ui.horizontal(|ui| {
-                    if ui.button("Merge Delete").clicked() {
-                        command_writer.send(CommandEvent::MergeDelete);
-                    } else if ui.button("Hole Delete").clicked() {
-                        command_writer.send(CommandEvent::HoleDelete);
-                    }
-                });
+
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
                     let _ = ui.checkbox(&mut ui_res.vis_select.extrusion, "extrusion");
@@ -272,45 +237,15 @@ pub fn ui_system(
                 });
                 ui.add_space(spacing);
                 ui.horizontal(|ui| {
-                    let _response = ui.text_edit_singleline(&mut ui_res.translation_input);
-                    if ui.button("Translate").clicked() && !selection.is_empty() {
-                        if ui_res.translation_input.is_empty() {
-                            return;
-                        }
-                        let mut params = ui_res
-                            .translation_input
-                            .split_whitespace()
-                            .map(|p| p.parse::<f32>().unwrap())
-                            .collect::<Vec<_>>();
-                        let v = Vec3::from_array([params[0], params[1], params[2]]);
-                        command_writer.send(CommandEvent::Translate(v));
-                        refresh.send(UiEvent::ForceRefresh);
-                    }
-                });
-                ui.add_space(spacing);
-                ui.horizontal(|ui| {
                     if ui.button("refresh").clicked() {
-                        refresh.send(UiEvent::ForceRefresh);
+                        system_writer.send(SystemEvent::ForceRefresh);
                     }
                 });
                 ui.add_space(spacing);
                 ui.text_edit_multiline(&mut ui_res.gcode_emit)
                     .on_hover_text("enter custom gcode");
-                ui.add_space(spacing);
-                ui.horizontal(|ui| {
-                    ui.add(egui::Slider::new(&mut ui_res.rotate_x, -180.0..=180.0).vertical());
-                    ui.add(egui::Slider::new(&mut ui_res.rotate_y, -180.0..=180.0).vertical());
-                    ui.add(egui::Slider::new(&mut ui_res.rotate_z, -180.0..=180.0).vertical());
-                    if ui.button("Rotate").clicked() {
-                        let v = Vec3::from((ui_res.rotate_x, ui_res.rotate_y, ui_res.rotate_z));
-                        command_writer.send(CommandEvent::Rotate(v));
-                        refresh.send(UiEvent::ForceRefresh);
-                    }
-                });
-                if ui.button("Save").clicked() {
-                    let _ = gcode.0.write_to_file("./test_output.gcode");
-                }
-            })
+                ui.add_space(spacing)
+            });
         });
 }
 
@@ -330,10 +265,14 @@ impl VertexCounter {
 pub fn key_system(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     settings: Res<Settings>,
-    mut file_writer: EventWriter<FileEvent>,
+    mut system_writer: EventWriter<SystemEvent>,
     mut command_writer: EventWriter<CommandEvent>,
     mut ui_writer: EventWriter<UiEvent>,
+    // console_window: Query<&Window, With<ui::Console>>,
 ) {
+    // if console_window.is_focused() {
+    //     return;
+    // }
     if keys.pressed(KeyCode::ArrowLeft) {
         ui_writer.send(UiEvent::MoveDisplay(false, false, 1.0));
     } else if keys.pressed(KeyCode::ArrowRight) {
@@ -349,23 +288,21 @@ pub fn key_system(
         // if not shift
         if !keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
             if keys.just_pressed(KeyCode::KeyZ) {
-                command_writer.send(CommandEvent::Undo);
+                ui_writer.send(UiEvent::Undo);
             } else if keys.just_pressed(KeyCode::KeyR) {
-                ui_writer.send(UiEvent::ForceRefresh);
+                system_writer.send(SystemEvent::ForceRefresh);
             } else if keys.just_pressed(KeyCode::KeyS) {
-                file_writer.send(FileEvent::SaveAs);
+                system_writer.send(SystemEvent::SaveAs);
             } else if keys.just_pressed(KeyCode::KeyA) {
                 ui_writer.send(UiEvent::SelectAll);
             }
         } else if keys.just_pressed(KeyCode::KeyZ) {
-            command_writer.send(CommandEvent::Redo);
+            ui_writer.send(UiEvent::Redo);
         }
     } else if keys.just_pressed(settings.hole_delete_button) {
-        command_writer.send(CommandEvent::HoleDelete);
+        ui_writer.send(UiEvent::HoleDelete);
     } else if keys.just_pressed(settings.merge_delete_button) {
-        command_writer.send(CommandEvent::MergeDelete);
-    } else {
-        //otherwise, use the key press for the console
+        ui_writer.send(UiEvent::MergeDelete);
     }
     // clear key presses after read
     keys.clear();
@@ -418,14 +355,3 @@ pub fn capture_mouse(
         }
     }
 }
-
-#[derive(Resource, PartialEq, Eq)]
-pub struct PanOrbit(pub bool);
-impl Default for PanOrbit {
-    fn default() -> Self {
-        PanOrbit(true)
-    }
-}
-
-#[derive(Default, Resource)]
-pub struct ExportDialogue(bool);

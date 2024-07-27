@@ -217,32 +217,32 @@ pub fn update_selection_log(
     log.log.push(diff);
     commands.init_resource::<SetSelections>()
 }
-use crate::{events::events::UiEvent, print_analyzer::Parsed};
-fn update_gcode_log(
-    mut gcode: ResMut<GCode>,
-    mut log: ResMut<GCodeLog>,
-    mut refresh: EventWriter<UiEvent>,
-) {
-    let diff = log.diff(&gcode);
-    diff.apply(&mut gcode);
-    log.log.push(diff);
-    refresh.send(UiEvent::ForceRefresh);
-}
-
-pub fn update_logs(
-    mut commands: Commands,
-    mut gcode: ResMut<GCode>,
-    s_query: Query<(&PickSelection, &Tag)>,
-    mut history: ResMut<History>,
-) {
-    let gcode_diff = history.gcode_log.diff(&gcode);
-    let selection_set = s_query
-        .iter()
-        .filter(|(s, _)| s.is_selected)
-        .map(|(_, t)| *t)
-        .collect::<HashSet<Tag>>();
-    let selection_diff = history.selection_log.diff(&selection_set);
-}
+// use crate::{events::events::UiEvent, print_analyzer::Parsed};
+// fn update_gcode_log(
+//     mut gcode: ResMut<GCode>,
+//     mut log: ResMut<GCodeLog>,
+//     mut refresh: EventWriter<SystemEvent>,
+// ) {
+//     let diff = log.diff(&gcode);
+//     diff.apply(&mut gcode);
+//     log.log.push(diff);
+//     refresh.send(SystemEvent::ForceRefresh);
+// }
+// 
+// pub fn update_logs(
+//     mut commands: Commands,
+//     mut gcode: ResMut<GCode>,
+//     s_query: Query<(&PickSelection, &Tag)>,
+//     mut history: ResMut<History>,
+// ) {
+//     let gcode_diff = history.gcode_log.diff(&gcode);
+//     let selection_set = s_query
+//         .iter()
+//         .filter(|(s, _)| s.is_selected)
+//         .map(|(_, t)| *t)
+//         .collect::<HashSet<Tag>>();
+//     let selection_diff = history.selection_log.diff(&selection_set);
+// }
 
 pub fn undo_redo_selections(
     mut commands: Commands,

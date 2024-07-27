@@ -12,7 +12,6 @@ use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use events::events::*;
 use events::handlers::*;
-use events::readers::*;
 use history::{undo_redo_selections, update_selection_log, SelectionLog};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
@@ -163,7 +162,7 @@ fn main() {
         ))
         .add_event::<UiEvent>()
         .add_event::<CommandEvent>()
-        .add_event::<FileEvent>()
+        .add_event::<SystemEvent>()
         .init_resource::<FilePath>()
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, (setup, ui_setup, setup_render).chain())
@@ -179,8 +178,7 @@ fn main() {
                 right_click_menu.run_if(resource_exists::<RightClick>),
                 ui_system,
                 console,
-                export_dialogue.run_if(resource_exists::<ExportDialogue>),
-                selection_reader,
+                selection_handler,
                 update_visibilities,
                 ui_handler,
                 command_handler,

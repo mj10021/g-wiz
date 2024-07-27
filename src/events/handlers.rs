@@ -1,23 +1,30 @@
 use super::events::*;
-use crate::{GCode, PanOrbit, Tag, UiResource, IdMap, Choice};
+use crate::{Choice, GCode, IdMap, Tag, UiResource};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
+use egui::Pos2;
 
 #[derive(Default, Resource)]
 pub struct ForceRefresh;
 
+#[derive(Resource, PartialEq)]
+pub struct PanOrbit(pub bool);
+
+impl Default for PanOrbit {
+    fn default() -> Self {
+        Self(true)
+    }
+}
+
 pub fn ui_handler(
     mut event: EventReader<UiEvent>,
     mut commands: Commands,
-    mut pan_orbit: ResMut<PanOrbit>,
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
+    mut pan_orbit: ResMut<PanOrbit>,
 ) {
     for event in event.read() {
         match event {
-            UiEvent::ForceRefresh => {
-                commands.init_resource::<ForceRefresh>();
-            }
             UiEvent::MoveDisplay(forward, layer, count) => {
                 if *layer && *forward {
                     ui_res.display_z_max.1 += count;
@@ -43,6 +50,55 @@ pub fn ui_handler(
             }
             UiEvent::ConsoleEnter(s) => todo!(),
             UiEvent::ConsoleResponse(s) => todo!(),
+        }
+    }
+}
+
+fn system_handler(
+    mut events: EventReader<SystemEvent>,
+    mut commands: Commands,
+    mut egui_context: Query<&mut EguiContext>,
+    window: Query<&Window, With<PrimaryWindow>>,
+    mut path: ResMut<FilePath>,
+    mut open: ResMut<ExportDialogue>,
+    gcode: Res<GCode>,
+) {
+    for event in events.read() {
+        match event {
+            SystemEvent::Open => {
+                // do something
+            }
+            SystemEvent::Save => {
+                // do something
+            }
+            SystemEvent::SaveAs => {
+                if let Ok(window) = window.get_single() {
+                    let x = window.width() / 2.0;
+                    let y = window.height() / 3.0;
+                    if let Ok(mut context) = egui_context.get_single_mut() {
+                        egui::containers::Window::new("Export as...")
+                            .open(&mut open.0)
+                            .default_pos(Pos2 { x, y })
+                            .collapsible(false)
+                            .show(context.get_mut(), |ui| {
+                                ui.label("Path:");
+                                ui.text_edit_singleline(&mut path.0);
+                                if ui.button("Export").clicked() {
+                                    let path = std::path::PathBuf::from(path.0.clone());
+                                    if let Some(path) = path.to_str() {
+                                        let _ = gcode.0.write_to_file(path);
+                                    }
+                                }
+                            });
+                    }
+                }
+            }
+            SystemEvent::RecalcBounds => {
+                // do something
+            }
+            SystemEvent::ForceRefresh => {
+                commands.init_resource::<ForceRefresh>();
+            }
         }
     }
 }
