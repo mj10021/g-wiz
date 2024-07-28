@@ -2,11 +2,11 @@ use crate::{
     print_analyzer::{Id, Pos},
     CommandEvent, GCode,
 };
-use std::fmt::{Formatter, Debug};
 use bevy::prelude::*;
+use std::fmt::{Debug, Formatter};
 
 struct Console {
-    current_command: Option<Command>,
+    current_command: Option<CommandEvent>,
     input: String,
     output: String,
 }
@@ -25,19 +25,22 @@ impl Default for Console {
 }
 
 impl Console {
-    fn read_command (&mut self, mut writer: EventWriter<CommandEvent>) {
+    fn read_command(&mut self, mut writer: EventWriter<CommandEvent>) {
         let input = CommandEvent::build(&self.input);
-            match input {
-                Ok(c) => {self.current_command = Some(c);}//do i need to send an event here
-                Err("help") => {self.output += help;}
-                Err(e) => {self.output += &format!("Unknown command: {}\r\n", e);}
+        match input {
+            Ok(c) => {
+                self.current_command = Some(c);
+            } //do i need to send an event here
+            Err("help") => {
+                self.output += help;
+            }
+            Err(e) => {
+                self.output += &format!("Unknown command: {}\r\n", e);
             }
         }
-    fn read_params(&mut self) {
-
-        \
     }
-    }
+    fn read_params(&mut self) {}
+}
 
 impl CommandEvent {
     fn build(arg: &str) -> Result<Self, &str> {
@@ -49,9 +52,7 @@ impl CommandEvent {
             "draw" => Ok(Self::Draw(Draw::default())),
             "filter" => Ok(Self::Filter(Filter::default())),
             "map" => Ok(Self::Map(Map::default())),
-            "help" => {;
-                Err(arg)
-            }
+            "help" => Err(arg),
             _ => return Err(arg),
         }
     }
@@ -92,21 +93,22 @@ pub struct Scale {
     pub z: Option<f32>,
 }
 impl EmitEvent for Scale {
-    fn emit(&self) -> CommandEvent{
-        CommandEvent::Scale (Scale {
+    fn emit(&self) -> CommandEvent {
+        CommandEvent::Scale(Scale {
             x: self.x,
             y: self.y,
             z: self.z,
         })
     }
-    
 }
 impl Debug for Scale {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
             f,
             "Scale: <x>: {:?}, <y>: {:?}, <z>: {:?} }}",
-            self.x.unwrap_or(1.0), self.y.unwrap_or(1.0), self.z.unwrap_or(1.0)
+            self.x.unwrap_or(1.0),
+            self.y.unwrap_or(1.0),
+            self.z.unwrap_or(1.0)
         )
     }
 }

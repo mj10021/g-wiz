@@ -1,7 +1,9 @@
-use crate::*;
-use super::events::*;
 use super::console::*;
+use super::events::*;
+use crate::*;
+use bevy::window::PrimaryWindow;
 use bevy_mod_picking::prelude::*;
+use bevy_egui::EguiContext;
 use egui::Pos2;
 
 #[derive(Default, Resource)]
@@ -50,9 +52,17 @@ pub fn ui_handler(
             }
             UiEvent::ConsoleEnter(s) => todo!(),
             UiEvent::ConsoleResponse(s) => todo!(),
+            UiEvent::CommandEnter => todo!(),
+            UiEvent::MergeDelete => todo!(),
+            UiEvent::HoleDelete => todo!(),
+            UiEvent::Undo => todo!(),
+            UiEvent::Redo => todo!(),
         }
     }
 }
+
+#[derive(Default, Resource)]
+pub struct ExportDialogue(pub bool);
 
 fn system_handler(
     mut events: EventReader<SystemEvent>,
@@ -135,12 +145,28 @@ pub fn command_handler(
             }
             CommandEvent::Rotate(rotate) => {
                 for id in selection.iter() {
-                    gcode.0.rotate(id, &centroid, &Vec3::new(rotate.rho.unwrap_or(0.0), rotate.theta, rotate.phi));
+                    gcode.0.rotate(
+                        id,
+                        &centroid,
+                        &Vec3::new(
+                            rotate.rho.unwrap_or(0.0),
+                            rotate.theta.unwrap_or(0.0),
+                            rotate.phi.unwrap_or(0.0),
+                        ),
+                    );
                 }
             }
             CommandEvent::Scale(scale) => {
                 for id in selection.iter() {
-                    gcode.0.scale(id, &centroid, vec);
+                    gcode.0.scale(
+                        id,
+                        &centroid,
+                        &Vec3::new(
+                            scale.x.unwrap_or(1.0),
+                            scale.y.unwrap_or(1.0),
+                            scale.z.unwrap_or(1.0),
+                        ),
+                    );
                 }
             }
             CommandEvent::Filter(filter) => {

@@ -228,7 +228,7 @@ pub fn update_selection_log(
 //     log.log.push(diff);
 //     refresh.send(SystemEvent::ForceRefresh);
 // }
-// 
+//
 // pub fn update_logs(
 //     mut commands: Commands,
 //     mut gcode: ResMut<GCode>,
