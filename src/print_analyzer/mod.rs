@@ -99,11 +99,7 @@ pub struct Pos {
     pub f: f32,
 }
 
-impl Into<Vec3> for Pos {
-    fn into(self) -> Vec3 {
-        Vec3::new(self.x, self.y, self.z)
-    }
-}
+
 impl Pos {
     pub fn home() -> Pos {
         Pos {

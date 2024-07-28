@@ -1,6 +1,6 @@
 use crate::{
     print_analyzer::{Id, Pos},
-    CommandEvent, GCode,
+    CommandEvent
 };
 use bevy::prelude::*;
 use std::fmt::{Debug, Formatter};
@@ -53,15 +53,10 @@ impl CommandEvent {
             "filter" => Ok(Self::Filter(Filter::default())),
             "map" => Ok(Self::Map(Map::default())),
             "help" => Err(arg),
-            _ => return Err(arg),
+            _ => Err(arg),
         }
     }
 }
-
-trait EmitEvent {
-    fn emit(&self) -> CommandEvent;
-}
-
 #[derive(Default)]
 pub struct Translate {
     pub x: Option<f32>,
@@ -70,6 +65,20 @@ pub struct Translate {
     pub e: Option<f32>,
     pub f: Option<f32>,
     pub preserve_flow: bool,
+}
+impl Debug for Translate {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "Translate: <x>: {:?}, <y>: {:?}, <z>: {:?}, <e>: {:?}, <f>: {:?}, <p>reserve flow: {:?} }}",
+            self.x.unwrap_or(0.0),
+            self.y.unwrap_or(0.0),
+            self.z.unwrap_or(0.0),
+            self.e.unwrap_or(0.0),
+            self.f.unwrap_or(0.0),
+            self.preserve_flow
+        )
+    }
 }
 #[derive(Default)]
 pub struct Rotate {
@@ -92,15 +101,7 @@ pub struct Scale {
     pub y: Option<f32>,
     pub z: Option<f32>,
 }
-impl EmitEvent for Scale {
-    fn emit(&self) -> CommandEvent {
-        CommandEvent::Scale(Scale {
-            x: self.x,
-            y: self.y,
-            z: self.z,
-        })
-    }
-}
+
 impl Debug for Scale {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
@@ -118,14 +119,7 @@ pub struct Subdivide {
     pub count_or_dist: bool,
     pub n: f32,
 }
-impl EmitEvent for Subdivide {
-    fn emit(&self) -> CommandEvent {
-        CommandEvent::Subdivide(Subdivide {
-            n: self.n,
-            count_or_dist: self.count_or_dist,
-        })
-    }
-}
+
 impl Debug for Subdivide {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
@@ -141,15 +135,7 @@ pub struct Draw {
     pub start: Option<Pos>,
     pub end: Option<Pos>,
 }
-impl EmitEvent for Draw {
-    fn emit(&self) -> CommandEvent {
-        CommandEvent::Draw(Draw {
-            before_or_after: self.before_or_after,
-            start: self.start,
-            end: self.end,
-        })
-    }
-}
+
 impl Debug for Draw {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(

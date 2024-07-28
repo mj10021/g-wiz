@@ -1,6 +1,5 @@
 mod events;
 mod history;
-mod load_assets;
 mod pan_orbit;
 mod print_analyzer;
 mod render;
@@ -86,20 +85,6 @@ impl BoundingBox {
     }
 }
 
-fn centroid(vertices: &Vec<Vec3>) -> Vec3 {
-    let (mut i, mut j, mut k) = (0.0, 0.0, 0.0);
-    let count = vertices.len() as f32;
-    for Vec3 { x, y, z } in vertices {
-        i += x;
-        j += y;
-        k += z;
-    }
-    Vec3 {
-        x: i / count,
-        y: j / count,
-        z: k / count,
-    }
-}
 
 fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     let args: Vec<String> = env::args().collect();
