@@ -1,6 +1,6 @@
+use crate::*;
 use super::events::*;
-use crate::{Choice, GCode, IdMap, Tag, UiResource};
-use bevy::prelude::*;
+use super::console::*;
 use bevy_mod_picking::prelude::*;
 use egui::Pos2;
 
@@ -107,7 +107,7 @@ pub fn command_handler(
     mut gcode: ResMut<GCode>,
     s_query: Query<(&PickSelection, &Tag)>,
     mut bounding_box: ResMut<crate::BoundingBox>,
-    mut refresh: EventWriter<UiEvent>,
+    mut refresh: EventWriter<SystemEvent>,
     mut event: EventReader<CommandEvent>,
     ui_res: Res<UiResource>,
 ) {
@@ -118,45 +118,39 @@ pub fn command_handler(
         .collect();
     let centroid = gcode.0.get_centroid(&selection);
     for event in event.read() {
+        // need to wait for updates/confirm from the console to actually apply the transformation
         match event {
-            CommandEvent::MergeDelete => {
-                gcode.0.merge_delete(&mut selection);
-            }
-            CommandEvent::HoleDelete => {
-                gcode.0.hole_delete(&mut selection);
-            }
-            CommandEvent::Subdivide => {
+            CommandEvent::Subdivide(subdivide) => {
                 gcode.0.subdivide_vertices(selection.clone(), count);
             }
-            CommandEvent::RecalcBounds => {
-                bounding_box.recalculate(&gcode.0);
-            }
-            CommandEvent::InsertPoint => {
+            CommandEvent::Draw(draw) => {
                 todo!();
             }
-            CommandEvent::Translate(vec) => {
+            CommandEvent::Translate(translate) => {
+                todo!()
+                // let vec = Vec3::from(translate)
+                // for id in selection.iter() {
+                //     gcode.0.translate(id, translate);
+                // }
+            }
+            CommandEvent::Rotate(rotate) => {
                 for id in selection.iter() {
-                    gcode.0.translate(id, vec);
+                    gcode.0.rotate(id, &centroid, &Vec3::new(rotate.rho.unwrap_or(0.0), rotate.theta, rotate.phi));
                 }
             }
-            CommandEvent::Rotate(vec) => {
-                for id in selection.iter() {
-                    gcode.0.rotate(id, &centroid, vec);
-                }
-            }
-            CommandEvent::Scale(vec) => {
+            CommandEvent::Scale(scale) => {
                 for id in selection.iter() {
                     gcode.0.scale(id, &centroid, vec);
                 }
             }
-            CommandEvent::Undo => {
-                // do something
+            CommandEvent::Filter(filter) => {
+                todo!();
             }
-            CommandEvent::Redo => {
-                // do something
+            CommandEvent::Map(map) => {
+                todo!();
             }
         }
-        refresh.send(UiEvent::ForceRefresh);
+        refresh.send(SystemEvent::ForceRefresh);
     }
 }
 

@@ -15,11 +15,13 @@ pub enum UiEvent {
 }
 #[derive(Event)]
 pub enum CommandEvent {
-    Subdivide(Subdivide),
-    Draw(Draw),
     Translate(Translate),
     Rotate(Rotate),
-    Scale(Rotate),
+    Scale(Scale),
+    Subdivide(Subdivide),
+    Draw(Draw),
+    Filter(Filter),
+    Map(Map),
 }
 
 #[derive(Event)]
