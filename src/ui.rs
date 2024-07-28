@@ -1,5 +1,5 @@
 use super::{PickSelection, PickingPluginsSettings, Settings};
-use crate::events::events::*;
+use crate::events::*;
 use crate::print_analyzer::Parsed;
 use crate::{GCode, Tag};
 use bevy::input::mouse::MouseMotion;
@@ -133,12 +133,29 @@ pub fn right_click_menu(mut contexts: EguiContexts, pos: Res<RightClick>) {
 #[derive(Default, Resource)]
 pub struct ConsoleActive(bool);
 
-
-pub fn console(mut contexts: EguiContexts, mut console: ResMut<UiResource>, mut console_active: ResMut<ConsoleActive>) {
+pub fn console(
+    mut contexts: EguiContexts,
+    mut console: ResMut<UiResource>,
+    mut console_active: ResMut<ConsoleActive>,
+) {
+    let width = contexts.ctx_mut().available_rect().width();
     egui::TopBottomPanel::bottom("console").show(contexts.ctx_mut(), |ui| {
-        ui.code(&console.console_output);
-        // when this is focused other key commands shouldn't fire
-        console_active.0 = ui.text_edit_singleline(&mut console.console_input).has_focus();
+        let output = &mut console.console_output.as_str();
+        let output = egui::TextEdit::multiline(output)
+            .desired_rows(5)
+            .desired_width(width);
+        ui.add(output);
+        // update resource to reflect if console is focused
+        console_active.0 = {
+            let input = &mut console.console_input;
+            let input = egui::TextEdit::singleline(input)
+                .desired_width(width)
+                .return_key(egui::KeyboardShortcut {
+                    modifiers: egui::Modifiers::default(),
+                    logical_key: (egui::Key::Enter),
+                });
+            ui.add(input).has_focus()
+        };
     });
 }
 pub fn ui_system(

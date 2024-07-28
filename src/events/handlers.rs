@@ -1,4 +1,5 @@
-use super::{events::*, console::*};
+use super::console::*;
+use super::*;
 use crate::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::EguiContext;
@@ -23,6 +24,7 @@ pub fn ui_handler(
     mut s_query: Query<&mut PickSelection>,
     mut pan_orbit: ResMut<PanOrbit>,
     mut command_writer: EventWriter<CommandEvent>,
+    mut console: ResMut<Console>
 ) {
     for event in event.read() {
         match event {
@@ -50,10 +52,11 @@ pub fn ui_handler(
                 pan_orbit.0 = *on;
             }
             UiEvent::ConsoleEnter(s) => {
+                let input = console.read_command(s);
                 if let Ok(event) = CommandEvent::build(s) {
                     command_writer.send(event);
                 }
-            },
+            }
             UiEvent::ConsoleResponse(s) => todo!(),
             UiEvent::CommandEnter => todo!(),
             UiEvent::MergeDelete => todo!(),
@@ -79,10 +82,10 @@ fn system_handler(
     for event in events.read() {
         match event {
             SystemEvent::Open => {
-                // do something
+                todo!();
             }
             SystemEvent::Save => {
-                // do something
+                todo!();
             }
             SystemEvent::SaveAs => {
                 if let Ok(window) = window.get_single() {
@@ -107,7 +110,7 @@ fn system_handler(
                 }
             }
             SystemEvent::RecalcBounds => {
-                // do something
+                todo!();
             }
             SystemEvent::ForceRefresh => {
                 commands.init_resource::<ForceRefresh>();
@@ -119,7 +122,7 @@ fn system_handler(
 pub fn command_handler(
     mut gcode: ResMut<GCode>,
     s_query: Query<(&PickSelection, &Tag)>,
-    mut bounding_box: ResMut<crate::BoundingBox>,
+    bounding_box: ResMut<crate::BoundingBox>,
     mut refresh: EventWriter<SystemEvent>,
     mut event: EventReader<CommandEvent>,
     ui_res: Res<UiResource>,

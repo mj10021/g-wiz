@@ -1,11 +1,12 @@
 use crate::{
     print_analyzer::{Id, Pos},
-    CommandEvent
 };
+use super::CommandEvent;
 use bevy::prelude::*;
 use std::fmt::{Debug, Formatter};
 
-struct Console {
+#[derive(Resource)]
+pub struct Console {
     current_command: Option<CommandEvent>,
     input: String,
     output: String,
@@ -25,8 +26,8 @@ impl Default for Console {
 }
 
 impl Console {
-    fn read_command(&mut self, mut writer: EventWriter<CommandEvent>) {
-        let input = CommandEvent::build(&self.input);
+    pub fn read_command(&mut self, input: &String) {
+        let input = CommandEvent::build(&input);
         match input {
             Ok(c) => {
                 self.current_command = Some(c);

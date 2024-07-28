@@ -99,7 +99,6 @@ pub struct Pos {
     pub f: f32,
 }
 
-
 impl Pos {
     pub fn home() -> Pos {
         Pos {

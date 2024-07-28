@@ -85,7 +85,6 @@ impl BoundingBox {
     }
 }
 
-
 fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     let args: Vec<String> = env::args().collect();
 
