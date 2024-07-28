@@ -10,16 +10,16 @@ struct Console {
     input: String,
     output: String,
 }
-const intro: &str = "Welcome to the console. Type 'help' for a list of commands.";
+const INTRO: &str = "Welcome to the console. Type 'help' for a list of commands.";
 
-const help: &str = "Commands: \r\n\r\n translate \r\n rotate \r\n scale \r\n subdivide \r\n draw \r\n filter \r\n map \r\n";
+const HELP: &str = "Commands: \r\n\r\n translate \r\n rotate \r\n scale \r\n subdivide \r\n draw \r\n filter \r\n map \r\n";
 
 impl Default for Console {
     fn default() -> Self {
         Self {
             current_command: None,
             input: String::new(),
-            output: String::from(intro),
+            output: String::from(INTRO),
         }
     }
 }
@@ -32,7 +32,7 @@ impl Console {
                 self.current_command = Some(c);
             } //do i need to send an event here
             Err("help") => {
-                self.output += help;
+                self.output += HELP;
             }
             Err(e) => {
                 self.output += &format!("Unknown command: {}\r\n", e);

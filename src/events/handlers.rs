@@ -1,9 +1,8 @@
-use super::console::*;
 use super::events::*;
 use crate::*;
 use bevy::window::PrimaryWindow;
-use bevy_mod_picking::prelude::*;
 use bevy_egui::EguiContext;
+use bevy_mod_picking::prelude::*;
 use egui::Pos2;
 
 #[derive(Default, Resource)]
@@ -20,7 +19,6 @@ impl Default for PanOrbit {
 
 pub fn ui_handler(
     mut event: EventReader<UiEvent>,
-    mut commands: Commands,
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
     mut pan_orbit: ResMut<PanOrbit>,

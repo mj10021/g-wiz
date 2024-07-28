@@ -1,9 +1,8 @@
-use super::{FilePath, PickSelection, PickingPluginsSettings, Settings};
+use super::{PickSelection, PickingPluginsSettings, Settings};
 use crate::events::events::*;
 use crate::print_analyzer::Parsed;
-use crate::{ForceRefresh, GCode, Tag};
+use crate::{GCode, Tag};
 use bevy::input::mouse::MouseMotion;
-use bevy::ui;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
 use bevy_mod_picking::prelude::*;
@@ -31,13 +30,8 @@ pub struct UiResource {
     pub vertex_counter: u32,
     pub selection_enum: Choice,
     pub subdivide_slider: u32,
-    translation_input: String,
     pub gcode_emit: String,
     pub vis_select: VisibilitySelector,
-    pub rotate_x: f32,
-    pub rotate_y: f32,
-    pub rotate_z: f32,
-    pub scale: f32,
     cursor_enum: Cursor,
     console_input: String,
     console_output: String,
@@ -51,13 +45,8 @@ impl Default for UiResource {
             vertex_counter: 0,
             selection_enum: Choice::Vertex,
             subdivide_slider: 1,
-            translation_input: String::new(),
             gcode_emit: String::new(),
             vis_select: VisibilitySelector::default(),
-            rotate_x: 0.0,
-            rotate_y: 0.0,
-            rotate_z: 0.0,
-            scale: 1.0,
             cursor_enum: Cursor::Pointer,
             console_output: String::from("g-wiz console:"),
             console_input: String::new(),
@@ -140,10 +129,16 @@ pub fn right_click_menu(mut contexts: EguiContexts, pos: Res<RightClick>) {
         .fixed_pos(pos.0)
         .show(contexts.ctx_mut(), |ui| if ui.button("asdf").clicked() {});
 }
-pub fn console(mut contexts: EguiContexts, mut console: ResMut<UiResource>) {
+
+#[derive(Default, Resource)]
+pub struct ConsoleActive(bool);
+
+
+pub fn console(mut contexts: EguiContexts, mut console: ResMut<UiResource>, mut console_active: ResMut<ConsoleActive>) {
     egui::TopBottomPanel::bottom("console").show(contexts.ctx_mut(), |ui| {
         ui.code(&console.console_output);
-        ui.text_edit_singleline(&mut console.console_input);
+        // when this is focused other key commands shouldn't fire
+        console_active.0 = ui.text_edit_singleline(&mut console.console_input).has_focus();
     });
 }
 pub fn ui_system(
@@ -152,10 +147,7 @@ pub fn ui_system(
     vertex: Res<VertexCounter>,
     mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
-    gcode: ResMut<GCode>,
     s_query: Query<(&mut PickSelection, &Tag)>,
-    // mut command_writer: EventWriter<CommandEvent>,
-    mut ui_writer: EventWriter<UiEvent>,
 ) {
     let window = window.get_single().unwrap();
     let panel_width = window.width() / 6.0;
@@ -266,13 +258,18 @@ pub fn key_system(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     settings: Res<Settings>,
     mut system_writer: EventWriter<SystemEvent>,
-    mut command_writer: EventWriter<CommandEvent>,
+    console_active: Res<ConsoleActive>,
     mut ui_writer: EventWriter<UiEvent>,
-    // console_window: Query<&Window, With<ui::Console>>,
+    mut console: ResMut<UiResource>,
 ) {
-    // if console_window.is_focused() {
-    //     return;
-    // }
+    if console_active.0 {
+        if keys.just_pressed(KeyCode::Enter) {
+            let output: String = console.console_input.drain(..).collect();
+            console.console_output.push_str(&output);
+            ui_writer.send(UiEvent::ConsoleEnter(output));
+        }
+        return;
+    }
     if keys.pressed(KeyCode::ArrowLeft) {
         ui_writer.send(UiEvent::MoveDisplay(false, false, 1.0));
     } else if keys.pressed(KeyCode::ArrowRight) {

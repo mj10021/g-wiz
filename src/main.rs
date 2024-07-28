@@ -145,6 +145,7 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.init_resource::<PanOrbit>();
     commands.init_resource::<SelectionLog>();
     commands.init_resource::<ForceRefresh>();
+    commands.init_resource::<ConsoleActive>();
 }
 fn main() {
     App::new()
