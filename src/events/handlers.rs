@@ -1,4 +1,4 @@
-use super::events::*;
+use super::{events::*, console::*};
 use crate::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::EguiContext;
@@ -22,6 +22,7 @@ pub fn ui_handler(
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
     mut pan_orbit: ResMut<PanOrbit>,
+    mut command_writer: EventWriter<CommandEvent>,
 ) {
     for event in event.read() {
         match event {
@@ -48,7 +49,11 @@ pub fn ui_handler(
             UiEvent::SetPanOrbit(on) => {
                 pan_orbit.0 = *on;
             }
-            UiEvent::ConsoleEnter(s) => todo!(),
+            UiEvent::ConsoleEnter(s) => {
+                if let Ok(event) = CommandEvent::build(s) {
+                    command_writer.send(event);
+                }
+            },
             UiEvent::ConsoleResponse(s) => todo!(),
             UiEvent::CommandEnter => todo!(),
             UiEvent::MergeDelete => todo!(),

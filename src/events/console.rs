@@ -43,7 +43,7 @@ impl Console {
 }
 
 impl CommandEvent {
-    fn build(arg: &str) -> Result<Self, &str> {
+    pub fn build(arg: &str) -> Result<Self, &str> {
         match arg {
             "translate" => Ok(Self::Translate(Translate::default())),
             "rotate" => Ok(Self::Rotate(Rotate::default())),
