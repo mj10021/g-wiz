@@ -139,10 +139,10 @@ pub fn console(
     mut console_active: ResMut<ConsoleActive>,
 ) {
     let width = contexts.ctx_mut().available_rect().width();
-    egui::TopBottomPanel::bottom("console").show(contexts.ctx_mut(), |ui| {
-        egui::ScrollArea::vertical().min_scrolled_height(100.0).max_height(100.0).show(ui, |ui| {
+    egui::TopBottomPanel::bottom("console").min_height(100.0).show(contexts.ctx_mut(), |ui| {
+        egui::ScrollArea::vertical().min_scrolled_height(100.0).max_height(100.0).scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible).show(ui, |ui| {
             ui.with_layout(
-        egui::Layout::top_down(egui::Align::LEFT).with_cross_justify(true),
+        egui::Layout::bottom_up(egui::Align::LEFT).with_cross_justify(true),
         |ui| {
             ui.label(egui::RichText::new(&console.output).small().weak());
         });
