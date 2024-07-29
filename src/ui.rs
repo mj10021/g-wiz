@@ -140,11 +140,13 @@ pub fn console(
 ) {
     let width = contexts.ctx_mut().available_rect().width();
     egui::TopBottomPanel::bottom("console").show(contexts.ctx_mut(), |ui| {
-        let output = &mut console.output.as_str();
-        let output = egui::TextEdit::multiline(output)
-            .desired_rows(5)
-            .desired_width(width);
-        ui.add(output);
+        egui::ScrollArea::vertical().min_scrolled_height(100.0).max_height(100.0).show(ui, |ui| {
+            ui.with_layout(
+        egui::Layout::top_down(egui::Align::LEFT).with_cross_justify(true),
+        |ui| {
+            ui.label(egui::RichText::new(&console.output).small().weak());
+        });
+        });
         // update resource to reflect if console is focused
         console_active.0 = {
             let input = egui::TextEdit::singleline(&mut console.input)
