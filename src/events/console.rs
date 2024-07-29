@@ -1,6 +1,4 @@
-use crate::{
-    print_analyzer::{Id, Pos},
-};
+use crate::print_analyzer::Pos;
 use super::CommandEvent;
 use bevy::prelude::*;
 use std::fmt::{Debug, Formatter};
@@ -8,10 +6,10 @@ use std::fmt::{Debug, Formatter};
 #[derive(Resource)]
 pub struct Console {
     current_command: Option<CommandEvent>,
-    input: String,
-    output: String,
+    pub input: String,
+    pub output: String,
 }
-const INTRO: &str = "Welcome to the console. Type 'help' for a list of commands.";
+const INTRO: &str = "Welcome to the console. Type 'help' for a list of commands.\r\n";
 
 const HELP: &str = "Commands: \r\n\r\n translate \r\n rotate \r\n scale \r\n subdivide \r\n draw \r\n filter \r\n map \r\n";
 
@@ -27,11 +25,12 @@ impl Default for Console {
 
 impl Console {
     pub fn read_command(&mut self, input: &String) {
-        let input = CommandEvent::build(&input);
+        let input = CommandEvent::build(input);
         match input {
             Ok(c) => {
                 self.current_command = Some(c);
-            } //do i need to send an event here
+                // console response event here
+            }
             Err("help") => {
                 self.output += HELP;
             }

@@ -1,5 +1,5 @@
 use super::{PickSelection, PickingPluginsSettings, Settings};
-use crate::events::*;
+use crate::events::{*, console::*};
 use crate::print_analyzer::Parsed;
 use crate::{GCode, Tag};
 use bevy::input::mouse::MouseMotion;
@@ -135,20 +135,19 @@ pub struct ConsoleActive(bool);
 
 pub fn console(
     mut contexts: EguiContexts,
-    mut console: ResMut<UiResource>,
+    mut console: ResMut<Console>,
     mut console_active: ResMut<ConsoleActive>,
 ) {
     let width = contexts.ctx_mut().available_rect().width();
     egui::TopBottomPanel::bottom("console").show(contexts.ctx_mut(), |ui| {
-        let output = &mut console.console_output.as_str();
+        let output = &mut console.output.as_str();
         let output = egui::TextEdit::multiline(output)
             .desired_rows(5)
             .desired_width(width);
         ui.add(output);
         // update resource to reflect if console is focused
         console_active.0 = {
-            let input = &mut console.console_input;
-            let input = egui::TextEdit::singleline(input)
+            let input = egui::TextEdit::singleline(&mut console.input)
                 .desired_width(width)
                 .return_key(egui::KeyboardShortcut {
                     modifiers: egui::Modifiers::default(),
