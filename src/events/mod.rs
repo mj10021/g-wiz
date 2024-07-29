@@ -3,7 +3,6 @@ pub mod handlers;
 
 use console::*;
 
-
 use bevy::prelude::*;
 #[derive(Event)]
 pub enum UiEvent {

@@ -1,13 +1,12 @@
 use super::{PickSelection, PickingPluginsSettings, Settings};
-use crate::events::{*, console::*};
+use crate::events::{console::*, *};
 use crate::print_analyzer::Parsed;
-use crate::{GCode, Tag};
+use crate::GCode;
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
 use bevy_mod_picking::prelude::*;
 use egui::Pos2;
-use std::collections::HashSet;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Choice {
@@ -137,27 +136,38 @@ pub fn console(
     mut contexts: EguiContexts,
     mut console: ResMut<Console>,
     mut console_active: ResMut<ConsoleActive>,
+    window: Query<&Window, With<PrimaryWindow>>,
 ) {
+    let window = window.single();
+    let height = window.height() / 5.0;
     let width = contexts.ctx_mut().available_rect().width();
-    egui::TopBottomPanel::bottom("console").min_height(100.0).show(contexts.ctx_mut(), |ui| {
-        egui::ScrollArea::vertical().min_scrolled_height(100.0).max_height(100.0).scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible).show(ui, |ui| {
-            ui.with_layout(
-        egui::Layout::bottom_up(egui::Align::LEFT).with_cross_justify(true),
-        |ui| {
-            ui.label(egui::RichText::new(&console.output).small().weak());
-        });
-        });
-        // update resource to reflect if console is focused
-        console_active.0 = {
-            let input = egui::TextEdit::singleline(&mut console.input)
-                .desired_width(width)
-                .return_key(egui::KeyboardShortcut {
-                    modifiers: egui::Modifiers::default(),
-                    logical_key: (egui::Key::Enter),
+    egui::TopBottomPanel::bottom("console")
+        .min_height(height)
+        .show_separator_line(true)
+        .show(contexts.ctx_mut(), |ui| {
+            egui::ScrollArea::vertical()
+                .min_scrolled_height(height)
+                .max_height(height)
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
+                .show(ui, |ui| {
+                    ui.with_layout(
+                        egui::Layout::bottom_up(egui::Align::LEFT).with_cross_justify(true),
+                        |ui| {
+                            ui.label(egui::RichText::new(&console.output).small().weak());
+                        },
+                    );
                 });
-            ui.add(input).has_focus()
-        };
-    });
+            // update resource to reflect console focused
+            console_active.0 = {
+                let input = egui::TextEdit::singleline(&mut console.input)
+                    .desired_width(width)
+                    .return_key(egui::KeyboardShortcut {
+                        modifiers: egui::Modifiers::default(),
+                        logical_key: (egui::Key::Enter),
+                    });
+                ui.add(input).has_focus()
+            };
+        });
 }
 pub fn ui_system(
     mut contexts: EguiContexts,
@@ -165,19 +175,12 @@ pub fn ui_system(
     vertex: Res<VertexCounter>,
     mut ui_res: ResMut<UiResource>,
     window: Query<&Window, With<PrimaryWindow>>,
-    s_query: Query<(&mut PickSelection, &Tag)>,
 ) {
     let window = window.get_single().unwrap();
     let panel_width = window.width() / 6.0;
     let height = window.height();
     let spacing = height / 50.0;
     let max = vertex.max;
-    let mut selection = HashSet::new();
-    for (pick, id) in s_query.iter() {
-        if pick.is_selected {
-            selection.insert(id.id);
-        }
-    }
     egui::SidePanel::new(egui::panel::Side::Left, "panel")
         .exact_width(panel_width)
         .resizable(false)

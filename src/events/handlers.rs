@@ -24,7 +24,7 @@ pub fn ui_handler(
     mut s_query: Query<&mut PickSelection>,
     mut pan_orbit: ResMut<PanOrbit>,
     mut command_writer: EventWriter<CommandEvent>,
-    mut console: ResMut<Console>
+    mut console: ResMut<Console>,
 ) {
     for event in event.read() {
         match event {

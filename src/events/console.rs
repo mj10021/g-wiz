@@ -1,5 +1,5 @@
-use crate::print_analyzer::Pos;
 use super::CommandEvent;
+use crate::print_analyzer::Pos;
 use bevy::prelude::*;
 use std::fmt::{Debug, Formatter};
 

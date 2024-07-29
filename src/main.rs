@@ -9,7 +9,7 @@ mod ui;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
-use events::{*, console::*, handlers::*};
+use events::{console::*, handlers::*, *};
 use history::{undo_redo_selections, update_selection_log, SelectionLog};
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
