@@ -32,8 +32,6 @@ pub struct UiResource {
     pub gcode_emit: String,
     pub vis_select: VisibilitySelector,
     cursor_enum: Cursor,
-    console_input: String,
-    console_output: String,
 }
 
 impl Default for UiResource {
@@ -47,8 +45,6 @@ impl Default for UiResource {
             gcode_emit: String::new(),
             vis_select: VisibilitySelector::default(),
             cursor_enum: Cursor::Pointer,
-            console_output: String::from("g-wiz console:"),
-            console_input: String::new(),
         }
     }
 }
@@ -136,17 +132,18 @@ pub fn console(
     mut contexts: EguiContexts,
     mut console: ResMut<Console>,
     mut console_active: ResMut<ConsoleActive>,
-    window: Query<&Window, With<PrimaryWindow>>,
+    primary_window: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let window = window.single();
+    let window = primary_window.single();
     let height = window.height() / 5.0;
     let width = contexts.ctx_mut().available_rect().width();
     egui::TopBottomPanel::bottom("console")
-        .min_height(height)
+        //.min_height(height)
+        .resizable(true)
         .show_separator_line(true)
         .show(contexts.ctx_mut(), |ui| {
             egui::ScrollArea::vertical()
-                .min_scrolled_height(height)
+                // .min_scrolled_height(height)
                 .max_height(height)
                 .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
                 .show(ui, |ui| {
@@ -160,30 +157,26 @@ pub fn console(
             // update resource to reflect console focused
             console_active.0 = {
                 let input = egui::TextEdit::singleline(&mut console.input)
-                    .desired_width(width)
-                    .return_key(egui::KeyboardShortcut {
-                        modifiers: egui::Modifiers::default(),
-                        logical_key: (egui::Key::Enter),
-                    });
+                    .desired_width(width);
                 ui.add(input).has_focus()
             };
         });
 }
-pub fn ui_system(
+
+pub fn sidebar(
     mut contexts: EguiContexts,
     mut system_writer: EventWriter<SystemEvent>,
     vertex: Res<VertexCounter>,
     mut ui_res: ResMut<UiResource>,
-    window: Query<&Window, With<PrimaryWindow>>,
+    primary_window: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let window = window.get_single().unwrap();
-    let panel_width = window.width() / 6.0;
+    let window = primary_window.single();
     let height = window.height();
     let spacing = height / 50.0;
     let max = vertex.max;
     egui::SidePanel::new(egui::panel::Side::Left, "panel")
-        .exact_width(panel_width)
-        .resizable(false)
+        //.exact_width(panel_width)
+        .resizable(true)
         .show(contexts.ctx_mut(), |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.label("world");
@@ -281,13 +274,17 @@ pub fn key_system(
     mut system_writer: EventWriter<SystemEvent>,
     console_active: Res<ConsoleActive>,
     mut ui_writer: EventWriter<UiEvent>,
-    mut console: ResMut<UiResource>,
+    mut console: ResMut<Console>,
 ) {
     if console_active.0 {
         if keys.just_pressed(KeyCode::Enter) {
-            let output: String = console.console_input.drain(..).collect();
-            console.console_output.push_str(&output);
+            
+            println!("{}",console.input);
+            let output: String = console.input.drain(..).collect();
+            println!("{}",output);
+            console.output.push_str(&output);
             ui_writer.send(UiEvent::ConsoleEnter(output));
+
         }
         return;
     }

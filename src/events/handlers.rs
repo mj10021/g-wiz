@@ -52,9 +52,12 @@ pub fn ui_handler(
                 pan_orbit.0 = *on;
             }
             UiEvent::ConsoleEnter(s) => {
-                let input = console.read_command(s);
-                if let Ok(event) = CommandEvent::build(s) {
-                    command_writer.send(event);
+                if console.current_command.is_none() {
+                    if let Some(command) = console.read_command(s) {
+                        command_writer.send(command);
+                    }
+                } else {
+                    console.read_params(s);
                 }
             }
             UiEvent::ConsoleResponse(s) => todo!(),

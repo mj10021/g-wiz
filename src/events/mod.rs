@@ -17,7 +17,7 @@ pub enum UiEvent {
     ConsoleResponse(String),
     CommandEnter,
 }
-#[derive(Event)]
+#[derive(Clone, Event)]
 pub enum CommandEvent {
     Translate(Translate),
     Rotate(Rotate),

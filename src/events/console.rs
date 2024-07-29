@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 
 #[derive(Resource)]
 pub struct Console {
-    current_command: Option<CommandEvent>,
+    pub current_command: Option<CommandEvent>,
     pub input: String,
     pub output: String,
 }
@@ -24,22 +24,31 @@ impl Default for Console {
 }
 
 impl Console {
-    pub fn read_command(&mut self, input: &String) {
+    pub fn read_command(&mut self, input: &str) -> Option<CommandEvent> {
         let input = CommandEvent::build(input);
         match input {
             Ok(c) => {
-                self.current_command = Some(c);
+                self.current_command = Some(c.clone());
+                Some(c)
                 // console response event here
             }
             Err("help") => {
                 self.output += HELP;
+                None
             }
             Err(e) => {
                 self.output += &format!("Unknown command: {}\r\n", e);
+                None
             }
         }
     }
-    fn read_params(&mut self) {}
+    pub fn read_params(&mut self, params: &str) {
+        match &mut self.current_command {
+            Some(CommandEvent::Translate(translate)) => {
+            }
+            _ => {}
+        }
+    }
 }
 
 impl CommandEvent {
@@ -57,7 +66,7 @@ impl CommandEvent {
         }
     }
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Translate {
     pub x: Option<f32>,
     pub y: Option<f32>,
@@ -80,7 +89,7 @@ impl Debug for Translate {
         )
     }
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Rotate {
     pub rho: Option<f32>,
     pub theta: Option<f32>,
@@ -95,7 +104,7 @@ impl Debug for Rotate {
         )
     }
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Scale {
     pub x: Option<f32>,
     pub y: Option<f32>,
@@ -114,7 +123,7 @@ impl Debug for Scale {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Subdivide {
     pub count_or_dist: bool,
     pub n: f32,
@@ -129,7 +138,7 @@ impl Debug for Subdivide {
         )
     }
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Draw {
     pub before_or_after: bool,
     pub start: Option<Pos>,
@@ -145,7 +154,7 @@ impl Debug for Draw {
         )
     }
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Filter {
     filter: String,
 }
@@ -154,7 +163,7 @@ impl Debug for Filter {
         write!(f, "Filter: <f>ilter: {:?} }}", self.filter)
     }
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Map {
     map: String,
 }

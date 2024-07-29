@@ -161,7 +161,7 @@ fn main() {
                 key_system,
                 toolbar,
                 right_click_menu.run_if(resource_exists::<RightClick>),
-                ui_system,
+                sidebar,
                 console,
                 selection_handler,
                 update_visibilities,
