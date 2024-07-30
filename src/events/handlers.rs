@@ -142,9 +142,7 @@ pub fn command_handler(
             CommandEvent::Subdivide(subdivide) => {
                 gcode.0.subdivide_vertices(selection.clone(), count);
             }
-            CommandEvent::Draw(draw) => {
-                todo!();
-            }
+
             CommandEvent::Translate(translate) => {
                 todo!()
                 // let vec = Vec3::from(translate)
@@ -177,12 +175,6 @@ pub fn command_handler(
                         ),
                     );
                 }
-            }
-            CommandEvent::Filter(filter) => {
-                todo!();
-            }
-            CommandEvent::Map(map) => {
-                todo!();
             }
         }
         refresh.send(SystemEvent::ForceRefresh);

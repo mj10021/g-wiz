@@ -1,52 +1,67 @@
 use super::CommandEvent;
-use crate::print_analyzer::Pos;
+
 use bevy::prelude::*;
+
 use std::fmt::{Debug, Formatter};
 
 #[derive(Resource)]
 pub struct Console {
     pub current_command: Option<CommandEvent>,
+    current_param: Option<char>,
     pub input: String,
     pub output: String,
 }
 const INTRO: &str = "Welcome to the console. Type 'help' for a list of commands.\r\n";
 
-const HELP: &str = "Commands: \r\n\r\n translate \r\n rotate \r\n scale \r\n subdivide \r\n draw \r\n filter \r\n map \r\n";
+pub const HELP: &str = "Commands: \r\n\r\n translate \r\n rotate \r\n scale \r\n subdivide \r\n draw \r\n filter \r\n map \r\n";
 
 impl Default for Console {
     fn default() -> Self {
         Self {
             current_command: None,
+            current_param: None,
             input: String::new(),
             output: String::from(INTRO),
         }
     }
 }
-
 impl Console {
-    pub fn read_command(&mut self, input: &str) -> Option<CommandEvent> {
-        let input = CommandEvent::build(input);
-        match input {
-            Ok(c) => {
-                self.current_command = Some(c.clone());
-                Some(c)
-                // console response event here
-            }
-            Err("help") => {
-                self.output += HELP;
-                None
-            }
-            Err(e) => {
-                self.output += &format!("Unknown command: {}\r\n", e);
-                None
+    pub fn send(&mut self, writer: &mut EventWriter<CommandEvent>) {
+        if let Some(command) = self.current_command.take() {
+            writer.send(command);
+        }
+    }
+    pub fn read(&mut self, input: &str) {
+        if self.current_command.is_none() {
+            match CommandEvent::build(input) {
+                Ok(c) => {
+                    self.current_command = Some(c.clone());
+                }
+                Err("help") => {
+                    self.output += HELP;
+                }
+                Err(e) => {
+                    self.output += &format!("Unknown command: {}\r\n", e);
+                }
             }
         }
     }
-    pub fn read_params(&mut self, params: &str) {
-        match &mut self.current_command {
-            Some(CommandEvent::Translate(translate)) => {
+    pub fn read_param(&mut self, param: &str) -> Result<(), &str> {
+        if let Some(command) = &mut self.current_command {
+            let command = command.inner_mut();
+            if let Some(p) = self.current_param {
+                command.set_param(&p, &param)
+            } else if let Some(c) = param.chars().next() {
+                if !command.contains_param(&c) {
+                    return Err(stringify!("invalid parameter character: {}", c));
+                }
+                self.current_param = Some(c);
+                Ok(())
+            } else {
+                Err("invalid parameter")
             }
-            _ => {}
+        } else {
+            return Err("no active command");
         }
     }
 }
@@ -58,15 +73,20 @@ impl CommandEvent {
             "rotate" => Ok(Self::Rotate(Rotate::default())),
             "scale" => Ok(Self::Scale(Scale::default())),
             "subdivide" => Ok(Self::Subdivide(Subdivide::default())),
-            "draw" => Ok(Self::Draw(Draw::default())),
-            "filter" => Ok(Self::Filter(Filter::default())),
-            "map" => Ok(Self::Map(Map::default())),
+            // "draw" => Ok(Self::Draw(Draw::default())),
+            // "filter" => Ok(Self::Filter(Filter::default())),
+            // "map" => Ok(Self::Map(Map::default())),
             "help" => Err(arg),
             _ => Err(arg),
         }
     }
 }
-#[derive(Clone, Default)]
+pub trait Param {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str>;
+    fn contains_param(&self, param: &char) -> bool;
+}
+
+#[derive(Clone)]
 pub struct Translate {
     pub x: Option<f32>,
     pub y: Option<f32>,
@@ -74,6 +94,34 @@ pub struct Translate {
     pub e: Option<f32>,
     pub f: Option<f32>,
     pub preserve_flow: bool,
+    params: [char; 5],
+}
+impl Default for Translate {
+    fn default() -> Self {
+        Self {
+            params: ['x', 'y', 'z', 'e', 'f'],
+            ..default()
+        }
+    }
+}
+impl Param for Translate {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+        let Ok(value) = value.parse::<f32>() else {
+            return Err(stringify!("{}", value));
+        };
+        match param {
+            'x' => self.x = Some(value),
+            'y' => self.y = Some(value),
+            'z' => self.z = Some(value),
+            'e' => self.e = Some(value),
+            'f' => self.f = Some(value),
+            _ => return Err(stringify!("Unknown parameter: {}", param)),
+        }
+        Ok(())
+    }
+    fn contains_param(&self, param: &char) -> bool {
+        self.params.contains(param)
+    }
 }
 impl Debug for Translate {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -89,11 +137,37 @@ impl Debug for Translate {
         )
     }
 }
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Rotate {
     pub rho: Option<f32>,
     pub theta: Option<f32>,
     pub phi: Option<f32>,
+    params: [char; 3],
+}
+impl Default for Rotate {
+    fn default() -> Self {
+        Self {
+            params: ['r', 't', 'p'],
+            ..default()
+        }
+    }
+}
+impl Param for Rotate {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+        let Ok(value) = value.parse::<f32>() else {
+            return Err(stringify!("{}"value));
+        };
+        match param {
+            'r' => self.rho = Some(value),
+            't' => self.theta = Some(value),
+            'p' => self.phi = Some(value),
+            _ => return Err(stringify!("Unknown parameter: {}", param)),
+        }
+        Ok(())
+    }
+    fn contains_param(&self, param: &char) -> bool {
+        self.params.contains(param)
+    }
 }
 impl Debug for Rotate {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -104,13 +178,38 @@ impl Debug for Rotate {
         )
     }
 }
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Scale {
     pub x: Option<f32>,
     pub y: Option<f32>,
     pub z: Option<f32>,
+    params: [char; 3],
 }
-
+impl Default for Scale {
+    fn default() -> Self {
+        Self {
+            params: ['x', 'y', 'z'],
+            ..default()
+        }
+    }
+}
+impl Param for Scale {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+        let Ok(value) = value.parse::<f32>() else {
+            return Err(stringify!("{}" value));
+        };
+        match param {
+            'x' => self.x = Some(value),
+            'y' => self.y = Some(value),
+            'z' => self.z = Some(value),
+            _ => return Err(stringify!("Unknown parameter: {}", param)),
+        }
+        Ok(())
+    }
+    fn contains_param(&self, param: &char) -> bool {
+        self.params.contains(param)
+    }
+}
 impl Debug for Scale {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
@@ -123,12 +222,40 @@ impl Debug for Scale {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Subdivide {
     pub count_or_dist: bool,
     pub n: f32,
+    params: [char; 3],
 }
-
+impl Default for Subdivide {
+    fn default() -> Self {
+        Self {
+            params: ['n', 'c', 'd'],
+            ..default()
+        }
+    }
+}
+impl Param for Subdivide {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+        let Ok(value) = value.parse::<f32>() else {
+            return Err(stringify!("{}" value));
+        };
+        if value > 0.0 {
+            self.n = value;
+        }
+        match param {
+            'n' => {}
+            'c' => self.count_or_dist = true,
+            'd' => self.count_or_dist = false,
+            _ => return Err(stringify!("Unknown parameter: {}", param)),
+        }
+        Ok(())
+    }
+    fn contains_param(&self, param: &char) -> bool {
+        self.params.contains(param)
+    }
+}
 impl Debug for Subdivide {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
@@ -138,37 +265,85 @@ impl Debug for Subdivide {
         )
     }
 }
-#[derive(Clone, Default)]
-pub struct Draw {
-    pub before_or_after: bool,
-    pub start: Option<Pos>,
-    pub end: Option<Pos>,
-}
-
-impl Debug for Draw {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "Draw: <b>efore or <a>fter: {:?}, <s>tart: {:?}, <e>nd: {:?} }}",
-            self.before_or_after, self.start, self.end
-        )
-    }
-}
-#[derive(Clone, Default)]
-pub struct Filter {
-    filter: String,
-}
-impl Debug for Filter {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "Filter: <f>ilter: {:?} }}", self.filter)
-    }
-}
-#[derive(Clone, Default)]
-pub struct Map {
-    map: String,
-}
-impl Debug for Map {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "Map: <m>ap: {:?} }}", self.map)
-    }
-}
+// #[derive(Clone)]
+// pub struct Draw {
+//     pub before_or_after: bool,
+//     pub start: Option<Pos>,
+//     pub end: Option<Pos>,
+//     params: [char; 3],
+// }
+// impl Default for Draw {
+//     fn default() -> Self {
+//         Self {
+//             params: ['b', 's', 'e'],
+//             ..default()
+//         }
+//     }
+// }
+// impl Param for Draw {
+//     fn set_param(&mut self, param: &char, value: String) -> Result<(), String> {
+//         let Ok(value) = value.parse::<f32>() else {return Err(value)};
+//         match param {
+//             'b' => self.before_or_after = value > 0.0,
+//             's' => self.start = Some(Pos::new(value, 0.0, 0.0)),
+//             'e' => self.end = Some(Pos::new(value, 0.0, 0.0)),
+//             _ => return Err(format!("Unknown parameter: {}", param)),
+//         }
+//         Ok(())
+//     }
+// }
+// impl Debug for Draw {
+//     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+//         write!(
+//             f,
+//             "Draw: <b>efore or <a>fter: {:?}, <s>tart: {:?}, <e>nd: {:?} }}",
+//             self.before_or_after, self.start, self.end
+//         )
+//     }
+// }
+// #[derive(Clone)]
+// pub struct Filter {
+//     filter: String,
+//     params: [char; 1],
+// }
+// impl Default for Filter {
+//     fn default() -> Self {
+//         Self {
+//             params: ['f'],
+//             ..default()
+//         }
+//     }
+// }
+// impl Debug for Filter {
+//     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+//         write!(f, "Filter: <f>ilter: {:?} }}", self.filter)
+//     }
+// }
+// #[derive(Clone)]
+// pub struct Map {
+//     map: String,
+//     params: [char; 1],
+// }
+// impl Default for Map {
+//     fn default() -> Self {
+//         Self {
+//             params: ['m'],
+//             ..default()
+//         }
+//     }
+// }
+// impl Param for Map {
+//     fn set_param(&mut self, param: &char, value: f32) -> Result<(), &str> {
+//         match param {
+//             'm' => self.map = value.to_string(),
+//             _ => return Err(param)
+//         }
+//         Ok(())
+//     }
+// }
+// impl Debug for Map {
+//     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+//         write!(f, "Map: <m>ap: {:?} }}", self.map)
+//     }
+// }
+//

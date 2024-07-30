@@ -156,8 +156,7 @@ pub fn console(
                 });
             // update resource to reflect console focused
             console_active.0 = {
-                let input = egui::TextEdit::singleline(&mut console.input)
-                    .desired_width(width);
+                let input = egui::TextEdit::singleline(&mut console.input).desired_width(width);
                 ui.add(input).has_focus()
             };
         });
@@ -274,17 +273,39 @@ pub fn key_system(
     mut system_writer: EventWriter<SystemEvent>,
     console_active: Res<ConsoleActive>,
     mut ui_writer: EventWriter<UiEvent>,
+    mut command_writer: EventWriter<CommandEvent>,
     mut console: ResMut<Console>,
 ) {
     if console_active.0 {
         if keys.just_pressed(KeyCode::Enter) {
-            
-            println!("{}",console.input);
             let output: String = console.input.drain(..).collect();
-            println!("{}",output);
             console.output.push_str(&output);
-            ui_writer.send(UiEvent::ConsoleEnter(output));
-
+            if console.current_command.is_none() {
+                match output.as_str() {
+                    "" => return,
+                    "help" => {
+                        console.output.push_str(console::HELP);
+                    }
+                    command => console.read(command),
+                }
+            } else {
+                match output.as_str() {
+                    "" => {
+                        console.send(&mut command_writer);
+                    }
+                    param => {
+                        if console.read_param(param).is_ok() {
+                            console
+                                .output
+                                .push_str(&format!("{:?}\r\n", console.current_command));
+                        } else {
+                            console
+                                .output
+                                .push_str(&format!("Unknown parameter: {}\r\n", param));
+                        }
+                    }
+                }
+            }
         }
         return;
     }
