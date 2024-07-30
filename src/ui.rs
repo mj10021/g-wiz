@@ -295,9 +295,10 @@ pub fn key_system(
                     }
                     param => {
                         if console.read_param(param).is_ok() {
+                            let dbg = stringify!("{:?}",console.current_command);
                             console
                                 .output
-                                .push_str(&format!("{:?}\r\n", console.current_command));
+                                .push_str(&format!("{}\r\n", dbg));
                         } else {
                             console
                                 .output
