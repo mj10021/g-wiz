@@ -297,7 +297,9 @@ pub fn key_system(
                     }
                     param => {
                         if console.read_param(param).is_ok() {
-                            console.output.push_str(&format!("{:?}\r\n",console.current_command));
+                            let out = format!("{:?}", console.current_command);
+                            console.output.push('\n');
+                            console.output.push_str(out.as_str());
                         } else {
                             console
                                 .output

@@ -160,9 +160,10 @@ pub struct Rotate {
 impl Default for Rotate {
     fn default() -> Self {
         Self {
-            rho: Option::default(),
+            rho: None,
+            theta: None,
+            phi: None,
             params: ['r', 't', 'p'],
-            ..default()
         }
     }
 }
@@ -202,8 +203,10 @@ pub struct Scale {
 impl Default for Scale {
     fn default() -> Self {
         Self {
+            x: None,
+            y: None,
+            z: None,
             params: ['x', 'y', 'z'],
-            ..default()
         }
     }
 }
@@ -245,8 +248,9 @@ pub struct Subdivide {
 impl Default for Subdivide {
     fn default() -> Self {
         Self {
+            count_or_dist: true,
+            n: 1.0,
             params: ['n', 'c', 'd'],
-            ..default()
         }
     }
 }
@@ -290,7 +294,6 @@ impl Debug for Subdivide {
 //     fn default() -> Self {
 //         Self {
 //             params: ['b', 's', 'e'],
-//             ..default()
 //         }
 //     }
 // }
@@ -324,7 +327,7 @@ impl Debug for Subdivide {
 //     fn default() -> Self {
 //         Self {
 //             params: ['f'],
-//             ..default()
+//             
 //         }
 //     }
 // }
