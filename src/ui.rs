@@ -286,7 +286,9 @@ pub fn key_system(
                     "help" => {
                         console.output.push_str(console::HELP);
                     }
-                    command => console.read(command),
+                    command => {
+                        console.read(command);
+                    }
                 }
             } else {
                 match output.as_str() {
@@ -295,10 +297,7 @@ pub fn key_system(
                     }
                     param => {
                         if console.read_param(param).is_ok() {
-                            let dbg = stringify!("{:?}",console.current_command);
-                            console
-                                .output
-                                .push_str(&format!("{}\r\n", dbg));
+                            console.output.push_str(&format!("{:?}\r\n",console.current_command));
                         } else {
                             console
                                 .output
@@ -307,7 +306,7 @@ pub fn key_system(
                     }
                 }
             }
-        }
+         }
         return;
     }
     if keys.pressed(KeyCode::ArrowLeft) {

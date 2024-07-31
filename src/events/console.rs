@@ -1,6 +1,6 @@
 use super::CommandEvent;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::hashbrown::Equivalent};
 
 use std::fmt::{Debug, Formatter};
 
@@ -32,57 +32,65 @@ impl Console {
         }
     }
     pub fn read(&mut self, input: &str) {
+        println!("asdf");
         if self.current_command.is_none() {
             match CommandEvent::build(input) {
                 Ok(c) => {
+                    println!("asdf1");
                     self.current_command = Some(c.clone());
                 }
-                Err("help") => {
-                    self.output += HELP;
-                }
                 Err(e) => {
+                    if e.contains("help") && e.len() == 4 {
+                        self.output += HELP;
+                        return;
+                    }
+                    println!("asdf2");
                     self.output += &format!("Unknown command: {}\r\n", e);
                 }
             }
         }
+        println!("asdf3");
     }
-    pub fn read_param(&mut self, param: &str) -> Result<(), &str> {
+    pub fn read_param(&mut self, param: &str) -> Result<(), String> {
         if let Some(command) = &mut self.current_command {
             let command = command.inner_mut();
             if let Some(p) = self.current_param {
-                command.set_param(&p, &param)
+                command.set_param(&p, param)
             } else if let Some(c) = param.chars().next() {
                 if !command.contains_param(&c) {
-                    return Err(stringify!("invalid parameter character: {}", c));
+                    return Err(format!("invalid parameter character: {}", c));
                 }
                 self.current_param = Some(c);
                 Ok(())
             } else {
-                Err("invalid parameter")
+                Err(String::from("invalid parameter"))
             }
         } else {
-            return Err("no active command");
+            Err(String::from("no active command"))
         }
     }
 }
 
 impl CommandEvent {
-    pub fn build(arg: &str) -> Result<Self, &str> {
-        match arg {
-            "translate" => Ok(Self::Translate(Translate::default())),
+    pub fn build(arg: &str) -> Result<Self, String> {
+        println!("{}",arg);
+        let out = match arg {
+            "translate" => Ok(CommandEvent::Translate(Translate::default())),
             "rotate" => Ok(Self::Rotate(Rotate::default())),
             "scale" => Ok(Self::Scale(Scale::default())),
             "subdivide" => Ok(Self::Subdivide(Subdivide::default())),
             // "draw" => Ok(Self::Draw(Draw::default())),
             // "filter" => Ok(Self::Filter(Filter::default())),
             // "map" => Ok(Self::Map(Map::default())),
-            "help" => Err(arg),
-            _ => Err(arg),
-        }
+            "help" => Err(arg.to_string()),
+            _ => Err(arg.to_string()),
+        };
+        println!("Asdfasdfasdf");
+        out
     }
 }
 pub trait Param {
-    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str>;
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), String>;
     fn contains_param(&self, param: &char) -> bool;
 }
 
@@ -99,15 +107,20 @@ pub struct Translate {
 impl Default for Translate {
     fn default() -> Self {
         Self {
+            x: None,
+            y: None,
+            z: None,
+            e: None,
+            f: None,
+            preserve_flow: false,
             params: ['x', 'y', 'z', 'e', 'f'],
-            ..default()
         }
     }
 }
 impl Param for Translate {
-    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), String> {
         let Ok(value) = value.parse::<f32>() else {
-            return Err(stringify!("{}", value));
+            return Err(value.to_string());
         };
         match param {
             'x' => self.x = Some(value),
@@ -115,7 +128,7 @@ impl Param for Translate {
             'z' => self.z = Some(value),
             'e' => self.e = Some(value),
             'f' => self.f = Some(value),
-            _ => return Err(stringify!("Unknown parameter: {}", param)),
+            _ => return Err(format!("Unknown parameter: {}", param)),
         }
         Ok(())
     }
@@ -147,21 +160,22 @@ pub struct Rotate {
 impl Default for Rotate {
     fn default() -> Self {
         Self {
+            rho: Option::default(),
             params: ['r', 't', 'p'],
             ..default()
         }
     }
 }
 impl Param for Rotate {
-    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), String> {
         let Ok(value) = value.parse::<f32>() else {
-            return Err(stringify!("{}"value));
+            return Err(format!("{}", value));
         };
         match param {
             'r' => self.rho = Some(value),
             't' => self.theta = Some(value),
             'p' => self.phi = Some(value),
-            _ => return Err(stringify!("Unknown parameter: {}", param)),
+            _ => return Err(format!("Unknown parameter: {}", param)),
         }
         Ok(())
     }
@@ -194,15 +208,15 @@ impl Default for Scale {
     }
 }
 impl Param for Scale {
-    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), String> {
         let Ok(value) = value.parse::<f32>() else {
-            return Err(stringify!("{}" value));
+            return Err(value.to_string());
         };
         match param {
             'x' => self.x = Some(value),
             'y' => self.y = Some(value),
             'z' => self.z = Some(value),
-            _ => return Err(stringify!("Unknown parameter: {}", param)),
+            _ => return Err(format!("Unknown parameter: {}", param)),
         }
         Ok(())
     }
@@ -237,9 +251,9 @@ impl Default for Subdivide {
     }
 }
 impl Param for Subdivide {
-    fn set_param(&mut self, param: &char, value: &str) -> Result<(), &str> {
+    fn set_param(&mut self, param: &char, value: &str) -> Result<(), String> {
         let Ok(value) = value.parse::<f32>() else {
-            return Err(stringify!("{}" value));
+            return Err(format!("{}", value));
         };
         if value > 0.0 {
             self.n = value;
@@ -248,7 +262,7 @@ impl Param for Subdivide {
             'n' => {}
             'c' => self.count_or_dist = true,
             'd' => self.count_or_dist = false,
-            _ => return Err(stringify!("Unknown parameter: {}", param)),
+            _ => return Err(format!("Unknown parameter: {}", param)),
         }
         Ok(())
     }
