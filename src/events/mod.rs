@@ -1,7 +1,7 @@
 pub mod console;
 pub mod handlers;
 
-use std::process::Command;
+
 
 use console::*;
 
@@ -15,9 +15,6 @@ pub enum UiEvent {
     Undo,
     Redo,
     SetPanOrbit(bool),
-    ConsoleEnter(String),
-    ConsoleResponse(String),
-    CommandEnter,
 }
 #[derive(Clone, Debug, Event)]
 pub enum CommandEvent {
@@ -44,8 +41,6 @@ impl CommandEvent {
 }
 #[derive(Event)]
 pub enum SystemEvent {
-    Open,
-    Save,
     SaveAs,
     RecalcBounds,
     ForceRefresh,

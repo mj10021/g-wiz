@@ -6,6 +6,7 @@ mod render;
 mod settings;
 mod ui;
 
+use bevy::ecs::system;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
@@ -167,6 +168,7 @@ fn main() {
                 update_visibilities,
                 ui_handler,
                 command_handler,
+                system_handler,
             )
                 .chain(),
         )

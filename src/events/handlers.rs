@@ -23,8 +23,7 @@ pub fn ui_handler(
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
     mut pan_orbit: ResMut<PanOrbit>,
-    mut command_writer: EventWriter<CommandEvent>,
-    mut console: ResMut<Console>,
+
 ) {
     for event in event.read() {
         match event {
@@ -51,16 +50,7 @@ pub fn ui_handler(
             UiEvent::SetPanOrbit(on) => {
                 pan_orbit.0 = *on;
             }
-            UiEvent::ConsoleEnter(s) => {
-                let cur = console.current_command.is_none();
-                if cur {
-                    console.reborrow().read(s);
-                } else {
-                    console.reborrow().read_param(s);
-                }
-            }
-            UiEvent::ConsoleResponse(s) => todo!(),
-            UiEvent::CommandEnter => todo!(),
+
             UiEvent::MergeDelete => todo!(),
             UiEvent::HoleDelete => todo!(),
             UiEvent::Undo => todo!(),
@@ -72,7 +62,7 @@ pub fn ui_handler(
 #[derive(Default, Resource)]
 pub struct ExportDialogue(pub bool);
 
-fn system_handler(
+pub fn system_handler(
     mut events: EventReader<SystemEvent>,
     mut commands: Commands,
     mut egui_context: Query<&mut EguiContext>,
@@ -83,12 +73,6 @@ fn system_handler(
 ) {
     for event in events.read() {
         match event {
-            SystemEvent::Open => {
-                todo!();
-            }
-            SystemEvent::Save => {
-                todo!();
-            }
             SystemEvent::SaveAs => {
                 if let Ok(window) = window.get_single() {
                     let x = window.width() / 2.0;
@@ -124,13 +108,12 @@ fn system_handler(
 pub fn command_handler(
     mut gcode: ResMut<GCode>,
     s_query: Query<(&PickSelection, &Tag)>,
-    bounding_box: ResMut<crate::BoundingBox>,
     mut refresh: EventWriter<SystemEvent>,
     mut event: EventReader<CommandEvent>,
     ui_res: Res<UiResource>,
 ) {
     let count = ui_res.subdivide_slider;
-    let mut selection = s_query
+    let selection = s_query
         .iter()
         .filter_map(|(s, t)| if !s.is_selected { None } else { Some(t.id) })
         .collect();
@@ -138,16 +121,15 @@ pub fn command_handler(
     for event in event.read() {
         // need to wait for updates/confirm from the console to actually apply the transformation
         match event {
-            CommandEvent::Subdivide(subdivide) => {
+            CommandEvent::Subdivide(_subdivide) => {
                 gcode.0.subdivide_vertices(selection.clone(), count);
             }
 
             CommandEvent::Translate(translate) => {
-                todo!()
-                // let vec = Vec3::from(translate)
-                // for id in selection.iter() {
-                //     gcode.0.translate(id, translate);
-                // }
+                let vec = translate.into_vec();
+                for id in selection.iter() {
+                    gcode.0.translate(id, &vec);
+                }
             }
             CommandEvent::Rotate(rotate) => {
                 for id in selection.iter() {
@@ -190,7 +172,7 @@ pub fn selection_handler(
 ) {
     let select_ids = select_reader
         .read()
-        .map(|s| selectables.get(s.target).unwrap().1.id);
+        .map(|s| &selectables.get(s.target).unwrap().1.id);
     let deselect_ids = deselect_reader
         .read()
         .map(|s| &selectables.get(s.target).unwrap().1.id);
@@ -200,18 +182,18 @@ pub fn selection_handler(
             Choice::Vertex => {}
             Choice::Shape => {
                 for id in select_ids {
-                    out.0.append(&mut gcode.0.get_shape(&id));
+                    out.0.append(&mut gcode.0.get_shape(id));
                 }
                 for id in deselect_ids {
-                    out.1.append(&mut gcode.0.get_shape(&id));
+                    out.1.append(&mut gcode.0.get_shape(id));
                 }
             }
             Choice::Layer => {
                 for id in select_ids {
-                    out.0.append(&mut gcode.0.get_same_z(&id));
+                    out.0.append(&mut gcode.0.get_same_z(id));
                 }
                 for id in deselect_ids {
-                    out.1.append(&mut gcode.0.get_same_z(&id));
+                    out.1.append(&mut gcode.0.get_same_z(id));
                 }
             }
         }

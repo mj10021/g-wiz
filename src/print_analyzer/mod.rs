@@ -389,13 +389,15 @@ impl Parsed {
         out /= count;
         out
     }
+
     fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self.vertices.get(id).expect("vertex not found in map");
-        let p = self
-            .vertices
-            .get(&v.prev.unwrap())
-            .expect("dist from vertex with no prev");
-        p.to.dist(&v.to)
+        if let Some(p) = v.prev {
+            let p = self.vertices.get(&p).expect("dist from vertex with no prev");
+            p.to.dist(&v.to)
+        } else {
+            0.0
+        }
     }
 
     pub fn hole_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {

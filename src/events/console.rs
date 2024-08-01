@@ -32,11 +32,10 @@ impl Console {
         }
     }
     pub fn read(&mut self, input: &str) {
-        println!("asdf");
         if self.current_command.is_none() {
             match CommandEvent::build(input) {
                 Ok(c) => {
-                    println!("asdf1");
+                    self.output += &format!("current command: {:?}\r\n", c);
                     self.current_command = Some(c.clone());
                 }
                 Err(e) => {
@@ -44,12 +43,10 @@ impl Console {
                         self.output += HELP;
                         return;
                     }
-                    println!("asdf2");
                     self.output += &format!("Unknown command: {}\r\n", e);
                 }
             }
         }
-        println!("asdf3");
     }
     pub fn read_param(&mut self, param: &str) -> Result<(), String> {
         if let Some(command) = &mut self.current_command {
@@ -73,7 +70,6 @@ impl Console {
 
 impl CommandEvent {
     pub fn build(arg: &str) -> Result<Self, String> {
-        println!("{}",arg);
         let out = match arg {
             "translate" => Ok(CommandEvent::Translate(Translate::default())),
             "rotate" => Ok(Self::Rotate(Rotate::default())),
@@ -85,7 +81,6 @@ impl CommandEvent {
             "help" => Err(arg.to_string()),
             _ => Err(arg.to_string()),
         };
-        println!("Asdfasdfasdf");
         out
     }
 }
@@ -99,10 +94,7 @@ pub struct Translate {
     pub x: Option<f32>,
     pub y: Option<f32>,
     pub z: Option<f32>,
-    pub e: Option<f32>,
-    pub f: Option<f32>,
-    pub preserve_flow: bool,
-    params: [char; 5],
+    params: [char; 3],
 }
 impl Default for Translate {
     fn default() -> Self {
@@ -110,11 +102,17 @@ impl Default for Translate {
             x: None,
             y: None,
             z: None,
-            e: None,
-            f: None,
-            preserve_flow: false,
-            params: ['x', 'y', 'z', 'e', 'f'],
+            params: ['x', 'y', 'z'],
         }
+    }
+}
+impl Translate {
+    pub fn into_vec(&self) -> Vec3 {
+        Vec3::new(
+            self.x.unwrap_or(0.0),
+            self.y.unwrap_or(0.0),
+            self.z.unwrap_or(0.0),
+        )
     }
 }
 impl Param for Translate {
@@ -126,8 +124,6 @@ impl Param for Translate {
             'x' => self.x = Some(value),
             'y' => self.y = Some(value),
             'z' => self.z = Some(value),
-            'e' => self.e = Some(value),
-            'f' => self.f = Some(value),
             _ => return Err(format!("Unknown parameter: {}", param)),
         }
         Ok(())
@@ -140,13 +136,10 @@ impl Debug for Translate {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
             f,
-            "Translate: <x>: {:?}, <y>: {:?}, <z>: {:?}, <e>: {:?}, <f>: {:?}, <p>reserve flow: {:?} }}",
+            "Translate: <x>: {:?}, <y>: {:?}, <z>: {:?} }}",
             self.x.unwrap_or(0.0),
             self.y.unwrap_or(0.0),
             self.z.unwrap_or(0.0),
-            self.e.unwrap_or(0.0),
-            self.f.unwrap_or(0.0),
-            self.preserve_flow
         )
     }
 }
@@ -327,7 +320,7 @@ impl Debug for Subdivide {
 //     fn default() -> Self {
 //         Self {
 //             params: ['f'],
-//             
+//
 //         }
 //     }
 // }

@@ -279,7 +279,6 @@ pub fn key_system(
     if console_active.0 {
         if keys.just_pressed(KeyCode::Enter) {
             let output: String = console.input.drain(..).collect();
-            console.output.push_str(&output);
             if console.current_command.is_none() {
                 match output.as_str() {
                     "" => return,
@@ -308,7 +307,7 @@ pub fn key_system(
                     }
                 }
             }
-         }
+        }
         return;
     }
     if keys.pressed(KeyCode::ArrowLeft) {
