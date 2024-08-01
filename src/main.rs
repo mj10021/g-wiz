@@ -6,7 +6,6 @@ mod render;
 mod settings;
 mod ui;
 
-use bevy::ecs::system;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
@@ -131,6 +130,7 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.init_resource::<ForceRefresh>();
     commands.init_resource::<Console>();
     commands.init_resource::<ConsoleActive>();
+    commands.init_resource::<ExportDialogue>();
 }
 fn main() {
     App::new()
