@@ -138,12 +138,10 @@ pub fn console(
     let height = window.height() / 5.0;
     let width = contexts.ctx_mut().available_rect().width();
     egui::TopBottomPanel::bottom("console")
-        //.min_height(height)
         .resizable(true)
         .show_separator_line(true)
         .show(contexts.ctx_mut(), |ui| {
             egui::ScrollArea::vertical()
-                // .min_scrolled_height(height)
                 .max_height(height)
                 .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
                 .show(ui, |ui| {
