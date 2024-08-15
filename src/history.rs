@@ -87,11 +87,17 @@ struct State {
     instructions: HashMap<Id, Instruction>,
 }
 
+struct StateDiff {
+    selection_diff: Option<(bool, HashSet<Tag>)>,
+    line_diff: Option<(bool, HashSet<(usize, Id)>)>,
+    vertices_diff: Option<(bool, HashMap<Id, Instruction>)>,
+    instruction_diff: Option<(bool, HashMap<Id, Instruction>)>
+}
+
 #[derive(Resource)]
 pub struct History {
-    // does this need to be more than diffs of the gcode and selections
-    // maybe i can just send an event to reverse the event under the counter
-    log: Vec<CommandEvent>,
+    state: State,
+    diff_log: Vec<StateDiff>,
     pub counter: u32,
 }
 

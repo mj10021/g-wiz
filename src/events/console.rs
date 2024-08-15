@@ -1,6 +1,6 @@
 use super::CommandEvent;
 
-use bevy::{prelude::*, utils::hashbrown::Equivalent};
+use bevy::{prelude::*};
 
 use std::fmt::{Debug, Formatter};
 

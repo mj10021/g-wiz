@@ -44,3 +44,8 @@ pub enum SystemEvent {
     RecalcBounds,
     ForceRefresh, // Ctrl + R / File -> Refresh
 }
+
+pub enum HistoryEvent {
+    Command(CommandEvent),
+    Selection(Vec<Entity>),
+}
