@@ -217,3 +217,5 @@ pub fn selection_handler(
         }
     }
 }
+
+fn record_history() {}
