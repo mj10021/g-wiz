@@ -366,7 +366,6 @@ impl Parsed {
     pub fn assign_shapes(&mut self) {
         let mut out = Vec::new();
         let mut shape = Shape::build(self);
-        let mut layer = -1.0;
         for line in &self.lines {
             let next_id = self.id_counter.get();
             if let Some(v) = self.vertices.get(line) {

@@ -331,8 +331,14 @@ pub fn key_system(
             } else if keys.just_pressed(KeyCode::KeyA) {
                 ui_writer.send(UiEvent::SelectAll);
             }
-        } else if keys.just_pressed(KeyCode::KeyZ) {
-            ui_writer.send(UiEvent::Redo);
+        } else if keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]){
+            // ctrl + shift
+            if keys.just_pressed(KeyCode::KeyZ) {
+                ui_writer.send(UiEvent::Redo);
+            }
+            else if keys.just_pressed(KeyCode::KeyA) {
+                ui_writer.send(UiEvent::DeselectAll);
+            }
         }
     } else if keys.just_pressed(settings.hole_delete_button) {
         ui_writer.send(UiEvent::HoleDelete);

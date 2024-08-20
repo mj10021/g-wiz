@@ -174,16 +174,13 @@ pub fn render(
             }
         };
         let (start, end) = (Vec3::new(xi, yi, zi), Vec3::new(xf, yf, zf));
-        let dist = start.distance(end);
-        let flow = v.to.e / dist;
-        pos_list.push((v.id, start, end, flow, v.label));
+        pos_list.push((v.id, start, end, v.label));
     }
-    for (id, start, end, flow, label) in pos_list {
+    for (id, start, end, label) in pos_list {
         if label == Label::FeedrateChangeOnly || label == Label::Home || label == Label::MysteryMove
         {
             continue;
         }
-        let radius = (flow / std::f32::consts::PI).sqrt();
         let length = start.distance(end);
         let direction = end - start;
         let mut sphere = false;

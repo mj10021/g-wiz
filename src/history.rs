@@ -1,6 +1,6 @@
 use super::{
     print_analyzer::{Instruction, Vertex},
-    CommandEvent, GCode, Id, Resource, Tag,
+    GCode, Id, Resource, Tag,
 };
 use bevy::prelude::*;
 use bevy_mod_picking::selection::PickSelection;

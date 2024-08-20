@@ -1,6 +1,6 @@
 use super::CommandEvent;
 
-use bevy::{prelude::*};
+use bevy::prelude::*;
 
 use std::fmt::{Debug, Formatter};
 
@@ -70,7 +70,7 @@ impl Console {
 
 impl CommandEvent {
     pub fn build(arg: &str) -> Result<Self, String> {
-        let out = match arg {
+        match arg {
             "translate" => Ok(CommandEvent::Translate(Translate::default())),
             "rotate" => Ok(Self::Rotate(Rotate::default())),
             "scale" => Ok(Self::Scale(Scale::default())),
@@ -80,8 +80,7 @@ impl CommandEvent {
             // "map" => Ok(Self::Map(Map::default())),
             "help" => Err(arg.to_string()),
             _ => Err(arg.to_string()),
-        };
-        out
+        }
     }
 }
 pub trait Param {
@@ -107,7 +106,7 @@ impl Default for Translate {
     }
 }
 impl Translate {
-    pub fn into_vec(&self) -> Vec3 {
+    pub fn to_vec(&self) -> Vec3 {
         Vec3::new(
             self.x.unwrap_or(0.0),
             self.y.unwrap_or(0.0),
@@ -163,7 +162,7 @@ impl Default for Rotate {
 impl Param for Rotate {
     fn set_param(&mut self, param: &char, value: &str) -> Result<(), String> {
         let Ok(value) = value.parse::<f32>() else {
-            return Err(format!("{}", value));
+            return Err(String::from(value));
         };
         match param {
             'r' => self.rho = Some(value),
@@ -250,7 +249,7 @@ impl Default for Subdivide {
 impl Param for Subdivide {
     fn set_param(&mut self, param: &char, value: &str) -> Result<(), String> {
         let Ok(value) = value.parse::<f32>() else {
-            return Err(format!("{}", value));
+            return Err(String::from(value));
         };
         if value > 0.0 {
             self.n = value;

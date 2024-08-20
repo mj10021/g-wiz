@@ -41,11 +41,5 @@ impl CommandEvent {
 #[derive(Event)]
 pub enum SystemEvent {
     SaveAs,
-    RecalcBounds,
     ForceRefresh, // Ctrl + R / File -> Refresh
-}
-
-pub enum HistoryEvent {
-    Command(CommandEvent),
-    Selection(Vec<Entity>),
 }

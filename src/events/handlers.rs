@@ -57,7 +57,7 @@ pub fn ui_handler(
                 for mut selection in s_query.iter_mut() {
                     selection.is_selected = false;
                 }
-            },
+            }
         }
     }
 }
@@ -98,9 +98,6 @@ pub fn system_handler(
                     }
                 }
             }
-            SystemEvent::RecalcBounds => {
-                todo!();
-            }
             SystemEvent::ForceRefresh => {
                 commands.init_resource::<ForceRefresh>();
             }
@@ -129,7 +126,7 @@ pub fn command_handler(
             }
 
             CommandEvent::Translate(translate) => {
-                let vec = translate.into_vec();
+                let vec = translate.to_vec();
                 for id in selection.iter() {
                     gcode.0.translate(id, &vec);
                 }
@@ -217,5 +214,3 @@ pub fn selection_handler(
         }
     }
 }
-
-fn record_history() {}
