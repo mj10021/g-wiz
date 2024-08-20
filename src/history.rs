@@ -79,19 +79,23 @@ where
     }
     (add, diff)
 }
-
+    
 struct State {
     selections: HashSet<Tag>,
-    lines: Vec<Id>,
-    vertices: HashMap<Id, Vertex>,
-    instructions: HashMap<Id, Instruction>,
+    gcode: Parsed,
 }
 
-struct StateDiff {
-    selection_diff: Option<(bool, HashSet<Tag>)>,
-    line_diff: Option<(bool, HashSet<(usize, Id)>)>,
-    vertices_diff: Option<(bool, HashMap<Id, Instruction>)>,
-    instruction_diff: Option<(bool, HashMap<Id, Instruction>)>
+impl State {
+    fn build(gcode: GCode) -> Self {
+        Self {
+            selections: HashSet::new(),
+            gcode: gcode.clone()
+        }
+    }
+    fn gcode_diff(&self, gcode: GCode) -> ((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)) {
+        let line_diff = vec_diff(gcode.lines, self.gcode.lines);
+        let vertex_diff = map_diff(gcode.vertices, self.gcode.vertices);
+        (line_diff, vertex_diff)
 }
 
 #[derive(Resource)]
@@ -148,29 +152,6 @@ pub struct GCodeLog {
     curr_counter: u32,
 }
 
-impl GCodeLog {
-    fn init(gcode: Res<GCode>) -> Self {
-        Self {
-            curr: gcode.clone(),
-            log: Vec::new(),
-            history_counter: 0,
-            curr_counter: 0,
-        }
-    }
-
-    fn diff(&self, next: &GCode) -> GCodeDiff {
-        let line_diff = vec_diff(&self.curr.0.lines, &next.0.lines);
-        let vertex_diff = map_diff(&self.curr.0.vertices, &next.0.vertices);
-        let instruction_diff = map_diff(&self.curr.0.instructions, &next.0.instructions);
-        GCodeDiff {
-            add: line_diff.0,
-            line_diff: line_diff.1,
-            vertex_diff: vertex_diff.1,
-            instruction_diff: instruction_diff.1,
-        }
-    }
-}
-
 pub struct GCodeDiff {
     add: bool,
     line_diff: HashSet<(usize, Id)>,
@@ -194,127 +175,4 @@ impl GCodeDiff {
         gcode.0.assign_shapes();
     }
 }
-#[derive(Resource, Default)]
-struct SetSelections;
-pub fn update_selection_log(
-    mut commands: Commands,
-    s_query: Query<(&PickSelection, &Tag)>,
-    mut log: ResMut<SelectionLog>,
-) {
-    let new_set = s_query
-        .iter()
-        .filter(|(s, _)| s.is_selected)
-        .map(|(_, t)| *t)
-        .collect::<HashSet<Tag>>();
-    let diff = log.diff(&new_set);
-    if diff.1.is_empty() {
-        return;
-    }
-    // if the counter isn't current and a the selection is made, clear the selection
-    if log.history_counter != 0 {
-        log.log = Vec::from([diff]);
-        log.history_counter = 0;
-        log.curr_counter = 0;
-        log.curr = new_set;
-        commands.remove_resource::<SetSelections>();
-        return;
-    }
-    log.curr = new_set;
-    log.log.push(diff);
-    commands.init_resource::<SetSelections>()
-}
-// use crate::{events::events::UiEvent, print_analyzer::Parsed};
-// fn update_gcode_log(
-//     mut gcode: ResMut<GCode>,
-//     mut log: ResMut<GCodeLog>,
-//     mut refresh: EventWriter<SystemEvent>,
-// ) {
-//     let diff = log.diff(&gcode);
-//     diff.apply(&mut gcode);
-//     log.log.push(diff);
-//     refresh.send(SystemEvent::ForceRefresh);
-// }
-//
-// pub fn update_logs(
-//     mut commands: Commands,
-//     mut gcode: ResMut<GCode>,
-//     s_query: Query<(&PickSelection, &Tag)>,
-//     mut history: ResMut<History>,
-// ) {
-//     let gcode_diff = history.gcode_log.diff(&gcode);
-//     let selection_set = s_query
-//         .iter()
-//         .filter(|(s, _)| s.is_selected)
-//         .map(|(_, t)| *t)
-//         .collect::<HashSet<Tag>>();
-//     let selection_diff = history.selection_log.diff(&selection_set);
-// }
 
-pub fn undo_redo_selections(
-    mut commands: Commands,
-    mut s_query: Query<(&mut PickSelection, &Tag)>,
-    mut log: ResMut<SelectionLog>,
-) {
-    if log.log.is_empty() {
-        return;
-    }
-    let mut updated = false;
-    // ctrl+z
-    while log.curr_counter < log.history_counter {
-        let diff = log.log[log.log.len() - log.curr_counter as usize - 1].clone();
-        log.reverse_apply(diff);
-        log.curr_counter += 1;
-        updated = true;
-    }
-    // ctrl+shift+z
-    while log.curr_counter > log.history_counter {
-        let diff = log.log[log.log.len() - log.curr_counter as usize].clone();
-        log.forward_apply(diff);
-        log.curr_counter -= 1;
-        updated = true;
-    }
-    if updated {
-        for (mut s, i) in s_query.iter_mut() {
-            s.is_selected = log.curr.contains(i);
-        }
-    }
-    commands.remove_resource::<SetSelections>();
-}
-
-//pub fn undo_redo_history(
-//    mut commands: Commands,
-//    mut s_query: Query<(&mut PickSelection, &Tag)>,
-//    mut history: ResMut<History>,
-//) {
-//    if history.log.is_empty() {
-//        return;
-//    }
-//    let mut updated = false;
-//    // ctrl+z
-//    while history.curr_counter < history.history_counter {
-//
-//        let selection = history.log[history.log.len() - history.curr_counter as usize - 1];
-//        if selection {
-//            history.selection_counter += 1;
-//
-//        } else {
-////
-//        }
-//        log.reverse_apply(diff);
-//        history.curr_counter += 1;
-//        updated = true;
-//    }
-//    // ctrl+shift+z
-//    while log.curr_counter > log.history_counter {
-//        let diff = log.log[log.log.len() - log.curr_counter as usize].clone();
-//        log.forward_apply(diff);
-//        log.curr_counter -= 1;
-//        updated = true;
-//    }
-//    if updated {
-//        for (mut s, i) in s_query.iter_mut() {
-//            s.is_selected = log.curr.contains(i);
-//        }
-//    }
-//    commands.remove_resource::<SetSelections>()
-//}
