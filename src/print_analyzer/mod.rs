@@ -229,11 +229,19 @@ impl Vertex {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Shape {
     pub id: Id,
-    lines: Vec<Id>,
+    pub lines: Vec<Id>,
     layer: f32,
 }
 
 impl Shape {
+    pub fn new() -> Self {
+        Shape {
+            id: Id(0),
+            lines: Vec::new(),
+            layer: -1.0
+
+        }
+    }
     pub fn _len(&self, gcode: &Parsed) -> f32 {
         let mut out = 0.0;
         for line in &self.lines {
@@ -343,7 +351,7 @@ impl Parsed {
 
     pub fn assign_shapes(&mut self) {
         let mut out = Vec::new();
-        let mut temp_shape = Vec::new();
+        let mut shape = Shape::new();
         let mut layer = -1.0;
         for line in &self.lines {
             if let Some(vertex) = self.vertices.get(line) {
@@ -390,7 +398,7 @@ impl Parsed {
         out
     }
 
-    fn dist_from_prev(&self, id: &Id) -> f32 {
+    pub fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self.vertices.get(id).expect("vertex not found in map");
         if let Some(p) = v.prev {
             let p = self.vertices.get(&p).expect("dist from vertex with no prev");
@@ -399,6 +407,12 @@ impl Parsed {
             0.0
         }
     }
+    pub fn get_flow(&self, id: &Id) -> f32 {
+        let v = self.vertices.get(id).expect("vertex not found");
+        let dist = self.dist_from_prev(&v.id);
+        let flow = v.to.e; // assumes relative extrusion
+        flow / dist
+    } 
 
     pub fn hole_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
         for (id, v) in self.vertices.iter_mut() {

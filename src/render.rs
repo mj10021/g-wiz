@@ -77,7 +77,7 @@ pub fn setup_render(
         bounding_box.min.y as u32 - border,
         bounding_box.min.z as u32,
     );
-    // FIXME: make this casting beter
+    // FIXME: make this casting better
     for x in (x_min..=x_max).step_by(step) {
         let start = Vec3::new(x as f32, y_min as f32, z_min as f32);
         let end = Vec3::new(x as f32, y_max as f32, z_min as f32);
@@ -120,11 +120,49 @@ pub fn render(
     shapes: Query<Entity, With<Tag>>,
     settings: Res<Settings>,
 ) {
+    let colors = [Color::RED, Color::ORANGE, Color::YELLOW, Color::GREEN, Color::BLUE, Color::INDIGO, Color::VIOLET];
     for shape in shapes.iter() {
         commands.entity(shape).despawn();
     }
     let gcode = &gcode.0;
     let mut pos_list = Vec::new();
+    for (i, shape) in gcode.shapes.iter().enumerate() {
+        let color = colors[i % colors.len()];
+        for line in &shape.lines {
+            if let Some(v) = gcode.vertices.get(line) {
+                if v.to.e > f32::EPSILON && gcode.dist_from_prev(&v.id) > f32::EPSILON {
+                    let p = gcode.vertices.get(&v.prev.unwrap()).unwrap();
+                    let (start, end) = (Vec3::new(p.to.x, p.to.y, p.to.z), Vec3::new(v.to.x, v.to.y, v.to.z));
+                    let dist = start.distance(end);
+                    let flow = gcode.get_flow(&v.id);
+                    let radius = (flow / std::f32::consts::PI).sqrt();
+                    let mesh_handle = meshes.add(Cylinder {radius, half_height: dist/2.0});
+                    let material_handle = materials.add(StandardMaterial {base_color: color, ..Default::default()});
+                    // Calculate the middle point and orientation of the cylinder
+                    let direction = end - start;
+                    let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
+                    let translation = (start + end) / 2.0 ;
+                    let e_id = commands
+                        .spawn((
+                            PbrBundle {
+                                mesh: mesh_handle,
+                                material: material_handle.clone(),
+                                transform: Transform {
+                                    translation,
+                                    rotation,
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            PickableBundle::default(),
+                            Tag { id: v.id },
+                        ))
+                        .id();
+                    map.0.insert(v.id, e_id);
+                }
+            }
+        }
+    }
     for v in gcode.vertices.values() {
         let (xf, yf, zf) = (v.to.x, v.to.y, v.to.z);
         let (xi, yi, zi) = {
@@ -152,11 +190,6 @@ pub fn render(
 
         // Create the mesh and material
         let mesh_handle = match label {
-            Label::PlanarExtrustion | Label::NonPlanarExtrusion | Label::PrePrintMove => meshes
-                .add(Cylinder {
-                    radius,
-                    half_height: length / 2.0,
-                }),
             Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
                 meshes.add(Cylinder {
                     radius: 0.1,
@@ -172,11 +205,6 @@ pub fn render(
             sphere = true;
         }
         let material_handle = match label {
-            Label::PlanarExtrustion | Label::NonPlanarExtrusion | Label::PrePrintMove => materials
-                .add(StandardMaterial {
-                    base_color: settings.extrusion_color,
-                    ..Default::default()
-                }),
             Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
                 materials.add(StandardMaterial {
                     base_color: settings.travel_color,
