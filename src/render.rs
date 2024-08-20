@@ -198,7 +198,7 @@ pub fn render(
             }
             Label::DeRetraction | Label::Retraction => meshes.add(Sphere { radius: 0.6 }),
             _ => {
-                panic!("{:?}", label)
+                continue;
             }
         };
         if label == Label::DeRetraction || label == Label::Retraction {

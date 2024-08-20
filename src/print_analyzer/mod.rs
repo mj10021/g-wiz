@@ -234,15 +234,29 @@ pub struct Shape {
 }
 
 impl Shape {
-    pub fn new() -> Self {
+    pub fn build(gcode: &mut Parsed) -> Self {
+        let id = gcode.id_counter.get();
         Shape {
-            id: Id(0),
+            id,
             lines: Vec::new(),
             layer: -1.0
 
         }
     }
-    pub fn _len(&self, gcode: &Parsed) -> f32 {
+    fn get_layer(&mut self, gcode: &Parsed) {
+        let mut layer = HashMap::new();
+        for line in &self.lines {
+            let v = gcode.vertices.get(line).unwrap();
+            let z = format!("{}", v.to.z);
+            layer.entry(z).and_modify(|c| *c += 1).or_insert(1);
+        }
+        layer.iter().collect::<Vec<(&String, &u32)>>().sort_by(|(_, a), (_, b)| a.cmp(b));
+        if !layer.is_empty() {
+            self.layer = layer.iter().next().unwrap().0.parse().unwrap();
+        }
+
+    }
+    pub fn _len(&self, gcode: &mut Parsed) -> f32 {
         let mut out = 0.0;
         for line in &self.lines {
             if gcode.vertices.contains_key(line) {
@@ -351,35 +365,25 @@ impl Parsed {
 
     pub fn assign_shapes(&mut self) {
         let mut out = Vec::new();
-        let mut shape = Shape::new();
+        let mut shape = Shape::build(self);
         let mut layer = -1.0;
         for line in &self.lines {
-            if let Some(vertex) = self.vertices.get(line) {
-                if vertex.extrusion_move() {
-                    layer = vertex.to.z;
-                }
-                if vertex.change_move() {
-                    let shape = Shape {
-                        id: self.id_counter.get(),
-                        lines: temp_shape,
-                        layer,
-                    };
-                    out.push(shape);
-                    temp_shape = Vec::new();
-                    layer = -1.0;
+            let next_id = self.id_counter.get();
+            if let Some(v) = self.vertices.get(line) {
+                if v.to.e > f32::EPSILON && self.dist_from_prev(line) > f32::EPSILON {
+                    shape.lines.push(*line);
                 } else {
-                    temp_shape.push(*line);
+                    shape.get_layer(self);
+                    out.push(shape);
+                    shape = Shape {
+                        id: next_id,
+                        lines: Vec::new(),
+                        layer: -1.0
+                    };
                 }
-            } else {
-                temp_shape.push(*line);
             }
         }
-        if !temp_shape.is_empty() {
-            let shape = Shape {
-                id: self.id_counter.get(),
-                lines: temp_shape,
-                layer,
-            };
+        if !shape.lines.is_empty() {
             out.push(shape);
         }
         self.shapes = out;
