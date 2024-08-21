@@ -166,13 +166,12 @@ pub fn selection_handler(
     mut select_reader: EventReader<Pointer<Select>>,
     mut deselect_reader: EventReader<Pointer<Deselect>>,
     ui_res: Res<UiResource>,
-    mut history: Res<History>,
+    // mut history: Res<History>,
     mut selectables: Query<(&mut PickSelection, &Tag)>,
     map: Res<IdMap>,
     gcode: Res<GCode>,
 ) {
-    let mut selections = Vec::new();
-    let deselections = Vec::new();
+
     let select_ids = select_reader
         .read()
         .map(|s| &selectables.get(s.target).unwrap().1.id);

@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use events::{console::*, handlers::*, *};
-use history::{undo_redo_selections, update_selection_log, SelectionLog};
+use history::SelectionLog;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed};
@@ -154,7 +154,7 @@ fn main() {
         .add_systems(Startup, (setup, ui_setup, setup_render).chain())
         .add_systems(PreUpdate, select_erase_brush.before(send_selection_events))
         .add_systems(PreUpdate, (capture_mouse).before(send_selection_events))
-        .add_systems(Update, update_selection_log.before(undo_redo_selections))
+        // .add_systems(Update, update_selection_log.before(undo_redo_selections))
         .add_systems(
             Update,
             (

@@ -1,9 +1,7 @@
 use super::{
-    print_analyzer::{Instruction, Vertex},
+    print_analyzer::{Parsed, Instruction, Vertex},
     GCode, Id, Resource, Tag,
 };
-use bevy::prelude::*;
-use bevy_mod_picking::selection::PickSelection;
 use std::collections::{HashMap, HashSet};
 
 fn vec_diff<T>(curr: &Vec<T>, next: &Vec<T>) -> (bool, HashSet<(usize, T)>)
@@ -89,24 +87,67 @@ impl State {
     fn build(gcode: GCode) -> Self {
         Self {
             selections: HashSet::new(),
-            gcode: gcode.clone()
+            gcode: gcode.0.clone()
         }
     }
-    fn gcode_diff(&self, gcode: GCode) -> ((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)) {
-        let line_diff = vec_diff(gcode.lines, self.gcode.lines);
-        let vertex_diff = map_diff(gcode.vertices, self.gcode.vertices);
-        (line_diff, vertex_diff)
+    fn gcode_diff(&self, gcode: GCode) -> Diff {
+        let line_diff = vec_diff(&gcode.0.lines, &self.gcode.lines);
+        let vertex_diff = map_diff(&gcode.0.vertices, &self.gcode.vertices);
+        Diff::GCodeDiff(line_diff, vertex_diff)
+    }
+    fn selection_diff(&self, selection: HashSet<Tag>) -> Diff {
+        Diff::SelectionDiff(set_diff(&self.selections, &selection))
+    }
+}
+
+enum Diff {
+    GCodeDiff((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
+    SelectionDiff((bool, HashSet<Tag>))
 }
 
 #[derive(Resource)]
 pub struct History {
     state: State,
-    diff_log: Vec<StateDiff>,
-    pub counter: u32,
+    diff_log: Vec<Diff>,
+    pub counter: usize,
 }
 
 impl History {
-    fn forward_apply(&mut self) {}
+    fn forward_apply(&mut self) {
+        let cur = &self.diff_log[self.counter];
+        match cur {
+            Diff::GCodeDiff(line_diff, vertex_diff) => {
+                let (dir, set) = line_diff;
+                for (i, id) in set.iter() {
+                    if *dir {
+                        self.state.gcode.lines.insert(*i, *id);
+                    } else {
+                        self.state.gcode.lines.remove(*i);
+                    }
+                }
+                let (dir, map) = vertex_diff;
+                for (id, vertex) in map.iter() {
+                    if *dir {
+                        self.state.gcode.vertices.insert(*id, vertex.clone());
+                    } else {
+                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex)); // make sure the value is present
+                    }
+                }
+
+            }
+            Diff::SelectionDiff((dir, set)) => {
+                if *dir {
+                    self.state.selections.extend(set.iter());
+                } else {
+                    for tag in set.iter() {
+                        assert!(self.state.selections.remove(tag)); // ensures removed value was present
+                    }
+                }
+            }
+        }
+
+    }
+    fn reverse_apply(&mut self) {}
 }
 
 #[derive(Default, Resource)]
