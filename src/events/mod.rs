@@ -43,12 +43,3 @@ pub enum SystemEvent {
     SaveAs,
     ForceRefresh, // Ctrl + R / File -> Refresh
 }
-
-struct Diff<E, D> {
-    event: E,
-    data: D
-}
-
-impl<E, D> Diff<E, D> where E: Event, D: Sized {
-
-}

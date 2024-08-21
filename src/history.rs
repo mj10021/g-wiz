@@ -1,10 +1,11 @@
+#![allow(dead_code)]
 use super::{
     print_analyzer::{Parsed, Instruction, Vertex},
     GCode, Id, Resource, Tag,
 };
 use std::collections::{HashMap, HashSet};
 
-fn vec_diff<T>(curr: &Vec<T>, next: &Vec<T>) -> (bool, HashSet<(usize, T)>)
+fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
 where
     T: Copy + Eq + std::hash::Hash,
 {
@@ -128,7 +129,7 @@ impl History {
                 let (dir, map) = vertex_diff;
                 for (id, vertex) in map.iter() {
                     if *dir {
-                        self.state.gcode.vertices.insert(*id, vertex.clone());
+                        self.state.gcode.vertices.insert(*id, *vertex);
                     } else {
                         assert!(self.state.gcode.vertices.remove(id) == Some(*vertex)); // make sure the value is present
                     }
@@ -204,7 +205,7 @@ impl GCodeDiff {
     fn apply(&self, gcode: &mut GCode) {
         if self.add {
             for (i, id) in self.line_diff.iter() {
-                gcode.0.lines.insert(*i as usize, *id);
+                gcode.0.lines.insert(*i, *id);
             }
             gcode.0.vertices.extend(self.vertex_diff.clone());
             gcode.0.instructions.extend(self.instruction_diff.clone())
