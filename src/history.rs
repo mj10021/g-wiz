@@ -4,7 +4,8 @@ use super::{
     GCode, Id, Resource, Tag,
 };
 use std::collections::{HashMap, HashSet};
-
+use bevy::prelude::*;
+use bevy_mod_picking::prelude::PickSelection;
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
 where
     T: Copy + Eq + std::hash::Hash,
@@ -91,9 +92,9 @@ impl State {
             gcode: gcode.0.clone()
         }
     }
-    fn gcode_diff(&self, gcode: GCode) -> Diff {
-        let line_diff = vec_diff(&gcode.0.lines, &self.gcode.lines);
-        let vertex_diff = map_diff(&gcode.0.vertices, &self.gcode.vertices);
+    fn gcode_diff(&self, gcode: &Parsed) -> Diff {
+        let line_diff = vec_diff(&gcode.lines, &self.gcode.lines);
+        let vertex_diff = map_diff(&gcode.vertices, &self.gcode.vertices);
         Diff::GCodeDiff(line_diff, vertex_diff)
     }
     fn selection_diff(&self, selection: HashSet<Tag>) -> Diff {
@@ -114,9 +115,9 @@ pub struct History {
 }
 
 impl History {
-    fn get_diff(gcode: Res<GCode>, selections: Query<&PickSelection, &Tag>) {
-        let gcode_diff = self.state.gcode_diff(gcode.0);
-        let selection_diff = self.state.selection_diff(selections.iter().collect());
+    fn get_diff(&mut self, gcode: Res<GCode>, selections: Query<(&PickSelection, &Tag)>) {
+        let gcode_diff = self.state.gcode_diff(&gcode.0);
+        let selection_diff = self.state.selection_diff(selections.iter().map(|(_, tag)| *tag).collect());
     }
     fn forward_apply(&mut self) {
         let cur = &self.diff_log[self.counter];
