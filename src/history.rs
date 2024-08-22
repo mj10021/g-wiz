@@ -114,6 +114,10 @@ pub struct History {
 }
 
 impl History {
+    fn get_diff(gcode: Res<GCode>, selections: Query<&PickSelection, &Tag>) {
+        let gcode_diff = self.state.gcode_diff(gcode.0);
+        let selection_diff = self.state.selection_diff(selections.iter().collect());
+    }
     fn forward_apply(&mut self) {
         let cur = &self.diff_log[self.counter];
         match cur {
