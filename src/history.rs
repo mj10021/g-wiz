@@ -101,7 +101,7 @@ impl State {
         Diff::SelectionDiff(set_diff(&self.selections, &selection))
     }
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Diff {
     GCodeDiff((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
     SelectionDiff((bool, HashSet<Tag>)),
