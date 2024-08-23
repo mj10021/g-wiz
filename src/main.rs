@@ -10,6 +10,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use events::{console::*, handlers::*, *};
+use history::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
 use print_analyzer::{Id, Parsed};
@@ -19,7 +20,6 @@ use settings::*;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
-use history::*;
 
 #[derive(Default, Resource)]
 struct IdMap(HashMap<Id, Entity>);
@@ -123,7 +123,7 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.insert_resource(read_settings());
     commands.insert_resource(VertexCounter::build(&gcode));
     commands.insert_resource(History::build(&gcode));
-    commands.insert_resource(GCode(gcode)); 
+    commands.insert_resource(GCode(gcode));
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<PanOrbit>();
@@ -176,7 +176,14 @@ fn main() {
             Update,
             pan_orbit_camera.run_if(resource_equals::<PanOrbit>(PanOrbit(true))),
         )
-        .add_systems(PostUpdate, render.run_if(resource_exists::<ForceRefresh>))
-        .add_systems(PostUpdate, history::update_history)
+        .add_systems(
+            PostUpdate,
+            (
+                render.run_if(resource_exists::<ForceRefresh>),
+                undo_redo,
+                update_history_diff_log,
+            )
+                .chain(),
+        )
         .run();
 }

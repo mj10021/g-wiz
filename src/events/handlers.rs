@@ -22,6 +22,7 @@ pub fn ui_handler(
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
     mut pan_orbit: ResMut<PanOrbit>,
+    mut history: ResMut<History>,
 ) {
     for event in event.read() {
         match event {
@@ -50,8 +51,20 @@ pub fn ui_handler(
 
             UiEvent::MergeDelete => todo!(),
             UiEvent::HoleDelete => todo!(),
-            UiEvent::Undo => todo!(),
-            UiEvent::Redo => todo!(),
+            UiEvent::Undo => {
+                if history.counter == 0 {
+                    return;
+                } else {
+                    history.counter -= 1;
+                }
+            }
+            UiEvent::Redo => {
+                if history.counter == history.diff_log.len() - 1 {
+                    return;
+                } else {
+                    history.counter += 1;
+                }
+            }
             UiEvent::DeselectAll => {
                 for mut selection in s_query.iter_mut() {
                     selection.is_selected = false;

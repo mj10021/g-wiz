@@ -102,7 +102,7 @@ impl State {
     }
 }
 #[derive(Clone, Debug)]
-enum Diff {
+pub enum Diff {
     GCodeDiff((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
     SelectionDiff((bool, HashSet<Tag>)),
 }
@@ -119,8 +119,9 @@ impl Diff {
 #[derive(Resource)]
 pub struct History {
     state: State,
-    diff_log: Vec<Diff>,
+    pub diff_log: Vec<Diff>,
     pub counter: usize,
+    counter_cur: usize,
 }
 
 impl History {
@@ -128,7 +129,8 @@ impl History {
         Self {
             state: State::build(gcode),
             diff_log: Vec::new(),
-            counter: 0
+            counter: 0,
+            counter_cur: 0,
         }
     }
     fn apply_last_change(&mut self) {
@@ -167,10 +169,10 @@ impl History {
             }
         }
     }
-    fn reverse_apply(&mut self) {}
+    fn reverse_apply(&mut self, diff: &Diff) {}
 }
 
-pub fn update_history(
+pub fn update_history_diff_log(
     mut history: ResMut<History>,
     gcode: Res<GCode>,
     selections: Query<(&PickSelection, &Tag)>,
@@ -189,5 +191,22 @@ pub fn update_history(
     if selection_diff.is_some() {
         history.diff_log.push(selection_diff);
         history.apply_last_change();
+    }
+}
+
+pub fn undo_redo(
+    mut history: ResMut<History>,
+    mut gcode: ResMut<GCode>,
+    mut selections: Query<(&mut PickSelection, &Tag)>,
+) {
+    while history.counter != history.counter_cur {
+        let diff = history.diff_log[history.counter_cur].clone();
+        if history.counter < history.counter_cur {
+            history.forward_apply(&diff);
+            history.counter_cur += 1;
+        } else {
+            history.reverse_apply(&diff);
+            history.counter_cur -= 1;
+        }
     }
 }
