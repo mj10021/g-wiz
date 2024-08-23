@@ -101,10 +101,23 @@ impl State {
         Diff::SelectionDiff(set_diff(&self.selections, &selection))
     }
 }
-
+#[derive(Clone)]
 enum Diff {
     GCodeDiff((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
     SelectionDiff((bool, HashSet<Tag>))
+}
+
+impl Diff {
+    fn is_some(&self) -> bool {
+        match self {
+            Diff::GCodeDiff((_, set), (_, map)) => {
+                !set.is_empty() || !map.is_empty()
+            }
+            Diff::SelectionDiff((_, set)) => {
+                !set.is_empty()
+            }
+        }
+    }
 }
 
 #[derive(Resource)]
@@ -114,14 +127,13 @@ pub struct History {
     pub counter: usize,
 }
 
-impl History {
-    fn get_diff(&mut self, gcode: Res<GCode>, selections: Query<(&PickSelection, &Tag)>) {
-        let gcode_diff = self.state.gcode_diff(&gcode.0);
-        let selection_diff = self.state.selection_diff(selections.iter().map(|(_, tag)| *tag).collect());
+impl History {      
+    fn apply_last_change(&mut self) {
+        let last_change = self.diff_log.last().unwrap().clone();
+        self.forward_apply(&last_change);
     }
-    fn forward_apply(&mut self) {
-        let cur = &self.diff_log[self.counter];
-        match cur {
+    fn forward_apply(&mut self, diff: &Diff) {
+        match diff {
             Diff::GCodeDiff(line_diff, vertex_diff) => {
                 let (dir, set) = line_diff;
                 for (i, id) in set.iter() {
@@ -156,3 +168,15 @@ impl History {
     fn reverse_apply(&mut self) {}
 }
 
+pub fn update_history(mut history: ResMut<History>, gcode: Res<GCode>, selections: Query<(&PickSelection, &Tag)>) {
+    let gcode_diff = history.state.gcode_diff(&gcode.0);
+    let selection_diff = history.state.selection_diff(selections.iter().filter_map(|(s, t)| if s.is_selected{Some(*t)} else {None}).collect());
+    if gcode_diff.is_some() {
+        history.diff_log.push(gcode_diff);
+        history.apply_last_change();
+    }
+    if selection_diff.is_some() {
+        history.diff_log.push(selection_diff);
+        history.apply_last_change();
+    }
+}

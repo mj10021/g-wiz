@@ -125,7 +125,6 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<PanOrbit>();
-    commands.init_resource::<SelectionLog>();
     commands.init_resource::<ForceRefresh>();
     commands.init_resource::<Console>();
     commands.init_resource::<ConsoleActive>();
@@ -175,6 +174,7 @@ fn main() {
             Update,
             pan_orbit_camera.run_if(resource_equals::<PanOrbit>(PanOrbit(true))),
         )
-        .add_systems(Update, render.run_if(resource_exists::<ForceRefresh>))
+        .add_systems(PostUpdate, render.run_if(resource_exists::<ForceRefresh>))
+        .add_systems(PostUpdate, history::update_history)
         .run();
 }
