@@ -59,7 +59,7 @@ pub fn ui_handler(
                 }
             }
             UiEvent::Redo => {
-                if history.counter == history.diff_log.len() - 1 {
+                if history.diff_log.len() <1 || history.counter == history.diff_log.len() - 1 {
                     return;
                 } else {
                     history.counter += 1;
