@@ -239,8 +239,7 @@ impl Shape {
         Shape {
             id,
             lines: Vec::new(),
-            layer: -1.0
-
+            layer: -1.0,
         }
     }
     fn get_layer(&mut self, gcode: &Parsed) {
@@ -250,11 +249,13 @@ impl Shape {
             let z = format!("{}", v.to.z);
             layer.entry(z).and_modify(|c| *c += 1).or_insert(1);
         }
-        layer.iter().collect::<Vec<(&String, &u32)>>().sort_by(|(_, a), (_, b)| a.cmp(b));
+        layer
+            .iter()
+            .collect::<Vec<(&String, &u32)>>()
+            .sort_by(|(_, a), (_, b)| a.cmp(b));
         if !layer.is_empty() {
             self.layer = layer.iter().next().unwrap().0.parse().unwrap();
         }
-
     }
     pub fn _len(&self, gcode: &mut Parsed) -> f32 {
         let mut out = 0.0;
@@ -377,7 +378,7 @@ impl Parsed {
                     shape = Shape {
                         id: next_id,
                         lines: Vec::new(),
-                        layer: -1.0
+                        layer: -1.0,
                     };
                 }
             }
@@ -404,7 +405,10 @@ impl Parsed {
     pub fn dist_from_prev(&self, id: &Id) -> f32 {
         let v = self.vertices.get(id).expect("vertex not found in map");
         if let Some(p) = v.prev {
-            let p = self.vertices.get(&p).expect("dist from vertex with no prev");
+            let p = self
+                .vertices
+                .get(&p)
+                .expect("dist from vertex with no prev");
             p.to.dist(&v.to)
         } else {
             0.0
@@ -415,7 +419,7 @@ impl Parsed {
         let dist = self.dist_from_prev(&v.id);
         let flow = v.to.e; // assumes relative extrusion
         flow / dist
-    } 
+    }
 
     pub fn hole_delete(&mut self, lines_to_delete: &mut HashSet<Id>) {
         for (id, v) in self.vertices.iter_mut() {

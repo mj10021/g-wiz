@@ -120,7 +120,15 @@ pub fn render(
     shapes: Query<Entity, With<Tag>>,
     settings: Res<Settings>,
 ) {
-    let colors = [Color::RED, Color::ORANGE, Color::YELLOW, Color::GREEN, Color::BLUE, Color::INDIGO, Color::VIOLET];
+    let colors = [
+        Color::RED,
+        Color::ORANGE,
+        Color::YELLOW,
+        Color::GREEN,
+        Color::BLUE,
+        Color::INDIGO,
+        Color::VIOLET,
+    ];
     for shape in shapes.iter() {
         commands.entity(shape).despawn();
     }
@@ -132,16 +140,25 @@ pub fn render(
             if let Some(v) = gcode.vertices.get(line) {
                 if v.to.e > f32::EPSILON && gcode.dist_from_prev(&v.id) > f32::EPSILON {
                     let p = gcode.vertices.get(&v.prev.unwrap()).unwrap();
-                    let (start, end) = (Vec3::new(p.to.x, p.to.y, p.to.z), Vec3::new(v.to.x, v.to.y, v.to.z));
+                    let (start, end) = (
+                        Vec3::new(p.to.x, p.to.y, p.to.z),
+                        Vec3::new(v.to.x, v.to.y, v.to.z),
+                    );
                     let dist = start.distance(end);
                     let flow = gcode.get_flow(&v.id);
                     let radius = (flow / std::f32::consts::PI).sqrt();
-                    let mesh_handle = meshes.add(Cylinder {radius, half_height: dist/2.0});
-                    let material_handle = materials.add(StandardMaterial {base_color: color, ..Default::default()});
+                    let mesh_handle = meshes.add(Cylinder {
+                        radius,
+                        half_height: dist / 2.0,
+                    });
+                    let material_handle = materials.add(StandardMaterial {
+                        base_color: color,
+                        ..Default::default()
+                    });
                     // Calculate the middle point and orientation of the cylinder
                     let direction = end - start;
                     let rotation = Quat::from_rotation_arc(Vec3::Y, direction.normalize());
-                    let translation = (start + end) / 2.0 ;
+                    let translation = (start + end) / 2.0;
                     let e_id = commands
                         .spawn((
                             PbrBundle {

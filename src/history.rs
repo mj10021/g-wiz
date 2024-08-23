@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 use super::{
-    print_analyzer::{Parsed, Instruction, Vertex},
+    print_analyzer::{Parsed, Vertex},
     GCode, Id, Resource, Tag,
 };
-use std::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::PickSelection;
+use std::collections::{HashMap, HashSet};
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
 where
     T: Copy + Eq + std::hash::Hash,
@@ -79,17 +79,17 @@ where
     }
     (add, diff)
 }
-    
+
 struct State {
     selections: HashSet<Tag>,
     gcode: Parsed,
 }
 
 impl State {
-    fn build(gcode: GCode) -> Self {
+    fn build(gcode: &Parsed) -> Self {
         Self {
             selections: HashSet::new(),
-            gcode: gcode.0.clone()
+            gcode: gcode.clone(),
         }
     }
     fn gcode_diff(&self, gcode: &Parsed) -> Diff {
@@ -104,18 +104,14 @@ impl State {
 #[derive(Clone)]
 enum Diff {
     GCodeDiff((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
-    SelectionDiff((bool, HashSet<Tag>))
+    SelectionDiff((bool, HashSet<Tag>)),
 }
 
 impl Diff {
     fn is_some(&self) -> bool {
         match self {
-            Diff::GCodeDiff((_, set), (_, map)) => {
-                !set.is_empty() || !map.is_empty()
-            }
-            Diff::SelectionDiff((_, set)) => {
-                !set.is_empty()
-            }
+            Diff::GCodeDiff((_, set), (_, map)) => !set.is_empty() || !map.is_empty(),
+            Diff::SelectionDiff((_, set)) => !set.is_empty(),
         }
     }
 }
@@ -127,7 +123,14 @@ pub struct History {
     pub counter: usize,
 }
 
-impl History {      
+impl History {
+    pub fn build(gcode: &Parsed) -> Self {
+        Self {
+            state: State::build(gcode),
+            diff_log: Vec::new(),
+            counter: 0
+        }
+    }
     fn apply_last_change(&mut self) {
         let last_change = self.diff_log.last().unwrap().clone();
         self.forward_apply(&last_change);
@@ -148,10 +151,10 @@ impl History {
                     if *dir {
                         self.state.gcode.vertices.insert(*id, *vertex);
                     } else {
-                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex)); // make sure the value is present
+                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex));
+                        // make sure the value is present
                     }
                 }
-
             }
             Diff::SelectionDiff((dir, set)) => {
                 if *dir {
@@ -163,14 +166,22 @@ impl History {
                 }
             }
         }
-
     }
     fn reverse_apply(&mut self) {}
 }
 
-pub fn update_history(mut history: ResMut<History>, gcode: Res<GCode>, selections: Query<(&PickSelection, &Tag)>) {
+pub fn update_history(
+    mut history: ResMut<History>,
+    gcode: Res<GCode>,
+    selections: Query<(&PickSelection, &Tag)>,
+) {
     let gcode_diff = history.state.gcode_diff(&gcode.0);
-    let selection_diff = history.state.selection_diff(selections.iter().filter_map(|(s, t)| if s.is_selected{Some(*t)} else {None}).collect());
+    let selection_diff = history.state.selection_diff(
+        selections
+            .iter()
+            .filter_map(|(s, t)| if s.is_selected { Some(*t) } else { None })
+            .collect(),
+    );
     if gcode_diff.is_some() {
         history.diff_log.push(gcode_diff);
         history.apply_last_change();

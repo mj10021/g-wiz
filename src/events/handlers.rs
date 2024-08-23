@@ -22,7 +22,6 @@ pub fn ui_handler(
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
     mut pan_orbit: ResMut<PanOrbit>,
-
 ) {
     for event in event.read() {
         match event {
@@ -171,7 +170,6 @@ pub fn selection_handler(
     map: Res<IdMap>,
     gcode: Res<GCode>,
 ) {
-
     let select_ids = select_reader
         .read()
         .map(|s| &selectables.get(s.target).unwrap().1.id);

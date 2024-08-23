@@ -2,17 +2,17 @@
 // File, Select, Console, ...
 pub mod console;
 pub mod handlers;
-use console::*;
 use bevy::prelude::*;
+use console::*;
 #[derive(Event)]
 pub enum UiEvent {
     MergeDelete, // Backspace
-    HoleDelete, // Delete
+    HoleDelete,  // Delete
     MoveDisplay(bool, bool, f32),
-    SelectAll, // Ctrl + A
+    SelectAll,   // Ctrl + A
     DeselectAll, // Ctrl + Shift + A
-    Undo, // Ctrl + Z
-    Redo, // Ctrl + Shift + Z
+    Undo,        // Ctrl + Z
+    Redo,        // Ctrl + Shift + Z
     SetPanOrbit(bool),
 }
 #[derive(Clone, Debug, Event)]

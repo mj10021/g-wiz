@@ -19,6 +19,7 @@ use settings::*;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
+use history::*;
 
 #[derive(Default, Resource)]
 struct IdMap(HashMap<Id, Entity>);
@@ -121,7 +122,8 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     commands.insert_resource(bounding_box);
     commands.insert_resource(read_settings());
     commands.insert_resource(VertexCounter::build(&gcode));
-    commands.insert_resource(GCode(gcode));
+    commands.insert_resource(History::build(&gcode));
+    commands.insert_resource(GCode(gcode)); 
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();
     commands.init_resource::<PanOrbit>();
