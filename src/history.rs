@@ -169,7 +169,80 @@ impl History {
             }
         }
     }
-    fn reverse_apply(&mut self, diff: &Diff) {}
+    fn reverse_apply(&mut self, diff: &Diff) {
+        match diff {
+            Diff::GCodeDiff(line_diff, vertex_diff) => {
+                let (dir, set) = line_diff;
+                for (i, id) in set.iter() {
+                    if !*dir {
+                        self.state.gcode.lines.insert(*i, *id);
+                    } else {
+                        self.state.gcode.lines.remove(*i);
+                    }
+                }
+                let (dir, map) = vertex_diff;
+                for (id, vertex) in map.iter() {
+                    if !*dir {
+                        self.state.gcode.vertices.insert(*id, *vertex);
+                    } else {
+                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex));
+                        // make sure the value is present
+                    }
+                }
+            }
+            Diff::SelectionDiff((dir, set)) => {
+                if *dir {
+                    self.state.selections.extend(set.iter());
+                } else {
+                    for tag in set.iter() {
+                        assert!(self.state.selections.remove(tag)); // ensures removed value was present
+                    }
+                }
+            }
+        }
+    }
+    fn apply_to_gcode(&self, gcode: &mut Parsed, dir: bool) {
+        let diff = &self.diff_log[self.counter_cur];
+        if let Diff::GCodeDiff(line_diff, vertex_diff) = diff {
+            if dir {
+                let (dir, set) = line_diff;
+                for (i, id) in set.iter() {
+                    if *dir {
+                        gcode.lines.insert(*i, *id);
+                    } else {
+                        gcode.lines.remove(*i);
+                    }
+                }
+                let (dir, map) = vertex_diff;
+                for (id, vertex) in map.iter() {
+                    if *dir {
+                        gcode.vertices.insert(*id, *vertex);
+                    } else {
+                        assert!(gcode.vertices.remove(id) == Some(*vertex));
+                        // make sure the value is present
+                    }
+                }
+            } else {
+                let (dir, set) = line_diff;
+                for (i, id) in set.iter() {
+                    if !dir {
+                        gcode.lines.insert(*i, *id);
+                    } else {
+                        gcode.lines.remove(*i);
+                    }
+                }
+                let (dir, map) = vertex_diff;
+                for (id, vertex) in map.iter() {
+                    if !dir {
+                        gcode.vertices.insert(*id, *vertex);
+                    } else {
+                        assert!(gcode.vertices.remove(id) == Some(*vertex));
+                        // make sure the value is present
+                    }
+                }
+            }
+        }
+    }
 }
 
 pub fn update_history_diff_log(
@@ -203,10 +276,19 @@ pub fn undo_redo(
         let diff = history.diff_log[history.counter_cur].clone();
         if history.counter < history.counter_cur {
             history.forward_apply(&diff);
+            history.apply_to_gcode(&mut gcode.0, true);
             history.counter_cur += 1;
         } else {
             history.reverse_apply(&diff);
+            history.apply_to_gcode(&mut gcode.0, false);
             history.counter_cur -= 1;
+        }
+    }
+    for (mut selection, tag) in selections.iter_mut() {
+        if history.state.selections.contains(tag) {
+            selection.is_selected = true;
+        } else {
+            selection.is_selected = false;
         }
     }
 }
