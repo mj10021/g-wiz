@@ -134,8 +134,7 @@ impl History {
         }
     }
     fn apply_last_change(&mut self) {
-        let last_change = self.diff_log.last().unwrap().clone();
-        self.forward_apply(&last_change);
+        self.apply_current(true);
     }
     fn apply_current(&mut self, forward_or_reverse: bool) {
         let diff = &self.diff_log[self.counter_cur];
@@ -170,71 +169,8 @@ impl History {
             }
         }
     }
-    fn forward_apply(&mut self, diff: &Diff) {
-        match diff {
-            Diff::GCodeDiff(line_diff, vertex_diff) => {
-                let (dir, set) = line_diff;
-                for (i, id) in set.iter() {
-                    if *dir {
-                        self.state.gcode.lines.insert(*i, *id);
-                    } else {
-                        self.state.gcode.lines.remove(*i);
-                    }
-                }
-                let (dir, map) = vertex_diff;
-                for (id, vertex) in map.iter() {
-                    if *dir {
-                        self.state.gcode.vertices.insert(*id, *vertex);
-                    } else {
-                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex));
-                        // make sure the value is present
-                    }
-                }
-            }
-            Diff::SelectionDiff((dir, set)) => {
-                if *dir {
-                    self.state.selections.extend(set.iter());
-                } else {
-                    for tag in set.iter() {
-                        assert!(self.state.selections.remove(tag)); // ensures removed value was present
-                    }
-                }
-            }
-        }
-    }
-    fn reverse_apply(&mut self, diff: &Diff) {
-        match diff {
-            Diff::GCodeDiff(line_diff, vertex_diff) => {
-                let (dir, set) = line_diff;
-                for (i, id) in set.iter() {
-                    if !*dir {
-                        self.state.gcode.lines.insert(*i, *id);
-                    } else {
-                        self.state.gcode.lines.remove(*i);
-                    }
-                }
-                let (dir, map) = vertex_diff;
-                for (id, vertex) in map.iter() {
-                    if !*dir {
-                        self.state.gcode.vertices.insert(*id, *vertex);
-                    } else {
-                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex));
-                        // make sure the value is present
-                    }
-                }
-            }
-            Diff::SelectionDiff((dir, set)) => {
-                if *dir {
-                    self.state.selections.extend(set.iter());
-                } else {
-                    for tag in set.iter() {
-                        assert!(self.state.selections.remove(tag)); // ensures removed value was present
-                    }
-                }
-            }
-        }
-    }
-    fn apply_to_gcode(&self, gcode: &mut Parsed, diff: &Diff, is_redo: bool) {
+    fn apply_to_gcode(&self, gcode: &mut Parsed, is_redo: bool) {
+        let diff = &self.diff_log[self.counter_cur];
         if let Diff::GCodeDiff(line_diff, vertex_diff) = diff {
             if is_redo {
                 let (dir, set) = line_diff;
@@ -305,14 +241,13 @@ pub fn undo_redo(
     mut selections: Query<(&mut PickSelection, &Tag)>,
 ) {
     while history.counter != history.counter_cur {
-        let diff = history.diff_log[history.counter_cur].clone();
         if history.counter < history.counter_cur {
-            history.forward_apply(&diff);
-            history.apply_to_gcode(&mut gcode.0, &diff, true);
+            history.apply_current(true);
+            history.apply_to_gcode(&mut gcode.0, true);
             history.counter_cur += 1;
         } else {
-            history.reverse_apply(&diff);
-            history.apply_to_gcode(&mut gcode.0, &diff, false);
+            history.apply_current(false);
+            history.apply_to_gcode(&mut gcode.0, false);
             history.counter_cur -= 1;
         }
     }
