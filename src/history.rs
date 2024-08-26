@@ -137,6 +137,39 @@ impl History {
         let last_change = self.diff_log.last().unwrap().clone();
         self.forward_apply(&last_change);
     }
+    fn apply_current(&mut self, forward_or_reverse: bool) {
+        let diff = &self.diff_log[self.counter_cur];
+         match diff {
+            Diff::GCodeDiff(line_diff, vertex_diff) => {
+                let (dir, set) = line_diff;
+                for (i, id) in set.iter() {
+                    if *dir == forward_or_reverse {
+                        self.state.gcode.lines.insert(*i, *id);
+                    } else {
+                        self.state.gcode.lines.remove(*i);
+                    }
+                }
+                let (dir, map) = vertex_diff;
+                for (id, vertex) in map.iter() {
+                    if *dir == forward_or_reverse {
+                        self.state.gcode.vertices.insert(*id, *vertex);
+                    } else {
+                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex));
+                        // make sure the value is present
+                    }
+                }
+            }
+            Diff::SelectionDiff((dir, set)) => {
+                if *dir == forward_or_reverse {
+                    self.state.selections.extend(set.iter());
+                } else {
+                    for tag in set.iter() {
+                        assert!(self.state.selections.remove(tag)); // ensures removed value was present
+                    }
+                }
+            }
+        }
+    }
     fn forward_apply(&mut self, diff: &Diff) {
         match diff {
             Diff::GCodeDiff(line_diff, vertex_diff) => {
@@ -201,10 +234,9 @@ impl History {
             }
         }
     }
-    fn apply_to_gcode(&self, gcode: &mut Parsed, dir: bool) {
-        let diff = &self.diff_log[self.counter_cur];
+    fn apply_to_gcode(&self, gcode: &mut Parsed, diff: &Diff, is_redo: bool) {
         if let Diff::GCodeDiff(line_diff, vertex_diff) = diff {
-            if dir {
+            if is_redo {
                 let (dir, set) = line_diff;
                 for (i, id) in set.iter() {
                     if *dir {
@@ -276,19 +308,15 @@ pub fn undo_redo(
         let diff = history.diff_log[history.counter_cur].clone();
         if history.counter < history.counter_cur {
             history.forward_apply(&diff);
-            history.apply_to_gcode(&mut gcode.0, true);
+            history.apply_to_gcode(&mut gcode.0, &diff, true);
             history.counter_cur += 1;
         } else {
             history.reverse_apply(&diff);
-            history.apply_to_gcode(&mut gcode.0, false);
+            history.apply_to_gcode(&mut gcode.0, &diff, false);
             history.counter_cur -= 1;
         }
     }
     for (mut selection, tag) in selections.iter_mut() {
-        if history.state.selections.contains(tag) {
-            selection.is_selected = true;
-        } else {
-            selection.is_selected = false;
-        }
+        selection.is_selected = history.state.selections.contains(tag);
     }
 }

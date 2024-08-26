@@ -180,8 +180,8 @@ fn main() {
             PostUpdate,
             (
                 render.run_if(resource_exists::<ForceRefresh>),
-                undo_redo,
                 update_history_diff_log,
+                undo_redo
             )
                 .chain(),
         )
