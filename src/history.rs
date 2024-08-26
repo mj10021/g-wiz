@@ -225,6 +225,10 @@ pub fn update_history_diff_log(
             .filter_map(|(s, t)| if s.is_selected { Some(*t) } else { None })
             .collect(),
     );
+    if (gcode_diff.is_some() || selection_diff.is_some()) && history.counter!= history.counter_cur {
+        history.counter = 0;
+        history.counter_cur = 0; 
+    }
     if gcode_diff.is_some() {
         history.diff_log.push(gcode_diff);
         history.apply_last_change();
