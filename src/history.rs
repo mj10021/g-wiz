@@ -5,7 +5,7 @@ use super::{
 };
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::PickSelection;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
 where
     T: Copy + Eq + std::hash::Hash,
@@ -119,7 +119,7 @@ impl Diff {
 #[derive(Resource)]
 pub struct History {
     state: State,
-    pub diff_log: Vec<Diff>,
+    pub diff_log: VecDeque<Diff>,
     pub counter: usize,
     counter_cur: usize,
 }
@@ -128,7 +128,7 @@ impl History {
     pub fn build(gcode: &Parsed) -> Self {
         Self {
             state: State::build(gcode),
-            diff_log: Vec::new(),
+            diff_log: VecDeque::new(),
             counter: 0,
             counter_cur: 0,
         }
@@ -230,11 +230,11 @@ pub fn update_history_diff_log(
         history.counter_cur = 0; 
     }
     if gcode_diff.is_some() {
-        history.diff_log.push(gcode_diff);
+        history.diff_log.push_front(gcode_diff);
         history.apply_last_change();
     }
     if selection_diff.is_some() {
-        history.diff_log.push(selection_diff);
+        history.diff_log.push_front(selection_diff);
         history.apply_last_change();
     }
 }
