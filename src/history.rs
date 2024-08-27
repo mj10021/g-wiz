@@ -95,24 +95,24 @@ impl State {
     fn gcode_diff(&self, gcode: &Parsed) -> Diff {
         let line_diff = vec_diff(&gcode.lines, &self.gcode.lines);
         let vertex_diff = map_diff(&gcode.vertices, &self.gcode.vertices);
-        Diff::GCodeDiff(line_diff, vertex_diff)
+        Diff::GCode(line_diff, vertex_diff)
     }
     fn selection_diff(&self, selection: HashSet<Tag>) -> Diff {
-        Diff::SelectionDiff(set_diff(&self.selections, &selection))
+        Diff::Selection(set_diff(&self.selections, &selection))
     }
 }
 #[derive(Clone, Debug)]
 pub enum Diff {
     Init,
-    GCodeDiff((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
-    SelectionDiff((bool, HashSet<Tag>)),
+    GCode((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
+    Selection((bool, HashSet<Tag>)),
 }
 
 impl Diff {
     fn is_some(&self) -> bool {
         match self {
-            Diff::GCodeDiff((_, set), (_, map)) => !set.is_empty() || !map.is_empty(),
-            Diff::SelectionDiff((_, set)) => !set.is_empty(),
+            Diff::GCode((_, set), (_, map)) => !set.is_empty() || !map.is_empty(),
+            Diff::Selection((_, set)) => !set.is_empty(),
             Diff::Init => false,
         }
     }
@@ -141,7 +141,7 @@ impl History {
     fn apply_current(&mut self, forward_or_reverse: bool) {
         let diff = &self.diff_log[self.counter_cur];
         match diff {
-            Diff::GCodeDiff(line_diff, vertex_diff) => {
+            Diff::GCode(line_diff, vertex_diff) => {
                 let (dir, set) = line_diff;
                 for (i, id) in set.iter() {
                     if *dir == forward_or_reverse {
@@ -160,7 +160,7 @@ impl History {
                     }
                 }
             }
-            Diff::SelectionDiff((dir, set)) => {
+            Diff::Selection((dir, set)) => {
                 if *dir == forward_or_reverse {
                     self.state.selections.extend(set.iter());
                 } else {
@@ -174,7 +174,7 @@ impl History {
     }
     fn apply_to_gcode(&self, gcode: &mut Parsed, is_redo: bool) {
         let diff = &self.diff_log[self.counter_cur];
-        if let Diff::GCodeDiff(line_diff, vertex_diff) = diff {
+        if let Diff::GCode(line_diff, vertex_diff) = diff {
             if is_redo {
                 let (dir, set) = line_diff;
                 for (i, id) in set.iter() {
