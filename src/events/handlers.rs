@@ -52,17 +52,16 @@ pub fn ui_handler(
             UiEvent::MergeDelete => todo!(),
             UiEvent::HoleDelete => todo!(),
             UiEvent::Undo => {
-                if history.counter == 0 {
-                    return;
-                } else {
-                    history.counter -= 1;
+                // check for end of list
+                if !history.diff_log.is_empty() && history.counter < history.diff_log.len() - 1 {
+                    history.counter += 1;
                 }
+
             }
             UiEvent::Redo => {
-                if history.diff_log.is_empty() || history.counter == history.diff_log.len() - 1 {
-                    return;
-                } else {
-                    history.counter += 1;
+                // check for end of list
+                if history.counter > 0 {
+                    history.counter -= 1;
                 }
             }
             UiEvent::DeselectAll => {

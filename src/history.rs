@@ -120,8 +120,8 @@ impl Diff {
 pub struct History {
     state: State,
     pub diff_log: VecDeque<Diff>,
-    pub counter: usize,
-    counter_cur: usize,
+    pub counter: Option<usize>,
+    counter_cur: Option<usize>,
 }
 
 impl History {
@@ -129,16 +129,17 @@ impl History {
         Self {
             state: State::build(gcode),
             diff_log: VecDeque::new(),
-            counter: 0,
-            counter_cur: 0,
+            counter: None,
+            counter_cur: None,
         }
     }
     fn apply_last_change(&mut self) {
         self.apply_current(true);
     }
     fn apply_current(&mut self, forward_or_reverse: bool) {
-        let diff = &self.diff_log[self.counter_cur];
-         match diff {
+        let Some(counter_cur) = self.counter_cur else {return;};
+        let diff = &self.diff_log[counter_cur];
+        match diff {
             Diff::GCodeDiff(line_diff, vertex_diff) => {
                 let (dir, set) = line_diff;
                 for (i, id) in set.iter() {
@@ -170,7 +171,8 @@ impl History {
         }
     }
     fn apply_to_gcode(&self, gcode: &mut Parsed, is_redo: bool) {
-        let diff = &self.diff_log[self.counter_cur];
+        let Some(counter_cur) = self.counter_cur else {return;};
+        let diff = &self.diff_log[counter_cur];
         if let Diff::GCodeDiff(line_diff, vertex_diff) = diff {
             if is_redo {
                 let (dir, set) = line_diff;
@@ -225,9 +227,11 @@ pub fn update_history_diff_log(
             .filter_map(|(s, t)| if s.is_selected { Some(*t) } else { None })
             .collect(),
     );
-    if (gcode_diff.is_some() || selection_diff.is_some()) && history.counter!= history.counter_cur {
+    if (gcode_diff.is_some() || selection_diff.is_some()) && history.counter != history.counter_cur
+    {
         history.counter = 0;
-        history.counter_cur = 0; 
+        history.counter_cur = 0;
+        history.diff_log = VecDeque::new();
     }
     if gcode_diff.is_some() {
         history.diff_log.push_front(gcode_diff);
@@ -248,11 +252,11 @@ pub fn undo_redo(
         if history.counter < history.counter_cur {
             history.apply_current(true);
             history.apply_to_gcode(&mut gcode.0, true);
-            history.counter_cur += 1;
+            history.counter_cur -= 1;
         } else {
             history.apply_current(false);
             history.apply_to_gcode(&mut gcode.0, false);
-            history.counter_cur -= 1;
+            history.counter_cur += 1;
         }
     }
     for (mut selection, tag) in selections.iter_mut() {

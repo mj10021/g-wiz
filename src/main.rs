@@ -181,7 +181,7 @@ fn main() {
             (
                 render.run_if(resource_exists::<ForceRefresh>),
                 update_history_diff_log,
-                undo_redo
+                undo_redo,
             )
                 .chain(),
         )
