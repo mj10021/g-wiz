@@ -135,9 +135,6 @@ impl History {
             counter_cur: 0,
         }
     }
-    fn apply_last_change(&mut self) {
-        self.apply_current(true);
-    }
     fn apply_current(&mut self, forward_or_reverse: bool) {
         let diff = &self.diff_log[self.counter_cur];
         match diff {
@@ -164,12 +161,14 @@ impl History {
                 if *dir == forward_or_reverse {
                     self.state.selections.extend(set.iter());
                 } else {
-                    for tag in set.iter() {
-                        assert!(self.state.selections.remove(tag)); // ensures removed value was present
-                    }
+                    self.state.selections = self.state
+                        .selections
+                        .iter()
+                        .filter_map(|t| if set.contains(t) { None } else { Some(*t) })
+                        .collect::<HashSet<_>>();
                 }
             }
-                Diff::Init => {}
+            Diff::Init => {}
         }
     }
     fn apply_to_gcode(&self, gcode: &mut Parsed, is_redo: bool) {
@@ -236,11 +235,11 @@ pub fn update_history_diff_log(
     }
     if gcode_diff.is_some() {
         history.diff_log.push_front(gcode_diff);
-        history.apply_last_change();
+        history.apply_current(true)
     }
     if selection_diff.is_some() {
         history.diff_log.push_front(selection_diff);
-        history.apply_last_change();
+        history.apply_current(true);
     }
 }
 
@@ -254,14 +253,11 @@ pub fn undo_redo(
             history.apply_current(true);
             history.apply_to_gcode(&mut gcode.0, true);
             history.counter_cur -= 1;
-        } 
-        
-        else {
+        } else {
             history.apply_current(false);
             history.apply_to_gcode(&mut gcode.0, false);
             history.counter_cur += 1;
         }
-
     }
     for (mut selection, tag) in selections.iter_mut() {
         selection.is_selected = history.state.selections.contains(tag);

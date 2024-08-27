@@ -56,7 +56,6 @@ pub fn ui_handler(
                 if !history.diff_log.is_empty() && history.counter < history.diff_log.len() - 1 {
                     history.counter += 1;
                 }
-
             }
             UiEvent::Redo => {
                 // check for end of list
