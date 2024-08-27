@@ -103,6 +103,7 @@ impl State {
 }
 #[derive(Clone, Debug)]
 pub enum Diff {
+    Init,
     GCodeDiff((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
     SelectionDiff((bool, HashSet<Tag>)),
 }
@@ -112,6 +113,7 @@ impl Diff {
         match self {
             Diff::GCodeDiff((_, set), (_, map)) => !set.is_empty() || !map.is_empty(),
             Diff::SelectionDiff((_, set)) => !set.is_empty(),
+            Diff::Init => false,
         }
     }
 }
@@ -120,25 +122,24 @@ impl Diff {
 pub struct History {
     state: State,
     pub diff_log: VecDeque<Diff>,
-    pub counter: Option<usize>,
-    counter_cur: Option<usize>,
+    pub counter: usize,
+    counter_cur: usize,
 }
 
 impl History {
     pub fn build(gcode: &Parsed) -> Self {
         Self {
             state: State::build(gcode),
-            diff_log: VecDeque::new(),
-            counter: None,
-            counter_cur: None,
+            diff_log: VecDeque::from([Diff::Init]),
+            counter: 0,
+            counter_cur: 0,
         }
     }
     fn apply_last_change(&mut self) {
         self.apply_current(true);
     }
     fn apply_current(&mut self, forward_or_reverse: bool) {
-        let Some(counter_cur) = self.counter_cur else {return;};
-        let diff = &self.diff_log[counter_cur];
+        let diff = &self.diff_log[self.counter_cur];
         match diff {
             Diff::GCodeDiff(line_diff, vertex_diff) => {
                 let (dir, set) = line_diff;
@@ -168,11 +169,11 @@ impl History {
                     }
                 }
             }
+                Diff::Init => {}
         }
     }
     fn apply_to_gcode(&self, gcode: &mut Parsed, is_redo: bool) {
-        let Some(counter_cur) = self.counter_cur else {return;};
-        let diff = &self.diff_log[counter_cur];
+        let diff = &self.diff_log[self.counter_cur];
         if let Diff::GCodeDiff(line_diff, vertex_diff) = diff {
             if is_redo {
                 let (dir, set) = line_diff;
@@ -253,11 +254,14 @@ pub fn undo_redo(
             history.apply_current(true);
             history.apply_to_gcode(&mut gcode.0, true);
             history.counter_cur -= 1;
-        } else {
+        } 
+        
+        else {
             history.apply_current(false);
             history.apply_to_gcode(&mut gcode.0, false);
             history.counter_cur += 1;
         }
+
     }
     for (mut selection, tag) in selections.iter_mut() {
         selection.is_selected = history.state.selections.contains(tag);
