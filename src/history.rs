@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use super::{
     print_analyzer::{Parsed, Vertex},
     GCode, Id, Resource, Tag,
@@ -6,6 +5,14 @@ use super::{
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::PickSelection;
 use std::collections::{HashMap, HashSet, VecDeque};
+
+#[derive(Copy, Clone, Debug)]
+enum DiffType {
+    Add,
+    Remove,
+    Modify
+}
+
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
 where
     T: Copy + Eq + std::hash::Hash,
@@ -47,37 +54,32 @@ where
     }
 }
 
-fn map_diff<S, T>(curr: &HashMap<S, T>, next: &HashMap<S, T>) -> (bool, HashMap<S, T>)
+fn map_diff<S, T>(curr: &HashMap<S, T>, next: &HashMap<S, T>) -> Vec<(DiffType, S, T)>
 where
     S: Copy + PartialEq + Eq + core::hash::Hash,
-    T: Clone,
+    T: Clone + PartialEq,
 {
-    let add = curr.len() < next.len();
-    let (curr_keys, next_keys) = (
-        curr.keys().copied().collect::<HashSet<_>>(),
-        next.keys().copied().collect::<HashSet<_>>(),
-    );
-    let diff_keys = {
-        if add {
-            curr_keys.difference(&next_keys)
+    let mut out = Vec::new();
+    // first check if any values were modified
+    // then see which keys were added or removed
+    for (key, init_val) in curr.iter() {
+        let new = next.get(key);
+        if let Some(val) = new {
+            if val != init_val {
+                out.push((DiffType::Modify, *key, val.clone()));
+            }
         } else {
-            next_keys.difference(&curr_keys)
+            out.push((DiffType::Remove, *key, init_val.clone()))
         }
     }
-    .collect::<HashSet<&S>>();
-    let mut diff: HashMap<S, T> = HashMap::new();
-    if add {
-        for key in diff_keys.iter() {
-            let value = next.get(*key).unwrap();
-            diff.insert(**key, value.clone());
-        }
-    } else {
-        for key in diff_keys.iter() {
-            let value = curr.get(*key).unwrap();
-            diff.insert(**key, value.clone());
-        }
+    let next_keys = next.keys().copied().collect::<HashSet<_>>();
+    let curr_keys = curr.keys().copied().collect::<HashSet<_>>();
+    let new_keys = next_keys.difference(&curr_keys);
+    for key in new_keys {
+        let val = next.get(key).unwrap();
+        out.push((DiffType::Add, *key, val.clone()));
     }
-    (add, diff)
+    out
 }
 
 struct State {
@@ -93,8 +95,8 @@ impl State {
         }
     }
     fn gcode_diff(&self, gcode: &Parsed) -> Diff {
-        let line_diff = vec_diff(&gcode.lines, &self.gcode.lines);
-        let vertex_diff = map_diff(&gcode.vertices, &self.gcode.vertices);
+        let line_diff = vec_diff(&self.gcode.lines, &gcode.lines);
+        let vertex_diff = map_diff(&self.gcode.vertices, &gcode.vertices);
         Diff::GCode(line_diff, vertex_diff)
     }
     fn selection_diff(&self, selection: HashSet<Tag>) -> Diff {
@@ -104,14 +106,14 @@ impl State {
 #[derive(Clone, Debug)]
 pub enum Diff {
     Init,
-    GCode((bool, HashSet<(usize, Id)>), (bool, HashMap<Id, Vertex>)),
+    GCode((bool, HashSet<(usize, Id)>), Vec<(DiffType, Id, Vertex)>),
     Selection((bool, HashSet<Tag>)),
 }
 
 impl Diff {
     fn is_some(&self) -> bool {
         match self {
-            Diff::GCode((_, set), (_, map)) => !set.is_empty() || !map.is_empty(),
+            Diff::GCode((_, set), vec) => !set.is_empty() || !vec.is_empty(),
             Diff::Selection((_, set)) => !set.is_empty(),
             Diff::Init => false,
         }
@@ -221,6 +223,9 @@ pub fn update_history_diff_log(
     selections: Query<(&PickSelection, &Tag)>,
 ) {
     let gcode_diff = history.state.gcode_diff(&gcode.0);
+    if gcode_diff.is_some() {
+        println!("{:?}", gcode_diff);
+    }
     let selection_diff = history.state.selection_diff(
         selections
             .iter()

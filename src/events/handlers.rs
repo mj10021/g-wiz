@@ -18,6 +18,7 @@ impl Default for PanOrbit {
 }
 
 pub fn ui_handler(
+    mut commands: Commands,
     mut event: EventReader<UiEvent>,
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
