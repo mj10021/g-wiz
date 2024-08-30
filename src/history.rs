@@ -190,6 +190,7 @@ impl History {
                     gcode.vertices.remove(id);
                 }
             }
+        }
     }
 }
 
