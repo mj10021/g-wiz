@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 enum DiffType {
     Add,
     Remove,
-    Modify
+    Modify,
 }
 
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
@@ -149,13 +149,14 @@ impl History {
                         self.state.gcode.lines.remove(*i);
                     }
                 }
-                let (dir, map) = vertex_diff;
-                for (id, vertex) in map.iter() {
-                    if *dir == forward_or_reverse {
-                        self.state.gcode.vertices.insert(*id, *vertex);
-                    } else {
-                        assert!(self.state.gcode.vertices.remove(id) == Some(*vertex));
-                        // make sure the value is present
+                for (diff_type, id, vertex) in vertex_diff {
+                    match diff_type {
+                        DiffType::Add | DiffType::Modify => {
+                            self.state.gcode.vertices.insert(*id, vertex.clone());
+                        }
+                        DiffType::Remove => {
+                            self.state.gcode.vertices.remove(id);
+                        }
                     }
                 }
             }
@@ -163,7 +164,8 @@ impl History {
                 if *dir == forward_or_reverse {
                     self.state.selections.extend(set.iter());
                 } else {
-                    self.state.selections = self.state
+                    self.state.selections = self
+                        .state
                         .selections
                         .iter()
                         .filter_map(|t| if set.contains(t) { None } else { Some(*t) })
@@ -185,13 +187,14 @@ impl History {
                         gcode.lines.remove(*i);
                     }
                 }
-                let (dir, map) = vertex_diff;
-                for (id, vertex) in map.iter() {
-                    if *dir {
-                        gcode.vertices.insert(*id, *vertex);
-                    } else {
-                        assert!(gcode.vertices.remove(id) == Some(*vertex));
-                        // make sure the value is present
+                for (diff_type, id, vertex) in vertex_diff {
+                    match diff_type {
+                        DiffType::Add | DiffType::Modify => {
+                            gcode.vertices.insert(*id, vertex.clone());
+                        }
+                        DiffType::Remove => {
+                            gcode.vertices.remove(id);
+                        }
                     }
                 }
             } else {
