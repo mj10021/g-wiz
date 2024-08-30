@@ -55,6 +55,7 @@ pub fn ui_handler(
             UiEvent::Undo => {
                 // check for end of list
                 if !history.diff_log.is_empty() && history.counter < history.diff_log.len() - 1 {
+                    println!("undo");
                     history.counter += 1;
                     commands.init_resource::<ForceRefresh>();
                 }
@@ -62,6 +63,7 @@ pub fn ui_handler(
             UiEvent::Redo => {
                 // check for end of list
                 if history.counter > 0 {
+                    println!("redo");
                     history.counter -= 1;
                     commands.init_resource::<ForceRefresh>();
                 }

@@ -14,7 +14,7 @@ pub enum DiffType {
 }
 
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
-// FIXME: mse sure the indicies are sorted so that the right lines are removed
+// FIXME: make sure the indicies are sorted so that the right lines are removed
 where
     T: Copy + Eq + std::hash::Hash,
 {
@@ -229,6 +229,7 @@ pub fn update_history_diff_log(
         history.apply_current(true)
     }
     if selection_diff.is_some() {
+        println!("{:?}", selection_diff);
         history.diff_log.push_front(selection_diff);
         history.apply_current(true);
     }
@@ -249,8 +250,8 @@ pub fn undo_redo(
             history.apply_to_gcode(&mut gcode.0, false);
             history.counter_cur += 1;
         }
-    }
-    for (mut selection, tag) in selections.iter_mut() {
-        selection.is_selected = history.state.selections.contains(tag);
+        for (mut selection, tag) in selections.iter_mut() {
+            selection.is_selected = history.state.selections.contains(tag);
+        }
     }
 }
