@@ -7,13 +7,14 @@ use bevy_mod_picking::prelude::PickSelection;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 #[derive(Copy, Clone, Debug)]
-enum DiffType {
+pub enum DiffType {
     Add,
     Remove,
     Modify,
 }
 
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
+// FIXME: mse sure the indicies are sorted so that the right lines are removed
 where
     T: Copy + Eq + std::hash::Hash,
 {
@@ -179,6 +180,14 @@ impl History {
     fn apply_to_gcode(&self, gcode: &mut Parsed, forward_or_reverse: bool) {
         let diff = &self.diff_log[self.counter_cur];
         if let Diff::GCode(line_diff, vertex_diff) = diff {
+            let (dir, set) = line_diff;
+            for (i, id) in set.iter() {
+                if *dir {
+                    gcode.lines.insert(*i, *id);
+                } else {
+                    gcode.lines.remove(*i);
+                }
+            }
             for (diff_type, id, vertex) in vertex_diff {
                 let dir = match diff_type {
                     DiffType::Add | DiffType::Modify => forward_or_reverse == true,

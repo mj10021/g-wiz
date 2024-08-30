@@ -56,12 +56,14 @@ pub fn ui_handler(
                 // check for end of list
                 if !history.diff_log.is_empty() && history.counter < history.diff_log.len() - 1 {
                     history.counter += 1;
+                    commands.init_resource::<ForceRefresh>();
                 }
             }
             UiEvent::Redo => {
                 // check for end of list
                 if history.counter > 0 {
                     history.counter -= 1;
+                    commands.init_resource::<ForceRefresh>();
                 }
             }
             UiEvent::DeselectAll => {
