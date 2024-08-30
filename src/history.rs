@@ -150,13 +150,14 @@ impl History {
                     }
                 }
                 for (diff_type, id, vertex) in vertex_diff {
-                    match diff_type {
-                        DiffType::Add | DiffType::Modify => {
-                            self.state.gcode.vertices.insert(*id, vertex.clone());
-                        }
-                        DiffType::Remove => {
-                            self.state.gcode.vertices.remove(id);
-                        }
+                    let dir = match diff_type {
+                        DiffType::Add | DiffType::Modify => forward_or_reverse == true,
+                        DiffType::Remove => forward_or_reverse == false,
+                    };
+                    if dir {
+                        self.state.gcode.vertices.insert(*id, vertex.clone());
+                    } else {
+                        self.state.gcode.vertices.remove(id);
                     }
                 }
             }
@@ -175,48 +176,20 @@ impl History {
             Diff::Init => {}
         }
     }
-    fn apply_to_gcode(&self, gcode: &mut Parsed, is_redo: bool) {
+    fn apply_to_gcode(&self, gcode: &mut Parsed, forward_or_reverse: bool) {
         let diff = &self.diff_log[self.counter_cur];
         if let Diff::GCode(line_diff, vertex_diff) = diff {
-            if is_redo {
-                let (dir, set) = line_diff;
-                for (i, id) in set.iter() {
-                    if *dir {
-                        gcode.lines.insert(*i, *id);
-                    } else {
-                        gcode.lines.remove(*i);
-                    }
-                }
-                for (diff_type, id, vertex) in vertex_diff {
-                    match diff_type {
-                        DiffType::Add | DiffType::Modify => {
-                            gcode.vertices.insert(*id, vertex.clone());
-                        }
-                        DiffType::Remove => {
-                            gcode.vertices.remove(id);
-                        }
-                    }
-                }
-            } else {
-                let (dir, set) = line_diff;
-                for (i, id) in set.iter() {
-                    if !dir {
-                        gcode.lines.insert(*i, *id);
-                    } else {
-                        gcode.lines.remove(*i);
-                    }
-                }
-                let (dir, map) = vertex_diff;
-                for (id, vertex) in map.iter() {
-                    if !dir {
-                        gcode.vertices.insert(*id, *vertex);
-                    } else {
-                        assert!(gcode.vertices.remove(id) == Some(*vertex));
-                        // make sure the value is present
-                    }
+            for (diff_type, id, vertex) in vertex_diff {
+                let dir = match diff_type {
+                    DiffType::Add | DiffType::Modify => forward_or_reverse == true,
+                    DiffType::Remove => forward_or_reverse == false,
+                };
+                if dir {
+                    gcode.vertices.insert(*id, vertex.clone());
+                } else {
+                    gcode.vertices.remove(id);
                 }
             }
-        }
     }
 }
 
