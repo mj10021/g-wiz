@@ -40,19 +40,15 @@ where
     }
     (add, out)
 }
-
-fn set_diff<T>(curr: &HashSet<T>, next: &HashSet<T>) -> (bool, HashSet<T>)
+// outputs the diff in the form (subtracted, added)
+fn set_diff<T>(curr: &HashSet<T>, next: &HashSet<T>) -> (HashSet<T>, HashSet<T>)
 where
     T: Copy + Eq + std::hash::Hash,
 {
-    if curr.len() < next.len() {
-        (true, next.difference(curr).copied().collect::<HashSet<T>>())
-    } else {
-        (
-            false,
-            curr.difference(next).copied().collect::<HashSet<T>>(),
-        )
-    }
+    (
+        curr.difference(next).copied().collect(),
+        next.difference(curr).copied().collect(),
+    )
 }
 
 fn map_diff<S, T>(curr: &HashMap<S, T>, next: &HashMap<S, T>) -> Vec<(DiffType, S, T)>
@@ -108,14 +104,14 @@ impl State {
 pub enum Diff {
     Init,
     GCode((bool, HashSet<(usize, Id)>), Vec<(DiffType, Id, Vertex)>),
-    Selection((bool, HashSet<Tag>)),
+    Selection((HashSet<Tag>, HashSet<Tag>)),
 }
 
 impl Diff {
     fn is_some(&self) -> bool {
         match self {
             Diff::GCode((_, set), vec) => !set.is_empty() || !vec.is_empty(),
-            Diff::Selection((_, set)) => !set.is_empty(),
+            Diff::Selection((sub, add)) => !sub.is_empty() || !add.is_empty(),
             Diff::Init => false,
         }
     }
@@ -162,15 +158,22 @@ impl History {
                     }
                 }
             }
-            Diff::Selection((dir, set)) => {
-                if *dir == forward_or_reverse {
-                    self.state.selections.extend(set.iter());
-                } else {
+            Diff::Selection((sub, add)) => {
+                if forward_or_reverse {
+                    self.state.selections.extend(add);
                     self.state.selections = self
                         .state
                         .selections
                         .iter()
-                        .filter_map(|t| if set.contains(t) { None } else { Some(*t) })
+                        .filter_map(|t| if sub.contains(t) { None } else { Some(*t) })
+                        .collect::<HashSet<_>>();
+                } else {
+                    self.state.selections.extend(sub);
+                    self.state.selections = self
+                        .state
+                        .selections
+                        .iter()
+                        .filter_map(|t| if add.contains(t) { None } else { Some(*t) })
                         .collect::<HashSet<_>>();
                 }
             }
@@ -209,15 +212,14 @@ pub fn update_history_diff_log(
     selections: Query<(&PickSelection, &Tag)>,
 ) {
     let gcode_diff = history.state.gcode_diff(&gcode.0);
-    if gcode_diff.is_some() {
-        println!("{:?}", gcode_diff);
+    let selections = selections
+        .iter()
+        .filter_map(|(s, t)| if s.is_selected { Some(*t) } else { None })
+        .collect();
+    let selection_diff = history.state.selection_diff(selections);
+    if selection_diff.is_some() {
+        println!("{:?}", selection_diff);
     }
-    let selection_diff = history.state.selection_diff(
-        selections
-            .iter()
-            .filter_map(|(s, t)| if s.is_selected { Some(*t) } else { None })
-            .collect(),
-    );
     if (gcode_diff.is_some() || selection_diff.is_some()) && history.counter != history.counter_cur
     {
         history.counter = 0;
@@ -229,7 +231,6 @@ pub fn update_history_diff_log(
         history.apply_current(true)
     }
     if selection_diff.is_some() {
-        println!("{:?}", selection_diff);
         history.diff_log.push_front(selection_diff);
         history.apply_current(true);
     }
@@ -241,7 +242,7 @@ pub fn undo_redo(
     mut selections: Query<(&mut PickSelection, &Tag)>,
 ) {
     while history.counter != history.counter_cur {
-        if history.counter < history.counter_cur {
+        if history.counter_cur > history.counter {
             history.apply_current(true);
             history.apply_to_gcode(&mut gcode.0, true);
             history.counter_cur -= 1;
@@ -250,6 +251,7 @@ pub fn undo_redo(
             history.apply_to_gcode(&mut gcode.0, false);
             history.counter_cur += 1;
         }
+        // apply state selections to selection query
         for (mut selection, tag) in selections.iter_mut() {
             selection.is_selected = history.state.selections.contains(tag);
         }

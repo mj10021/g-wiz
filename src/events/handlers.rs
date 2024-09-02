@@ -18,7 +18,6 @@ impl Default for PanOrbit {
 }
 
 pub fn ui_handler(
-    mut commands: Commands,
     mut event: EventReader<UiEvent>,
     mut ui_res: ResMut<UiResource>,
     mut s_query: Query<&mut PickSelection>,
@@ -57,7 +56,6 @@ pub fn ui_handler(
                 if !history.diff_log.is_empty() && history.counter < history.diff_log.len() - 1 {
                     println!("undo");
                     history.counter += 1;
-                    commands.init_resource::<ForceRefresh>();
                 }
             }
             UiEvent::Redo => {
@@ -65,7 +63,6 @@ pub fn ui_handler(
                 if history.counter > 0 {
                     println!("redo");
                     history.counter -= 1;
-                    commands.init_resource::<ForceRefresh>();
                 }
             }
             UiEvent::DeselectAll => {
