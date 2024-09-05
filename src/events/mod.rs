@@ -21,9 +21,6 @@ pub enum CommandEvent {
     Rotate(Rotate),
     Scale(Scale),
     Subdivide(Subdivide),
-    // Draw(Draw),
-    // Filter(Filter),
-    // Map(Map),
 }
 impl CommandEvent {
     fn inner_mut(&mut self) -> &mut dyn console::Param {
@@ -32,14 +29,11 @@ impl CommandEvent {
             Self::Rotate(rotate) => rotate,
             Self::Scale(scale) => scale,
             Self::Subdivide(subdivide) => subdivide,
-            // Self::Draw(draw) => draw,
-            // Self::Filter(filter) => filter,
-            // Self::Map(map) => map,
         }
     }
 }
 #[derive(Event)]
 pub enum SystemEvent {
     SaveAs,
-    ForceRefresh, // Ctrl + R / File -> Refresh
+    ForceRefresh, // Ctrl + R | File -> Refresh
 }

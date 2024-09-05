@@ -12,8 +12,8 @@ use bevy_mod_picking::prelude::*;
 use events::{console::*, handlers::*, *};
 use history::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
-use picking_core::PickingPluginsSettings;
 use parser::{Id, Parsed};
+use picking_core::PickingPluginsSettings;
 use render::*;
 use selection::send_selection_events;
 use settings::*;
@@ -179,11 +179,7 @@ fn main() {
         )
         .add_systems(
             PostUpdate,
-            (
-                render.run_if(resource_exists::<ForceRefresh>),
-                undo_redo,
-            )
-                .chain(),
+            (render.run_if(resource_exists::<ForceRefresh>), undo_redo).chain(),
         )
         .run();
 }

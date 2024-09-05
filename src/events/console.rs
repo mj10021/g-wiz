@@ -31,6 +31,7 @@ impl Console {
             writer.send(command);
         }
         self.current_command = None;
+        self.output += "\n";
     }
     pub fn read(&mut self, input: &str) {
         if self.current_command.is_none() {

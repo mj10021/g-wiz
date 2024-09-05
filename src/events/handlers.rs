@@ -20,10 +20,15 @@ impl Default for PanOrbit {
 pub fn ui_handler(
     mut event: EventReader<UiEvent>,
     mut ui_res: ResMut<UiResource>,
-    mut s_query: Query<&mut PickSelection>,
+    mut s_query: Query<(&mut PickSelection, &Tag)>,
     mut pan_orbit: ResMut<PanOrbit>,
     mut history: ResMut<History>,
+    mut gcode: ResMut<GCode>,
 ) {
+    let mut selected = s_query
+        .iter()
+        .filter_map(|(s, t)| if s.is_selected { Some(t.id) } else { None })
+        .collect();
     for event in event.read() {
         match event {
             UiEvent::MoveDisplay(forward, layer, count) => {
@@ -42,15 +47,17 @@ pub fn ui_handler(
             }
             UiEvent::SelectAll => {
                 for mut selection in s_query.iter_mut() {
-                    selection.is_selected = true;
+                    selection.0.is_selected = true;
                 }
             }
             UiEvent::SetPanOrbit(on) => {
                 pan_orbit.0 = *on;
             }
 
-            UiEvent::MergeDelete => todo!(),
-            UiEvent::HoleDelete => todo!(),
+            UiEvent::MergeDelete => {gcode.0.merge_delete(&mut selected)}
+            UiEvent::HoleDelete => {
+                gcode.0.hole_delete(&mut selected);
+            }
             UiEvent::Undo => {
                 // check for end of list
                 if !history.diff_log.is_empty() && history.counter < history.diff_log.len() - 1 {
@@ -67,7 +74,7 @@ pub fn ui_handler(
             }
             UiEvent::DeselectAll => {
                 for mut selection in s_query.iter_mut() {
-                    selection.is_selected = false;
+                    selection.0.is_selected = false;
                 }
             }
         }

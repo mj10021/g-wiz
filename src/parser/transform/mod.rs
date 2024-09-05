@@ -8,6 +8,13 @@ impl Parsed {
         let Some(v) = self.vertices.get(id) else {
             return;
         }; // in case a non-vertex instruction is searched, do nothing
+        if v.prev.is_none() {
+            let v = self.vertices.get_mut(id).unwrap();
+            v.to.x += dx;
+            v.to.y += dy;
+            v.to.z += dz;
+            return;
+        }
         if self.dist_from_prev(&v.id) < f32::EPSILON {
             return; // dont translate moves without travel
         }
