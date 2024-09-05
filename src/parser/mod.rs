@@ -279,6 +279,9 @@ pub struct Parsed {
     id_counter: Id,
 }
 impl Parsed {
+    /// The goal here is to store the location and content of all g-code commands while 
+    /// looking for speficic gcode metadata and creating a new data structure for G1 commands.
+
     pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
         let mut parsed = Parsed {
             lines: Vec::new(),
@@ -297,7 +300,6 @@ impl Parsed {
             }
         };
         assert!(!lines.is_empty());
-        // previous vertex id
         let id = parsed.id_counter.get();
         let vrtx = Vertex {
             id,

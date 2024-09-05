@@ -1,4 +1,4 @@
-use super::{print_analyzer::Label, settings::*, GCode, IdMap, PickableBundle, Tag, UiResource};
+use super::{parser::Label, settings::*, GCode, IdMap, PickableBundle, Tag, UiResource};
 use crate::events::handlers::ForceRefresh;
 use crate::BoundingBox;
 use bevy::{

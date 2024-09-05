@@ -1,5 +1,5 @@
 use super::{
-    print_analyzer::{Parsed, Vertex},
+    parser::{Parsed, Vertex},
     GCode, Id, Resource, Tag,
 };
 use bevy::prelude::*;

@@ -1,6 +1,6 @@
 use super::{PickSelection, PickingPluginsSettings, Settings};
 use crate::events::{console::*, *};
-use crate::print_analyzer::Parsed;
+use crate::parser::Parsed;
 use crate::GCode;
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};

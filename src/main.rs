@@ -1,7 +1,7 @@
 mod events;
 mod history;
 mod pan_orbit;
-mod print_analyzer;
+mod parser;
 mod render;
 mod settings;
 mod ui;
@@ -13,7 +13,7 @@ use events::{console::*, handlers::*, *};
 use history::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
-use print_analyzer::{Id, Parsed};
+use parser::{Id, Parsed};
 use render::*;
 use selection::send_selection_events;
 use settings::*;
@@ -97,8 +97,8 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
         }
     };
     filepath.0 = filename.to_string();
-    let gcode = print_analyzer::read(filename, false)
-        .unwrap_or(print_analyzer::read(crate::settings::DEFAULT_GCODE, true).unwrap());
+    let gcode = parser::read(filename, false)
+        .unwrap_or(parser::read(crate::settings::DEFAULT_GCODE, true).unwrap());
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 255.0,
