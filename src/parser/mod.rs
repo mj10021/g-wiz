@@ -365,7 +365,7 @@ impl Parsed {
         for line in &self.lines {
             let next_id = self.id_counter.get();
             if let Some(v) = self.vertices.get(line) {
-                if v.to.e > f32::EPSILON && self.dist_from_prev(line) > f32::EPSILON {
+                if v.to.e > 0.0 && self.dist_from_prev(line) > 0.0 {
                     shape.lines.push(*line);
                 } else {
                     shape.get_layer(self);
