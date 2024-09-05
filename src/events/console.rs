@@ -30,6 +30,7 @@ impl Console {
         if let Some(command) = self.current_command.take() {
             writer.send(command);
         }
+        self.current_command = None;
     }
     pub fn read(&mut self, input: &str) {
         if self.current_command.is_none() {
