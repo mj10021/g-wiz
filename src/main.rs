@@ -154,6 +154,7 @@ fn main() {
         .add_systems(Startup, (setup, ui_setup, setup_render).chain())
         .add_systems(PreUpdate, select_erase_brush.before(send_selection_events))
         .add_systems(PreUpdate, (capture_mouse).before(send_selection_events))
+        .add_systems(PreUpdate, update_history_diff_log)
         // .add_systems(Update, update_selection_log.before(undo_redo_selections))
         .add_systems(
             Update,
@@ -180,7 +181,6 @@ fn main() {
             PostUpdate,
             (
                 render.run_if(resource_exists::<ForceRefresh>),
-                update_history_diff_log,
                 undo_redo,
             )
                 .chain(),

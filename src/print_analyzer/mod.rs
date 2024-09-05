@@ -298,7 +298,18 @@ impl Parsed {
         };
         assert!(!lines.is_empty());
         // previous vertex id
-        let mut prev: Option<Id> = None;
+        let id = parsed.id_counter.get();
+        let vrtx = Vertex {
+            id,
+            count: 0,
+            label: Label::Home,
+            to: Pos::home(),
+            prev: None,
+            next: None,
+        };
+        assert!(parsed.vertices.insert(id, vrtx).is_none());
+        parsed.lines.push(id);
+        let mut prev = Some(id);
         for line in lines {
             // parse the line into a vec of Word(char, f32, Option<String>)
             let mut line = file_reader::split_line(&line);
@@ -313,22 +324,6 @@ impl Parsed {
             // lines have already been checked for non integer word numbers
             let num = number.round() as i32;
             match (letter, num) {
-                ('G', 28) => {
-                    // if the homing node points to a previous extrusion move node, something is wrong
-                    assert!(prev.is_none(), "homing from previously homed state");
-                    let id = parsed.id_counter.get();
-                    let vrtx = Vertex {
-                        id,
-                        count: 0,
-                        label: Label::Home,
-                        to: Pos::home(),
-                        prev: None,
-                        next: None,
-                    };
-                    assert!(parsed.vertices.insert(id, vrtx).is_none());
-                    prev = Some(id);
-                    parsed.lines.push(id);
-                }
                 ('G', 1) => {
                     // if prev is None, it means no homing command has been read
                     let p = prev.expect("g1 move from unhomed state");
