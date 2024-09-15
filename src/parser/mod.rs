@@ -1,54 +1,81 @@
-use winnow::{ascii::newline, stream::Stream, PResult, Parser};
-
-enum Command {}
-struct GCode<T, K, V, S> 
-where
-    T: PartialEq + Copy,
-    K: std::hash::Hash,
-    V: Copy,
-    S: std::fmt::Display,
-{
-    lines: Vec<GCodeCommand<T, K, V, S>>,
-}
-fn parse_gcode<T, K, V, S>(gcode: &mut &str, available_commands: Vec<(&str, Command)>) -> PResult<GCode<T, K, V, S>>
-where
-    T: PartialEq + Copy,
-    K: std::hash::Hash,
-    V: Copy,
-    S: std::fmt::Display,
-{
-    let lines = winnow::combinator::repeat(0.., newline);
-    let mut out = GCode{lines: Vec::new()};
-    for (cmd_str, command) in available_commands {
-        if gcode.starts_with(cmd_str) {
-            let len = Stream::next_token(&mut self);
-            let offset = Stream::offset_for(&self, predicate)
-            let next = gcode.next_slice(cmd_str.len());
-        }
-    }
-    Ok(out)
-}
-struct GCodeCommand<T, K, V, S>
-where
-    T: PartialEq + Copy,
-    K: std::hash::Hash,
-    V: Copy,
-    S: std::fmt::Display,
-{
-    span: winnow::stream::Range,
-    command: T,
-    params: Vec<(K, V)>,
-    comments: S,
-}
-
+use winnow::{PResult, prelude::*, token::take_while};
 
 pub mod emit;
-mod file_reader;
 mod transform;
-use std::{
-    collections::{HashMap, HashSet},
-    process::CommandArgs,
-};
+use std::collections::{HashMap, HashSet};
+
+
+// Helper function to check if a character is part of a number
+fn is_number_char(c: char) -> bool {
+    c.is_numeric() || c == '.' || c == '-' || c == '+'
+}
+
+// Function that takes a processed G1 command and returns parameters
+fn param_parse<'a>(mut input: &'a str) -> PResult<(&'a str, Option<f32>), winnow::error::ErrorKind> {
+    let param = take_while(1.., |c: char| !is_number_char(c)).parse_next(&mut input)?; // Take non-numeric characters
+    let val_str = take_while(1.., is_number_char).parse_next(&mut input)?; // If a number, take the entire number
+    if let Ok(val) = val_str.parse::<f32>() {
+        Ok((param, Some(val)))
+    } else {
+        Ok((param, None))
+    }
+}
+fn g1_parse(input: &str) -> Option<G1> {
+    // initialize a blank G1 struct
+    let mut out = G1::default();
+    // remove all whitespace from line for handling G1 params
+    let mut input: String = input.split_whitespace().collect();
+    // ignore logical line number in the format N 123
+    if input.starts_with("N") {
+        let mut prefix: Option<char> = None;
+        let mut input_chars = input.chars();
+        // throw away the leading "N"
+        let _ = input_chars.next();
+        // keep throwing away the leading char until a nondigit is reached
+        // this only works for integers, logical line numbers should always be int
+        while let Some(next) = input_chars.next() {
+            if !next.is_numeric() {
+                prefix = Some(next);
+                break;
+            }
+        }
+        if let Some(prefix) = prefix {
+            input.insert(0, prefix);
+        }
+    }
+    if input.starts_with("G1") {
+        let input = input.split_off(2);
+        let mut input = input.as_str();
+        while let Ok(param) = param_parse(&mut input) {
+            match param {
+                ("X", Some(val)) => out.x = Some(val),
+                ("Y", Some(val)) => out.y = Some(val),
+                ("Z", Some(val)) => out.z = Some(val), 
+                ("E", Some(val)) => out.e = Some(val),
+                ("F", Some(val)) => out.f = Some(val),
+                (comment, None) => out.comments = Some(comment.to_owned()),
+                _ => {}
+            }
+        }
+        return Some(out);
+    }
+    None
+}
+
+pub fn parse_file(path: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let out = String::from_utf8(std::fs::read(path)?)?
+        .lines()
+        .filter_map(|s| {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_string())
+            }
+        })
+        .collect();
+    Ok(out)
+}
+
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Id(u32);
@@ -59,80 +86,52 @@ impl Id {
         Id(out)
     }
 }
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Word(pub char, pub f32, pub Option<String>);
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Instruction {
-    pub first_word: Word,
-    pub params: Option<Vec<Word>>,
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Label {
+    Uninitialized,
+    PrePrintMove,
+    ExMove,
+    Travel,
+    Retraction,
+    DeRetraction,
+    Wipe,
+    LiftZ,
+    LowerZ
 }
 
-impl Instruction {
-    fn build(mut line: Vec<Word>) -> Instruction {
-        let first_word = line.pop().unwrap();
-        line.reverse();
-        if line.is_empty() {
-            return Instruction {
-                first_word,
-                params: None,
-            };
-        }
-        Instruction {
-            first_word,
-            params: Some(line),
-        }
-    }
-    pub fn insert_temp_retraction(gcode: &mut Parsed) -> Id {
-        let id = gcode.id_counter.get();
-        let ins = Instruction {
-            first_word: Word('X', f32::NEG_INFINITY, Some(String::from("; retraction"))),
-            params: None,
-        };
-        assert!(gcode.instructions.insert(id, ins).is_none());
-        id
-    }
-    pub fn insert_temp_deretraction(gcode: &mut Parsed) -> Id {
-        let id = gcode.id_counter.get();
-        let ins = Instruction {
-            first_word: Word('X', f32::NEG_INFINITY, Some(String::from("; deretraction"))),
-            params: None,
-        };
-        assert!(gcode.instructions.insert(id, ins).is_none());
-        id
-    }
+#[derive(Clone, Debug, PartialEq)]
+enum GCodeLine {
+    Unprocessed((Id, String)),
+    Processed(Id),
 }
 
 // intermediary struct for parsing line into vertex
 // exists because all of the params are optional
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct G1 {
     pub x: Option<f32>,
     pub y: Option<f32>,
     pub z: Option<f32>,
     pub e: Option<f32>,
     pub f: Option<f32>,
+    pub comments: Option<String>,
+    label: Option<Label>
 }
 
 impl G1 {
-    fn build(params: Vec<Word>) -> G1 {
-        let mut x = None;
-        let mut y = None;
-        let mut z = None;
-        let mut e = None;
-        let mut f = None;
+    fn build(params: Vec<(&str, f32)>) -> G1 {
+        let mut out = G1::default();
         for param in params {
-            match param.0 {
-                'X' => x = Some(param.1),
-                'Y' => y = Some(param.1),
-                'Z' => z = Some(param.1),
-                'E' => e = Some(param.1),
-                'F' => f = Some(param.1),
-                _ => (),
+            match param {
+                ("X", val) => out.x = Some(val),
+                ("Y", val) => out.y = Some(val),
+                ("Z", val) => out.z = Some(val),
+                ("E", val) => out.e = Some(val),
+                ("F", val) => out.f = Some(val),
+                (comment, _) => out.comments = Some(comment.to_owned()),
             }
         }
-        G1 { x, y, z, e, f }
+        out
     }
 }
 // state tracking struct for vertices
@@ -236,11 +235,7 @@ impl Vertex {
                 Label::PrePrintMove
             } else if de > 0.0 {
                 if dx.abs() + dy.abs() > 0.0 - f32::EPSILON {
-                    if dz.abs() > f32::EPSILON {
-                        Label::NonPlanarExtrusion
-                    } else {
-                        Label::PlanarExtrustion
-                    }
+                    Label::ExMove
                 } else {
                     Label::DeRetraction
                 }
@@ -317,22 +312,44 @@ impl Shape {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Parsed {
-    pub lines: Vec<Id>, // keep track of line order
-    pub vertices: HashMap<Id, Vertex>,
-    pub instructions: HashMap<Id, Instruction>,
+    pub lines: Vec<GCodeLine>, // keep track of line order
+    pub vertices: HashMap<Id, G1>,
     pub shapes: Vec<Shape>,
     pub rel_xyz: bool,
     pub rel_e: bool,
     id_counter: Id,
 }
 impl Parsed {
+    fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let gcode = parse_file(path)?;
+        let mut parsed = Self {
+            lines: Vec::new(),
+            vertices: HashMap::new(),
+            shapes: Vec::new(),
+            rel_xyz: false,
+            rel_e: true,
+            id_counter: Id(0)
+        };
+        for line in gcode {
+            let command = {
+                if let Some(g1) = g1_parse(line.as_str()) {
+                    let id = parsed.id_counter.get();
+                    parsed.vertices.insert(id, g1);
+                    GCodeLine::Processed(id)
+                } else {
+                    GCodeLine::Unprocessed((parsed.id_counter.get(), line))
+                }
+            };
+            parsed.lines.push(command);
+        }
+        Ok(parsed)
+    }
     /// The goal here is to store the location and content of all g-code commands while
     /// looking for speficic gcode metadata and creating a new data structure for G1 commands.
     pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
         let mut parsed = Parsed {
             lines: Vec::new(),
             vertices: HashMap::new(),
-            instructions: HashMap::new(),
             shapes: Vec::new(),
             rel_xyz: false,
             rel_e: true,
@@ -345,7 +362,9 @@ impl Parsed {
                 file_reader::parse_str(path)
             }
         };
-        assert!(!lines.is_empty());
+        if lines.is_empty() {
+            return Err(Box::from("no lines read"));
+        }
         let id = parsed.id_counter.get();
         let vrtx = Vertex {
             id,
@@ -622,23 +641,6 @@ impl Parsed {
             }
         }
     }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Label {
-    Uninitialized,
-    Home,
-    PrePrintMove,
-    TravelMove,
-    PlanarExtrustion,
-    NonPlanarExtrusion,
-    LiftZ,
-    LowerZ,
-    MysteryMove,
-    Retraction,
-    DeRetraction,
-    Wipe,
-    FeedrateChangeOnly,
 }
 
 #[cfg(test)]
