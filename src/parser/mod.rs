@@ -1,7 +1,54 @@
+use winnow::{ascii::newline, stream::Stream, PResult, Parser};
+
+enum Command {}
+struct GCode<T, K, V, S> 
+where
+    T: PartialEq + Copy,
+    K: std::hash::Hash,
+    V: Copy,
+    S: std::fmt::Display,
+{
+    lines: Vec<GCodeCommand<T, K, V, S>>,
+}
+fn parse_gcode<T, K, V, S>(gcode: &mut &str, available_commands: Vec<(&str, Command)>) -> PResult<GCode<T, K, V, S>>
+where
+    T: PartialEq + Copy,
+    K: std::hash::Hash,
+    V: Copy,
+    S: std::fmt::Display,
+{
+    let lines = winnow::combinator::repeat(0.., newline);
+    let mut out = GCode{lines: Vec::new()};
+    for (cmd_str, command) in available_commands {
+        if gcode.starts_with(cmd_str) {
+            let len = Stream::next_token(&mut self);
+            let offset = Stream::offset_for(&self, predicate)
+            let next = gcode.next_slice(cmd_str.len());
+        }
+    }
+    Ok(out)
+}
+struct GCodeCommand<T, K, V, S>
+where
+    T: PartialEq + Copy,
+    K: std::hash::Hash,
+    V: Copy,
+    S: std::fmt::Display,
+{
+    span: winnow::stream::Range,
+    command: T,
+    params: Vec<(K, V)>,
+    comments: S,
+}
+
+
 pub mod emit;
 mod file_reader;
 mod transform;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    process::CommandArgs,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Id(u32);

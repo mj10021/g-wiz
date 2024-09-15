@@ -10,6 +10,7 @@ bevy_mod_picking = "0.18.2"
 cc = "1.1.0"
 egui = "0.27.2"
 serde_json = "1.0.117"
+winnow = "0.6.18"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

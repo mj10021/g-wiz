@@ -130,6 +130,8 @@ pub fn render(
         Color::VIOLET,
     ];
     for shape in shapes.iter() {
+        // the key needs to be the entity id so i can remove entitys from the map on despawn
+        map.0.remove(k);
         commands.entity(shape).despawn();
     }
     let gcode = &gcode.0;
