@@ -92,6 +92,7 @@ enum Label {
     PrePrintMove,
     ExMove,
     Travel,
+    FeedrateChange,
     Retraction,
     DeRetraction,
     Wipe,
@@ -105,6 +106,15 @@ enum GCodeLine {
     Processed(Id),
 }
 
+impl GCodeLine {
+    fn id(&self) -> Id {
+        match self {
+            GCodeLine::Unprocessed((id, _)) => *id,
+            GCodeLine::Processed(id) => *id
+        }
+    } 
+}
+
 // intermediary struct for parsing line into vertex
 // exists because all of the params are optional
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -115,7 +125,6 @@ pub struct G1 {
     pub e: Option<f32>,
     pub f: Option<f32>,
     pub comments: Option<String>,
-    label: Option<Label>
 }
 
 impl G1 {
@@ -184,7 +193,6 @@ fn pre_home(p: Pos) -> bool {
 #[derive(Clone, Copy, PartialEq)]
 pub struct Vertex {
     pub id: Id,
-    pub count: u32,
     pub label: Label,
     // this is the id of the previous extrusion move
     pub prev: Option<Id>,
@@ -202,15 +210,25 @@ impl std::fmt::Debug for Vertex {
 }
 
 impl Vertex {
-    fn build(parsed: &mut Parsed, prev: &Id, g1: G1) -> Vertex {
+    fn build(parsed: &mut Parsed, prev: Option<Id>, g1: G1) -> Vertex {
         let id = parsed.id_counter.get();
-        let p = parsed.vertices.get_mut(prev).unwrap();
+        if prev.is_none() {
+            let mut vrtx =  Self {
+                id,
+                label: Label::Uninitialized,
+                to: Pos::build(&Pos::home(), &g1),
+                prev,
+                next: None
+            };
+            vrtx.label(parsed);
+            return vrtx;
+        }
+        let p = parsed.vertices.get_mut(&prev.unwrap()).unwrap();
         let mut vrtx = Vertex {
             id,
-            count: p.count + 1,
             label: Label::Uninitialized,
             to: Pos::build(&p.to, &g1),
-            prev: Some(*prev),
+            prev,
             next: p.next,
         };
         p.next = Some(id);
@@ -252,19 +270,19 @@ impl Vertex {
                     Label::Retraction
                 }
             } else if dx.abs() + dy.abs() > f32::EPSILON {
-                Label::TravelMove
+                Label::Travel
             } else if from.f != self.to.f {
-                Label::FeedrateChangeOnly
+                Label::FeedrateChange
             } else {
-                Label::MysteryMove
+                Label::Uninitialized
             }
         };
     }
-    pub fn extrusion_move(&self) -> bool {
-        self.label == Label::PlanarExtrustion || self.label == Label::NonPlanarExtrusion
-    }
     pub fn change_move(&self) -> bool {
         self.label == Label::LiftZ || self.label == Label::Wipe || self.label == Label::Retraction
+    }
+    pub fn extrusion_move(&self) -> bool {
+        self.label == Label::ExMove
     }
 }
 
@@ -313,7 +331,7 @@ impl Shape {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Parsed {
     pub lines: Vec<GCodeLine>, // keep track of line order
-    pub vertices: HashMap<Id, G1>,
+    pub vertices: HashMap<Id, Vertex>,
     pub shapes: Vec<Shape>,
     pub rel_xyz: bool,
     pub rel_e: bool,
@@ -330,11 +348,14 @@ impl Parsed {
             rel_e: true,
             id_counter: Id(0)
         };
+        let mut prev = None;
         for line in gcode {
             let command = {
                 if let Some(g1) = g1_parse(line.as_str()) {
                     let id = parsed.id_counter.get();
-                    parsed.vertices.insert(id, g1);
+                    let vrtx = Vertex::build(&mut parsed, prev, g1);
+                    prev = Some(id);
+                    parsed.vertices.insert(id, vrtx);
                     GCodeLine::Processed(id)
                 } else {
                     GCodeLine::Unprocessed((parsed.id_counter.get(), line))
@@ -342,98 +363,19 @@ impl Parsed {
             };
             parsed.lines.push(command);
         }
-        Ok(parsed)
-    }
-    /// The goal here is to store the location and content of all g-code commands while
-    /// looking for speficic gcode metadata and creating a new data structure for G1 commands.
-    pub fn build(path: &str, testing: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
-        let mut parsed = Parsed {
-            lines: Vec::new(),
-            vertices: HashMap::new(),
-            shapes: Vec::new(),
-            rel_xyz: false,
-            rel_e: true,
-            id_counter: Id(0),
-        };
-        let lines = {
-            if !testing {
-                file_reader::parse_file(path)?
-            } else {
-                file_reader::parse_str(path)
-            }
-        };
-        if lines.is_empty() {
-            return Err(Box::from("no lines read"));
-        }
-        let id = parsed.id_counter.get();
-        let vrtx = Vertex {
-            id,
-            count: 0,
-            label: Label::Home,
-            to: Pos::home(),
-            prev: None,
-            next: None,
-        };
-        assert!(parsed.vertices.insert(id, vrtx).is_none());
-        parsed.lines.push(id);
-        let mut prev = Some(id);
-        for line in lines {
-            // parse the line into a vec of Word(char, f32, Option<String>)
-            let mut line = file_reader::split_line(&line);
-            if line.is_empty() {
-                continue;
-            }
-            // reverse the vec to be able to pop from the first commands
-            line.reverse();
-            // match the first word from the line
-            let front = line.pop();
-            let Word(letter, number, params) = front.unwrap();
-            // lines have already been checked for non integer word numbers
-            let num = number.round() as i32;
-            match (letter, num) {
-                ('G', 1) => {
-                    // if prev is None, it means no homing command has been read
-                    let p = prev.expect("g1 move from unhomed state");
-                    let g1 = G1::build(line);
-                    let vrtx = Vertex::build(&mut parsed, &p, g1);
-                    parsed.lines.push(vrtx.id);
-                    prev = Some(vrtx.id);
-                    assert!(parsed.vertices.insert(vrtx.id, vrtx).is_none());
-                }
-                ('G', 90) => {
-                    parsed.rel_xyz = false;
-                }
-                ('G', 91) => {
-                    parsed.rel_xyz = true;
-                }
-                ('M', 82) => {
-                    parsed.rel_e = false;
-                }
-                ('M', 83) => {
-                    parsed.rel_e = true;
-                }
-                _ => {
-                    let word = Word(letter, number, params);
-                    line.push(word);
-                    let id = parsed.id_counter.get();
-                    let ins = Instruction::build(line);
-                    parsed.lines.push(id);
-                    assert!(parsed.instructions.insert(id, ins).is_none());
-                }
-            }
-        }
         parsed.assign_shapes();
         Ok(parsed)
     }
-
+    
     pub fn assign_shapes(&mut self) {
         let mut out = Vec::new();
         let mut shape = Shape::build(self);
         for line in &self.lines {
+            let line_id = line.id();
             let next_id = self.id_counter.get();
-            if let Some(v) = self.vertices.get(line) {
-                if v.to.e > 0.0 && self.dist_from_prev(line) > 0.0 {
-                    shape.lines.push(*line);
+            if let Some(v) = self.vertices.get(&line_id) {
+                if v.to.e > 0.0 && self.dist_from_prev(&line_id) > 0.0 {
+                    shape.lines.push(line_id);
                 } else {
                     shape.get_layer(self);
                     out.push(shape);
@@ -497,12 +439,12 @@ impl Parsed {
             if lines_to_delete.is_empty() {
                 break;
             }
-            if lines_to_delete.contains(line) {
-                lines_to_delete.remove(line);
+            if lines_to_delete.contains(&line.id()) {
+                lines_to_delete.remove(&line.id());
                 //  keep track of the prev node of the first vertex deleted in a block of verteces
                 let (_, vertex) = self
                     .vertices
-                    .remove_entry(line)
+                    .remove_entry(&line.id())
                     .expect("removing non-existent vertex");
                 if let Some(n) = vertex.next {
                     let n = self.vertices.get_mut(&n).unwrap();
@@ -518,10 +460,10 @@ impl Parsed {
         }
     }
 
-    fn insert_lines_before(&mut self, mut lines: Vec<Id>, id: &Id) {
+    fn insert_lines_before(&mut self, mut lines: Vec<GCodeLine>, id: &Id) {
         let mut i = 0;
         for line in &self.lines {
-            if line == id {
+            if line.id() == *id {
                 break;
             }
             i += 1;
@@ -538,7 +480,7 @@ impl Parsed {
         // this is assuming relative e
         let v = self.vertices.get(id).unwrap();
         // don't subdivide moves with no extrustion
-        if v.label != Label::PlanarExtrustion && v.label != Label::NonPlanarExtrusion {
+        if v.label != Label::ExMove {
             return;
         }
         let (xi, yi, zi) = {
@@ -559,7 +501,6 @@ impl Parsed {
             let i = i as f32;
             let mut new = Vertex {
                 id: self.id_counter.get(),
-                count: 0, // this then needs to be counted and set
                 label: Label::Uninitialized,
                 prev,
                 to: Pos {

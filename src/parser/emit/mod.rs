@@ -2,27 +2,8 @@ use super::*;
 pub trait Emit {
     fn emit(&self, parsed: &Parsed, debug: bool) -> String;
 }
-impl Emit for Instruction {
-    fn emit(&self, _parsed: &Parsed, debug: bool) -> String {
-        let Instruction {
-            first_word: Word(letter, num, string),
-            params,
-        } = self;
-        if let Some(string) = string {
-            return string.clone() + "\n";
-        }
-        let mut out = format!("{}{}", letter, num.round() as i32);
-        if let Some(params) = params {
-            for Word(letter, val, _) in params {
-                out += &format!(" {}{}", letter, val);
-            }
-        }
-        if debug {
-            out += &format!("; {:?}\n", self);
-        }
-        out + "\n"
-    }
-}
+
+
 
 impl Emit for Pos {
     fn emit(&self, _parsed: &Parsed, debug: bool) -> String {
@@ -94,10 +75,13 @@ impl Emit for Parsed {
         }
 
         for line in &self.lines {
-            if let Some(v) = self.vertices.get(line) {
-                out += &v.emit(self, debug);
-            } else {
-                out += &self.instructions.get(line).unwrap().emit(self, debug);
+            match line {
+                GCodeLine::Processed(id) => {
+                    if let Some(v) = self.vertices.get(id) {
+                        out += v.emit(self, debug).as_str();
+                    }
+                }
+                GCodeLine::Unprocessed((_, text)) => out += text.as_str(),
             }
         }
         out
@@ -108,7 +92,7 @@ impl Emit for Parsed {
 fn debug() {
     use std::fs::File;
     use std::io::prelude::*;
-    let gcode = Parsed::build("../print_analyzer/test.gcode", false).expect("");
+    let gcode = Parsed::from_file("../print_analyzer/test.gcode").expect("");
     let gcode = gcode.emit(&gcode, true);
     let mut f = File::create("test_debug_output.gcode").expect("failed to create file");
     let _ = f.write_all(gcode.as_bytes());

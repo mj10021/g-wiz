@@ -26,9 +26,9 @@ enum Cursor {
 pub struct UiResource {
     pub display_z_max: (f32, f32),
     pub display_z_min: f32,
-    pub vertex_counter: u32,
+    pub vertex_counter: usize,
     pub selection_enum: Choice,
-    pub subdivide_slider: u32,
+    pub subdivide_slider: usize,
     pub gcode_emit: String,
     pub vis_select: VisibilitySelector,
     cursor_enum: Cursor,
@@ -73,8 +73,8 @@ impl Default for VisibilitySelector {
 pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
     for (_, v) in gcode.0.vertices.iter() {
         ui_res.display_z_max.1 = ui_res.display_z_max.1.max(v.to.z);
-        ui_res.vertex_counter = ui_res.vertex_counter.max(v.count);
     }
+    ui_res.vertex_counter = ui_res.vertex_counter.max(gcode.0.vertices.len());
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
 pub fn toolbar(mut contexts: EguiContexts, mut system_writer: EventWriter<SystemEvent>) {
@@ -170,7 +170,7 @@ pub fn sidebar(
     let window = primary_window.single();
     let height = window.height();
     let spacing = height / 50.0;
-    let max = vertex.max;
+    let max = vertex.max as usize;
     egui::SidePanel::new(egui::panel::Side::Left, "panel")
         //.exact_width(panel_width)
         .resizable(true)
