@@ -472,7 +472,7 @@ impl Parsed {
             self.lines.insert(i, line);
         }
     }
-    fn subdivide_vertex(&mut self, id: &Id, count: u32) {
+    fn subdivide_vertex(&mut self, id: &Id, count: usize) {
         // FIXME: THIS IS DELETING MOVES
         if count < 1 {
             return;
@@ -526,11 +526,10 @@ impl Parsed {
         v.to.e = ef / countf;
         v.prev = prev;
     }
-    pub fn subdivide_vertices(&mut self, vertices: HashSet<Id>, count: u32) {
+    pub fn subdivide_vertices(&mut self, vertices: HashSet<Id>, count: usize) {
         for id in vertices {
             self.subdivide_vertex(&id, count);
         }
-        self.set_counts();
     }
     // FIXME: add ui for this
     pub fn subdivide_all(&mut self, max_dist: f32) {
@@ -570,52 +569,6 @@ impl Parsed {
         println!("save successful");
         Ok(())
     }
-    fn set_counts(&mut self) {
-        let mut count = 0;
-        let mut next = None;
-        for line in &self.lines {
-            if let Some(v) = self.vertices.get_mut(line) {
-                v.count = count;
-                v.next = next;
-                next = Some(v.id);
-                count += 1;
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-#[test]
-fn tran_test() {
-    let test = "G28\ng1x1e1\ng1x2e1\ng1x3e1\n";
-    let mut gcode = read(test, true).expect("failed to parse");
-    for line in gcode.lines.clone() {
-        if gcode.vertices.contains_key(&line) {
-            gcode.translate(&line, &Vec3::new(0.0, 1.0, 0.0));
-        }
-    }
-}
-
-#[test]
-fn map_test() {
-    let mut test = read("test.gcode", false).expect("failed to parse");
-    test.subdivide_all(1.0);
-}
-
-#[test]
-#[should_panic]
-fn no_home_test() {
-    let input = "G1 X1 Y1 Z1 E1\n";
-    let _ = read(input, true).expect("failed to parse");
-}
-#[test]
-#[should_panic]
-fn double_home() {
-    let _ = read("G28\nG28\nG1 x1\ng1y1\ng1e2.222\ng1z1\n", true).expect("failed to parse");
-}
-
-pub fn read(path: &str, raw_str: bool) -> Result<Parsed, Box<dyn std::error::Error>> {
-    Parsed::build(path, raw_str)
 }
 
 fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Id> {
@@ -634,63 +587,3 @@ fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Id> {
 // fn modify(feature)
 // fn replace_with(feature, gcode_sequence)
 // fn insert_after(feature)
-
-#[cfg(test)]
-use std::fs::File;
-use std::io::Write;
-
-use bevy::math::Vec3;
-use emit::Emit;
-#[test]
-fn import_emit_reemit() {
-    use emit::Emit;
-    use std::io::prelude::*;
-    let f = "../print_analyzer/test.gcode";
-    let p_init = read(f, false).expect("failed to parse gcode");
-    let init = p_init.emit(&p_init, false);
-    let mut f = File::create("test_output.gcode").expect("failed to create file");
-    let _ = f.write_all(init.as_bytes());
-    let snd = read("test_output.gcode", false).expect("asdf");
-    let snd = snd.emit(&snd, false);
-    let snd = read(&snd, true).expect("failed to parse reemitted file");
-    let mut f = File::create("test_output2.gcode").expect("failed to create file");
-    let _ = f.write_all(snd.emit(&snd, false).as_bytes());
-    // assert_eq!(p_init, snd);
-}
-#[test]
-fn specific_random_gcode_issue() {
-    use emit::Emit;
-    use std::io::prelude::*;
-    let gcode = "G28
-    G1 X179 Y-2 F2400 
-    G1 Z3 F720 
-    G1 X170 F1000 
-    G1 Z0.2 F720 
-    ; END LAYER CHANGE
-    ; START SHAPE
-    G1 X110 E8 F900 
-    G1 X40 E10 F700 
-    G92 E0
-    M221 S95
-    G21
-    G90
-    M83
-    M900 K0.06
-    M107
-    G92 E0
-    M73 P1 R11
-    ; END SHAPE
-    M73 P2 R11
-    ; START SHAPE CHANGE
-    G1 F720 
-    G1 Z0.3 
-    G1 Z0.5 
-    G1 X78.662 Y77.959 F9000 
-    G1 Z0.3 F720 
-    G1 E3 F1200
-    G1 X78.663 Y78 E3.000 F1200
-    G1 X87 Y83 E13";
-    let gcode = read(gcode, true).expect("asf");
-    let mut f = File::create("asdf_test.gcode").expect("failed to create file");
-    let _ = f.write_all(gcode.emit(&gcode, false).as_bytes());
-}

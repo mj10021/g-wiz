@@ -37,12 +37,12 @@ pub fn ui_handler(
                 } else if *layer {
                     ui_res.display_z_max.0 += count;
                 } else if *forward {
-                    ui_res.vertex_counter += *count as u32;
+                    ui_res.vertex_counter += (*count) as usize;
                 } else {
                     if ui_res.vertex_counter == 0 {
                         return;
                     }
-                    ui_res.vertex_counter -= *count as u32;
+                    ui_res.vertex_counter -= (*count) as usize;
                 }
             }
             UiEvent::SelectAll => {
