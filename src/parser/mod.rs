@@ -3,6 +3,7 @@ use winnow::{prelude::*, token::take_while, PResult};
 pub mod emit;
 mod transform;
 use std::collections::{HashMap, HashSet};
+use std::io::Write;
 
 // Helper function to check if a character is part of a number
 fn is_number_char(c: char) -> bool {
@@ -392,7 +393,7 @@ impl Parsed {
         }
         self.shapes = out;
     }
-    pub fn get_centroid(&self, vertices: &HashSet<Id>) -> Vec3 {
+    pub fn get_centroid(&self, vertices: &HashSet<Id>) -> crate::Vec3 {
         let (mut x, mut y, mut z, mut count) = (0.0, 0.0, 0.0, 0.0);
         for vertex in vertices {
             count += 1.0;
@@ -401,7 +402,7 @@ impl Parsed {
             y += v.to.y;
             z += v.to.z;
         }
-        let mut out = Vec3 { x, y, z };
+        let mut out = crate::Vec3 { x, y, z };
         out /= count;
         out
     }
@@ -537,7 +538,7 @@ impl Parsed {
         for id in vertices.keys() {
             if self.vertices.contains_key(id) {
                 let dist = self.dist_from_prev(id);
-                let count = (dist / max_dist).round() as u32;
+                let count = (dist / max_dist).round() as usize;
                 self.subdivide_vertex(id, count);
             }
         }
@@ -563,6 +564,7 @@ impl Parsed {
     }
     pub fn write_to_file(&self, path: &str) -> Result<(), std::io::Error> {
         use std::fs::File;
+        use crate::parser::emit::Emit;
         let out = self.emit(self, false);
         let mut f = File::create(path)?;
         f.write_all(out.as_bytes())?;
@@ -570,19 +572,6 @@ impl Parsed {
         Ok(())
     }
 }
-
-fn _vertex_filter(gcode: &Parsed, f: fn(&Vertex) -> bool) -> HashSet<Id> {
-    let mut out = HashSet::new();
-    for line in &gcode.lines {
-        if let Some(v) = gcode.vertices.get(line) {
-            if f(v) {
-                out.insert(v.id);
-            }
-        }
-    }
-    out
-}
-
 // fn insert_before(feature)
 // fn modify(feature)
 // fn replace_with(feature, gcode_sequence)
