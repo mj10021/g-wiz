@@ -1,9 +1,8 @@
-use winnow::{PResult, prelude::*, token::take_while};
+use winnow::{prelude::*, token::take_while, PResult};
 
 pub mod emit;
 mod transform;
 use std::collections::{HashMap, HashSet};
-
 
 // Helper function to check if a character is part of a number
 fn is_number_char(c: char) -> bool {
@@ -11,7 +10,9 @@ fn is_number_char(c: char) -> bool {
 }
 
 // Function that takes a processed G1 command and returns parameters
-fn param_parse<'a>(mut input: &'a str) -> PResult<(&'a str, Option<f32>), winnow::error::ErrorKind> {
+fn param_parse<'a>(
+    mut input: &'a str,
+) -> PResult<(&'a str, Option<f32>), winnow::error::ErrorKind> {
     let param = take_while(1.., |c: char| !is_number_char(c)).parse_next(&mut input)?; // Take non-numeric characters
     let val_str = take_while(1.., is_number_char).parse_next(&mut input)?; // If a number, take the entire number
     if let Ok(val) = val_str.parse::<f32>() {
@@ -50,7 +51,7 @@ fn g1_parse(input: &str) -> Option<G1> {
             match param {
                 ("X", Some(val)) => out.x = Some(val),
                 ("Y", Some(val)) => out.y = Some(val),
-                ("Z", Some(val)) => out.z = Some(val), 
+                ("Z", Some(val)) => out.z = Some(val),
                 ("E", Some(val)) => out.e = Some(val),
                 ("F", Some(val)) => out.f = Some(val),
                 (comment, None) => out.comments = Some(comment.to_owned()),
@@ -76,7 +77,6 @@ pub fn parse_file(path: &str) -> Result<Vec<String>, Box<dyn std::error::Error>>
     Ok(out)
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Id(u32);
 impl Id {
@@ -97,7 +97,7 @@ enum Label {
     DeRetraction,
     Wipe,
     LiftZ,
-    LowerZ
+    LowerZ,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -110,9 +110,9 @@ impl GCodeLine {
     fn id(&self) -> Id {
         match self {
             GCodeLine::Unprocessed((id, _)) => *id,
-            GCodeLine::Processed(id) => *id
+            GCodeLine::Processed(id) => *id,
         }
-    } 
+    }
 }
 
 // intermediary struct for parsing line into vertex
@@ -213,12 +213,12 @@ impl Vertex {
     fn build(parsed: &mut Parsed, prev: Option<Id>, g1: G1) -> Vertex {
         let id = parsed.id_counter.get();
         if prev.is_none() {
-            let mut vrtx =  Self {
+            let mut vrtx = Self {
                 id,
                 label: Label::Uninitialized,
                 to: Pos::build(&Pos::home(), &g1),
                 prev,
-                next: None
+                next: None,
             };
             vrtx.label(parsed);
             return vrtx;
@@ -346,7 +346,7 @@ impl Parsed {
             shapes: Vec::new(),
             rel_xyz: false,
             rel_e: true,
-            id_counter: Id(0)
+            id_counter: Id(0),
         };
         let mut prev = None;
         for line in gcode {
@@ -366,7 +366,7 @@ impl Parsed {
         parsed.assign_shapes();
         Ok(parsed)
     }
-    
+
     pub fn assign_shapes(&mut self) {
         let mut out = Vec::new();
         let mut shape = Shape::build(self);

@@ -3,8 +3,6 @@ pub trait Emit {
     fn emit(&self, parsed: &Parsed, debug: bool) -> String;
 }
 
-
-
 impl Emit for Pos {
     fn emit(&self, _parsed: &Parsed, debug: bool) -> String {
         if debug {
