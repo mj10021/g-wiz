@@ -22,7 +22,21 @@ use std::env;
 use ui::*;
 
 #[derive(Default, Resource)]
-struct IdMap(HashMap<Id, Entity>);
+struct IdMap {
+    pub id_to_entity: HashMap<Id, Entity>,
+    pub entity_to_id: HashMap<Entity, Id>
+}
+
+impl IdMap {
+    fn insert(&mut self, id: Id, entity: Entity) {
+        self.id_to_entity.insert(id, entity);
+        self.entity_to_id.insert(entity, id);
+    }
+    fn remove(&mut self, id: Id, entity: Entity) {
+        assert_eq!(self.id_to_entity.remove(&id), Some(entity));
+        assert_eq!(self.entity_to_id.remove(&entity), Some(id));
+    }
+}
 
 #[derive(Clone, Resource)]
 struct GCode(Parsed);
@@ -97,8 +111,8 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
         }
     };
     filepath.0 = filename.to_string();
-    let gcode = parser::read(filename, false)
-        .unwrap_or(parser::read(crate::settings::DEFAULT_GCODE, true).unwrap());
+    let gcode = Parsed::from_file(filename)
+        .unwrap_or(Parsed::from_str(crate::settings::DEFAULT_GCODE).unwrap());
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 255.0,

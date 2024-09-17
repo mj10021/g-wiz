@@ -130,8 +130,10 @@ pub fn render(
         Color::VIOLET,
     ];
     for shape in shapes.iter() {
-        // the key needs to be the entity id so i can remove entitys from the map on despawn
-        map.0.remove(k);
+        let id = map.as_ref().entity_to_id.get(&shape).unwrap_or(Id(0));
+        if let Some(id) = id {
+            map.remove(*id, shape)
+        }
         commands.entity(shape).despawn();
     }
     let gcode = &gcode.0;
@@ -177,7 +179,8 @@ pub fn render(
                             Tag { id: v.id },
                         ))
                         .id();
-                    map.0.insert(v.id, e_id);
+                    map.as_mut().id_to_entity.insert(v.id, e_id);
+                    map.as_mut().entity_to_id.insert(e_id, v.id);
                 }
             }
         }
@@ -196,7 +199,7 @@ pub fn render(
         pos_list.push((v.id, start, end, v.label));
     }
     for (id, start, end, label) in pos_list {
-        if label == Label::FeedrateChangeOnly || label == Label::Home || label == Label::MysteryMove
+        if label == Label::FeedrateChange || label == Label::Uninitialized
         {
             continue;
         }
@@ -206,7 +209,7 @@ pub fn render(
 
         // Create the mesh and material
         let mesh_handle = match label {
-            Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
+            Label::Travel | Label::LiftZ | Label::LowerZ | Label::Wipe => {
                 meshes.add(Cylinder {
                     radius: 0.1,
                     half_height: length / 2.0,
@@ -221,7 +224,7 @@ pub fn render(
             sphere = true;
         }
         let material_handle = match label {
-            Label::TravelMove | Label::LiftZ | Label::LowerZ | Label::Wipe => {
+            Label::Travel | Label::LiftZ | Label::LowerZ | Label::Wipe => {
                 materials.add(StandardMaterial {
                     base_color: settings.travel_color,
                     ..Default::default()
@@ -261,7 +264,7 @@ pub fn render(
                 Tag { id },
             ))
             .id();
-        map.0.insert(id, e_id);
+        map.insert(id, e_id);
     }
     commands.remove_resource::<ForceRefresh>();
 }
@@ -272,18 +275,18 @@ pub fn update_visibilities(
     gcode: Res<GCode>,
 ) {
     let count = ui_res.vertex_counter;
-    for (tag, mut vis) in entity_query.iter_mut() {
+    for (i, (tag, mut vis)) in entity_query.iter_mut().enumerate() {
         if let Some(v) = gcode.0.vertices.get(&tag.id) {
             let selected = match v.label {
                 Label::PrePrintMove => ui_res.vis_select.preprint,
-                Label::PlanarExtrustion | Label::NonPlanarExtrusion => ui_res.vis_select.extrusion,
+                Label::ExMove => ui_res.vis_select.extrusion,
                 Label::Retraction => ui_res.vis_select.retraction,
                 Label::DeRetraction => ui_res.vis_select.deretraction,
                 Label::Wipe => ui_res.vis_select.wipe,
-                Label::LiftZ | Label::TravelMove => ui_res.vis_select.travel,
+                Label::LiftZ | Label::Travel => ui_res.vis_select.travel,
                 _ => false,
             };
-            if count > v.count
+            if count > i
                 && selected
                 && v.to.z < ui_res.display_z_max.0
                 && v.to.z > ui_res.display_z_min

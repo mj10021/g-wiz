@@ -10,6 +10,18 @@ fn is_number_char(c: char) -> bool {
     c.is_numeric() || c == '.' || c == '-' || c == '+'
 }
 
+#[test]
+fn number_chars() {
+    let tests = ["1.0000231", "-1.02030", "1.2+-0.0001", "  -0.0000011"];
+    for test in tests {
+        for c in test.chars() {
+            if !is_number_char(c) {
+                panic!("invalid charachter found: {}",c);
+            }
+        }
+    }
+}
+
 // Function that takes a processed G1 command and returns parameters
 fn param_parse<'a>(
     mut input: &'a str,
@@ -22,6 +34,21 @@ fn param_parse<'a>(
         Ok((param, None))
     }
 }
+
+#[test]
+fn param_parse_test() {
+    let mut test = "X20.00Y-0.000123Z1234E0.1F7200";
+    let golden_output = [("X", 20.0)];
+    let mut params = Vec::new();
+    while let Ok(param) = param_parse(&mut test) {
+        params.push(param);
+    }
+    for (i, (letter, val)) in params.iter().enumerate() {
+        let val = val.unwrap_or(0.0);
+        assert_eq!((*letter, val), golden_output[i]);
+    }
+}
+
 fn g1_parse(input: &str) -> Option<G1> {
     // initialize a blank G1 struct
     let mut out = G1::default();
@@ -88,7 +115,7 @@ impl Id {
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Label {
+pub enum Label {
     Uninitialized,
     PrePrintMove,
     ExMove,
@@ -101,8 +128,8 @@ enum Label {
     LowerZ,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-enum GCodeLine {
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum GCodeLine {
     Unprocessed((Id, String)),
     Processed(Id),
 }
@@ -339,7 +366,44 @@ pub struct Parsed {
     id_counter: Id,
 }
 impl Parsed {
-    fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_str(s: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let gcode: Vec<String> = String::from_utf8(std::fs::read(s)?)?
+            .lines()
+            .filter_map(|s| {
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(s.to_string())
+                }
+            })
+            .collect();
+        let mut parsed = Self {
+            lines: Vec::new(),
+            vertices: HashMap::new(),
+            shapes: Vec::new(),
+            rel_xyz: false,
+            rel_e: true,
+            id_counter: Id(0),
+        };
+        let mut prev = None;
+        for line in gcode {
+            let command = {
+                if let Some(g1) = g1_parse(line.as_str()) {
+                    let id = parsed.id_counter.get();
+                    let vrtx = Vertex::build(&mut parsed, prev, g1);
+                    prev = Some(id);
+                    parsed.vertices.insert(id, vrtx);
+                    GCodeLine::Processed(id)
+                } else {
+                    GCodeLine::Unprocessed((parsed.id_counter.get(), line))
+                }
+            };
+            parsed.lines.push(command);
+        }
+        parsed.assign_shapes();
+        Ok(parsed)
+    }
+    pub fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let gcode = parse_file(path)?;
         let mut parsed = Self {
             lines: Vec::new(),
@@ -496,7 +560,7 @@ impl Parsed {
         let countf = count as f32;
         let (step_x, step_y, step_z) = ((xf - xi) / countf, (yf - yi) / countf, (zf - zi) / countf);
         let mut prev = v.prev;
-        let mut vec = Vec::new();
+        let mut vertices = Vec::new();
         let mut new_ids = Vec::new();
         for i in 1..count {
             let i = i as f32;
@@ -516,11 +580,14 @@ impl Parsed {
             new.label(self);
             self.vertices.insert(new.id, new);
             prev = Some(new.id);
-            new_ids.push(new.id);
-            vec.push(new);
+            new_ids.push(GCodeLine::Processed(new.id));
+            vertices.push(new);
         }
+        // i think this is to reset the prev to the last inserted vertex
         for id in &new_ids {
-            prev = Some(*id);
+            if let GCodeLine::Processed(id) = id {
+                prev = Some(*id);
+            }
         }
         self.insert_lines_before(new_ids, id);
         let v = self.vertices.get_mut(id).unwrap();

@@ -16,7 +16,7 @@ pub enum DiffType {
 fn vec_diff<T>(curr: &[T], next: &[T]) -> (bool, HashSet<(usize, T)>)
 // FIXME: make sure the indicies are sorted so that the right lines are removed
 where
-    T: Copy + Eq + std::hash::Hash,
+    T: Clone + Eq + std::hash::Hash,
 {
     let mut out = HashSet::new();
     let mut i = 0;
@@ -26,7 +26,7 @@ where
             if i < curr.len() && curr[i] == next[j] {
                 i += 1;
             } else {
-                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
+                assert!(out.insert((j, elem.clone()))); // make sure the inserted value is unique
             }
         }
     } else {
@@ -34,7 +34,7 @@ where
             if i < next.len() && next[i] == curr[j] {
                 i += 1;
             } else {
-                assert!(out.insert((j, *elem))); // make sure the inserted value is unique
+                assert!(out.insert((j, elem.clone()))); // make sure the inserted value is unique
             }
         }
     }
@@ -103,7 +103,7 @@ impl State {
 #[derive(Clone, Debug)]
 pub enum Diff {
     Init,
-    GCode((bool, HashSet<(usize, Id)>), Vec<(DiffType, Id, Vertex)>),
+    GCode((bool, HashSet<(usize, crate::parser::GCodeLine)>), Vec<(DiffType, Id, Vertex)>),
     Selection((HashSet<Tag>, HashSet<Tag>)),
 }
 
@@ -141,7 +141,7 @@ impl History {
                 let (dir, set) = line_diff;
                 for (i, id) in set.iter() {
                     if *dir == forward_or_reverse {
-                        self.state.gcode.lines.insert(*i, *id);
+                        self.state.gcode.lines.insert(*i, id.clone());
                     } else {
                         self.state.gcode.lines.remove(*i);
                     }
@@ -186,7 +186,7 @@ impl History {
             let (dir, set) = line_diff;
             for (i, id) in set.iter() {
                 if *dir {
-                    gcode.lines.insert(*i, *id);
+                    gcode.lines.insert(*i, id.clone());
                 } else {
                     gcode.lines.remove(*i);
                 }
