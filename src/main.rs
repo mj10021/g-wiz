@@ -24,7 +24,7 @@ use ui::*;
 #[derive(Default, Resource)]
 struct IdMap {
     pub id_to_entity: HashMap<Id, Entity>,
-    pub entity_to_id: HashMap<Entity, Id>
+    pub entity_to_id: HashMap<Entity, Id>,
 }
 
 impl IdMap {

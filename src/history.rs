@@ -103,7 +103,10 @@ impl State {
 #[derive(Clone, Debug)]
 pub enum Diff {
     Init,
-    GCode((bool, HashSet<(usize, crate::parser::GCodeLine)>), Vec<(DiffType, Id, Vertex)>),
+    GCode(
+        (bool, HashSet<(usize, crate::parser::GCodeLine)>),
+        Vec<(DiffType, Id, Vertex)>,
+    ),
     Selection((HashSet<Tag>, HashSet<Tag>)),
 }
 

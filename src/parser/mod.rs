@@ -1,4 +1,4 @@
-use winnow::{prelude::*, token::take_while, PResult};
+use winnow::{combinator::{alt, preceded, repeat, rest}, error::ErrorKind, token::{literal, one_of, take_while}, PResult, Parser};
 
 pub mod emit;
 mod transform;
@@ -16,18 +16,33 @@ fn number_chars() {
     for test in tests {
         for c in test.chars() {
             if !is_number_char(c) {
-                panic!("invalid charachter found: {}",c);
+                panic!("invalid charachter found: {}", c);
             }
         }
     }
 }
 
+fn g1_comment_parse<'a>(mut input: &'a str) -> PResult<&str, ErrorKind> {
+    preceded(';', rest).parse_next(&mut input)
+}
+fn g1_parameter_parse<'a>(mut input: &'a str) -> PResult<char, ErrorKind> {
+    one_of(['X', 'Y', 'Z', 'E', 'F']).parse_next(&mut input)
+}
+fn g1_float_parse<'a>(mut input: &'a str) -> PResult<f32, ErrorKind> {
+    take_while(1.., |c| is_number_char(c)).parse_to().parse_next(&mut input)
+}
+
+
 // Function that takes a processed G1 command and returns parameters
 fn param_parse<'a>(
     mut input: &'a str,
 ) -> PResult<(&'a str, Option<f32>), winnow::error::ErrorKind> {
-    let param = take_while(1.., |c: char| !is_number_char(c)).parse_next(&mut input)?; // Take non-numeric characters
-    let val_str = take_while(1.., is_number_char).parse_next(&mut input)?; // If a number, take the entire number
+    let param = repeat(0..12,
+        alt((
+            literal("G1"),
+            take_while(0..1, |c: char| !is_number_char(c)),
+            take_while(0.., is_number_char),
+        ))).parse_peek(input)?; // Take non-numeric characters
     if let Ok(val) = val_str.parse::<f32>() {
         Ok((param, Some(val)))
     } else {
@@ -49,11 +64,7 @@ fn param_parse_test() {
     }
 }
 
-fn g1_parse(input: &str) -> Option<G1> {
-    // initialize a blank G1 struct
-    let mut out = G1::default();
-    // remove all whitespace from line for handling G1 params
-    let mut input: String = input.split_whitespace().collect();
+fn g1_parse(input: &mut &str) -> PResult<G1, winnow::error::ErrorKind> {
     // ignore logical line number in the format N 123
     if input.starts_with("N") {
         let mut prefix: Option<char> = None;
@@ -73,6 +84,7 @@ fn g1_parse(input: &str) -> Option<G1> {
         }
     }
     if input.starts_with("G1") {
+        let mut out = G1::default();
         let input = input.split_off(2);
         let mut input = input.as_str();
         while let Ok(param) = param_parse(&mut input) {
@@ -89,6 +101,12 @@ fn g1_parse(input: &str) -> Option<G1> {
         return Some(out);
     }
     None
+}
+
+fn line_parse(input: &str, id_gen: &Id) -> GCodeLine {
+    if let Some(g1) = g1_parse(input) {
+        return GCodeLine::Processed((g1, id_gen.get()));
+    }
 }
 
 pub fn parse_file(path: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
@@ -153,6 +171,7 @@ pub struct G1 {
     pub e: Option<f32>,
     pub f: Option<f32>,
     pub comments: Option<String>,
+    span: String,
 }
 
 impl G1 {
@@ -630,8 +649,8 @@ impl Parsed {
         out
     }
     pub fn write_to_file(&self, path: &str) -> Result<(), std::io::Error> {
-        use std::fs::File;
         use crate::parser::emit::Emit;
+        use std::fs::File;
         let out = self.emit(self, false);
         let mut f = File::create(path)?;
         f.write_all(out.as_bytes())?;

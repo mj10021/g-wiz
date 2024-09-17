@@ -130,7 +130,7 @@ pub fn render(
         Color::VIOLET,
     ];
     for shape in shapes.iter() {
-        let id = map.as_ref().entity_to_id.get(&shape).unwrap_or(Id(0));
+        let id = map.as_ref().entity_to_id.get(&shape);
         if let Some(id) = id {
             map.remove(*id, shape)
         }
@@ -199,8 +199,7 @@ pub fn render(
         pos_list.push((v.id, start, end, v.label));
     }
     for (id, start, end, label) in pos_list {
-        if label == Label::FeedrateChange || label == Label::Uninitialized
-        {
+        if label == Label::FeedrateChange || label == Label::Uninitialized {
             continue;
         }
         let length = start.distance(end);
@@ -209,12 +208,10 @@ pub fn render(
 
         // Create the mesh and material
         let mesh_handle = match label {
-            Label::Travel | Label::LiftZ | Label::LowerZ | Label::Wipe => {
-                meshes.add(Cylinder {
-                    radius: 0.1,
-                    half_height: length / 2.0,
-                })
-            }
+            Label::Travel | Label::LiftZ | Label::LowerZ | Label::Wipe => meshes.add(Cylinder {
+                radius: 0.1,
+                half_height: length / 2.0,
+            }),
             Label::DeRetraction | Label::Retraction => meshes.add(Sphere { radius: 0.6 }),
             _ => {
                 continue;
