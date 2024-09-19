@@ -1,4 +1,10 @@
-use winnow::{combinator::{alt, preceded, repeat, rest}, error::ErrorKind, token::{literal, one_of, take_while}, PResult, Parser};
+use winnow::{
+    ascii::multispace0,
+    combinator::{alt, preceded, repeat, rest, separated_pair},
+    error::InputError,
+    token::{one_of, take_while, literal},
+    PResult, Parser,
+};
 
 pub mod emit;
 mod transform;
@@ -21,33 +27,76 @@ fn number_chars() {
         }
     }
 }
+fn clear_whitespace<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    // consume whitespace tokens and return an empty &str
+    repeat(
+        0..,
+        alt((
+            take_while(0.., |c: char| !c.is_whitespace()),
+            multispace0.value(""),
+        )),
+    )
+    .parse_next(input)
+}
+fn whitespace_test() {
+    let mut test = "       g  a  SS   a S d   d ";
+    let mut out = String::new();
+    if let Ok(res) = clear_whitespace(&mut test) {
+        out += res;
+    }
+    assert_eq!(out.as_str(), "gaSSaSdd");
+}
 
-fn g1_comment_parse<'a>(mut input: &'a str) -> PResult<&str, ErrorKind> {
-    preceded(';', rest).parse_next(&mut input)
+fn g1_comment_parse<'a>(input: &mut &'a str) -> PResult<&str> {
+    // return any characters following ';',
+    // should only be applied as final parse option
+    preceded(';', rest).parse_next(input)
 }
-fn g1_parameter_parse<'a>(mut input: &'a str) -> PResult<char, ErrorKind> {
-    one_of(['X', 'Y', 'Z', 'E', 'F']).parse_next(&mut input)
-}
-fn g1_float_parse<'a>(mut input: &'a str) -> PResult<f32, ErrorKind> {
-    take_while(1.., |c| is_number_char(c)).parse_to().parse_next(&mut input)
+fn g1_parameter_parse<'a>(input: &mut &'a str) -> PResult<HashMap<char, f32>> {
+    let mut out = HashMap::new();
+    while let Ok((c, val)) = separated_pair(
+        one_of::<_, _, InputError<_>>(['X', 'Y', 'Z', 'E', 'F']),
+        winnow::combinator::empty,
+        take_while(1.., |c| is_number_char(c)).parse_to(),
+    )
+    .parse_next(input)
+    {
+        out.insert(c, val);
+    }
+    Ok(out)
 }
 
+fn g1_parse_test() {}
 
 // Function that takes a processed G1 command and returns parameters
-fn param_parse<'a>(
-    mut input: &'a str,
-) -> PResult<(&'a str, Option<f32>), winnow::error::ErrorKind> {
-    let param = repeat(0..12,
-        alt((
-            literal("G1"),
-            take_while(0..1, |c: char| !is_number_char(c)),
-            take_while(0.., is_number_char),
-        ))).parse_peek(input)?; // Take non-numeric characters
-    if let Ok(val) = val_str.parse::<f32>() {
-        Ok((param, Some(val)))
-    } else {
-        Ok((param, None))
-    }
+fn g1_parse<'a>(input: &'a mut &'a str) -> PResult<G1> {
+    let ((span, _, params, _, comments),) = (
+        (clear_whitespace, literal("G1"), g1_parameter_parse,literal(';'), rest),
+    )
+        .parse_next(input)?;
+    let comments = {
+        if comments.is_empty() {
+            None
+        } else {
+            Some(String::from(comments))
+        }
+    };
+    let (x, y, z, e, f) = (
+        params.get(&'X').copied(),
+        params.get(&'Y').copied(),
+        params.get(&'Z').copied(),
+        params.get(&'E').copied(),
+        params.get(&'F').copied(),
+    );
+    Ok(G1 {
+        x,
+        y,
+        z,
+        e,
+        f,
+        comments,
+        span: String::new(),
+    })
 }
 
 #[test]
@@ -64,7 +113,7 @@ fn param_parse_test() {
     }
 }
 
-fn g1_parse(input: &mut &str) -> PResult<G1, winnow::error::ErrorKind> {
+fn g1_parse(input: &mut &str) -> PResult<G1> {
     // ignore logical line number in the format N 123
     if input.starts_with("N") {
         let mut prefix: Option<char> = None;
