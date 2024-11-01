@@ -1,6 +1,7 @@
-use super::{parser::Label, settings::*, GCode, IdMap, PickableBundle, Tag, UiResource};
-use crate::events::handlers::ForceRefresh;
-use crate::BoundingBox;
+use crate::{
+    events::handlers::ForceRefresh, settings::*, BoundingBox, GCode, IdMap, PickableBundle, Tag,
+    UiResource, history::State,
+};
 use bevy::{
     pbr::{MaterialPipeline, MaterialPipelineKey},
     prelude::*,
@@ -116,7 +117,7 @@ pub fn render(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut map: ResMut<IdMap>,
-    gcode: Res<GCode>,
+    state: Res<crate::history::State>,
     shapes: Query<Entity, With<Tag>>,
     settings: Res<Settings>,
 ) {
@@ -130,13 +131,13 @@ pub fn render(
         Color::VIOLET,
     ];
     for shape in shapes.iter() {
-        let id = map.as_ref().entity_to_id.get(&shape);
+        let id = map.as_ref().entity_to_id.get(&shape).copied();
         if let Some(id) = id {
-            map.remove(*id, shape)
+            map.remove(id, shape)
         }
         commands.entity(shape).despawn();
     }
-    let gcode = &gcode.0;
+    let gcode = &state.gcode;
     let mut pos_list = Vec::new();
     for (i, shape) in gcode.shapes.iter().enumerate() {
         let color = colors[i % colors.len()];

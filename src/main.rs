@@ -1,18 +1,18 @@
 mod events;
 mod history;
 mod pan_orbit;
-mod parser;
 mod render;
 mod settings;
 mod ui;
+mod geometry;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use events::{console::*, handlers::*, *};
+use g_win::{GCodeModel, Id};
 use history::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
-use parser::{Id, Parsed};
 use picking_core::PickingPluginsSettings;
 use render::*;
 use selection::send_selection_events;
@@ -20,6 +20,7 @@ use settings::*;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
+use geometry::{VertexMap, Vertex, Label};
 
 #[derive(Default, Resource)]
 struct IdMap {
@@ -39,7 +40,7 @@ impl IdMap {
 }
 
 #[derive(Clone, Resource)]
-struct GCode(Parsed);
+struct GCode(GCodeModel);
 
 #[derive(Component, PartialEq, Copy, Clone, Hash, Eq, Debug)]
 struct Tag {
@@ -47,7 +48,7 @@ struct Tag {
 }
 
 #[derive(Default, Resource)]
-struct FilePath(String);
+struct FilePath(std::path::PathBuf);
 
 #[derive(Debug, Resource)]
 pub struct BoundingBox {
@@ -56,16 +57,16 @@ pub struct BoundingBox {
 }
 
 impl BoundingBox {
-    fn from(gcode: &Parsed) -> Self {
+    fn from(vertices: &VertexMap) -> Self {
         let mut out = Self {
             min: Vec3::INFINITY,
             max: Vec3::NEG_INFINITY,
         };
-        for v in gcode.vertices.values() {
-            if !v.extrusion_move() {
+        for v in vertices.0.values() {
+            if v.label != Label::Extrusion {
                 continue;
             }
-            let (x, y, z) = (v.to.x, v.to.y, v.to.z);
+            let (x, y, z) = (v.x(), v.y(), v.z());
             out.min.x = out.min.x.min(x);
             out.min.y = out.min.y.min(y);
             out.min.z = out.min.z.min(z);
@@ -75,12 +76,12 @@ impl BoundingBox {
         }
         out
     }
-    pub fn recalculate(&mut self, gcode: &Parsed) {
-        for v in gcode.vertices.values() {
-            if !v.extrusion_move() {
+    pub fn recalculate(&mut self, vertices: &VertexMap) {
+        for v in vertices.0.values() {
+            if v.label != Label::Extrusion {
                 continue;
             }
-            let (x, y, z) = (v.to.x, v.to.y, v.to.z);
+            let (x, y, z) = (v.x(), v.y(), v.z());
             self.min.x = self.min.x.min(x);
             self.min.y = self.min.y.min(y);
             self.min.z = self.min.z.min(z);
@@ -100,24 +101,29 @@ impl BoundingBox {
 
 fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     let args: Vec<String> = env::args().collect();
+    let default = "./";
 
     // Check if a filename was provided
     let filename = {
         if args.len() < 2 {
             println!("invalid file provided, opening demo");
-            "./"
+            default
         } else {
             &args[1]
         }
     };
-    filepath.0 = filename.to_string();
-    let gcode = Parsed::from_file(filename)
-        .unwrap_or(Parsed::from_str(crate::settings::DEFAULT_GCODE).unwrap());
+    filepath.0 = filename.parse().unwrap_or(default.parse().unwrap());
+    let gcode = GCodeModel::from_file(&filepath.0).unwrap_or(
+        crate::settings::DEFAULT_GCODE
+            .parse()
+            .expect("default gcode failed to parse"),
+    );
+    let vertices = VertexMap::build(&gcode);
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 255.0,
     });
-    let bounding_box = BoundingBox::from(&gcode);
+    let bounding_box = BoundingBox::from(&vertices);
     let center = bounding_box.midpoint();
     let transform = Transform::from_xyz(bounding_box.min.x - center.x, center.y, 200.0)
         .looking_at(center, Vec3::Y);
@@ -135,8 +141,8 @@ fn setup(mut commands: Commands, mut filepath: ResMut<FilePath>) {
     ));
     commands.insert_resource(bounding_box);
     commands.insert_resource(read_settings());
-    commands.insert_resource(VertexCounter::build(&gcode));
-    commands.insert_resource(History::build(&gcode));
+    commands.insert_resource(VertexCounter::build(&vertices));
+    commands.insert_resource(History::build(&gcode, &vertices));
     commands.insert_resource(GCode(gcode));
     commands.init_resource::<UiResource>();
     commands.init_resource::<IdMap>();

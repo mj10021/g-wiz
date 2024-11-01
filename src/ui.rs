@@ -1,7 +1,7 @@
 use super::{PickSelection, PickingPluginsSettings, Settings};
 use crate::events::{console::*, *};
-use crate::parser::Parsed;
-use crate::GCode;
+use crate::geometry::VertexMap;
+use crate::history::State;
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{EguiContext, EguiContexts};
@@ -70,11 +70,11 @@ impl Default for VisibilitySelector {
     }
 }
 
-pub fn ui_setup(gcode: Res<GCode>, mut ui_res: ResMut<UiResource>) {
-    for (_, v) in gcode.0.vertices.iter() {
-        ui_res.display_z_max.1 = ui_res.display_z_max.1.max(v.to.z);
+pub fn ui_setup(state: Res<State>, mut ui_res: ResMut<UiResource>) {
+    for (_, v) in state.geometry.vertices.0.iter() {
+        ui_res.display_z_max.1 = ui_res.display_z_max.1.max(v.z());
     }
-    ui_res.vertex_counter = ui_res.vertex_counter.max(gcode.0.vertices.len());
+    ui_res.vertex_counter = ui_res.vertex_counter.max(state.geometry.vertices.0.len());
     ui_res.display_z_max.0 = ui_res.display_z_max.1;
 }
 pub fn toolbar(mut contexts: EguiContexts, mut system_writer: EventWriter<SystemEvent>) {
@@ -258,9 +258,9 @@ pub struct VertexCounter {
 }
 
 impl VertexCounter {
-    pub fn build(gcode: &Parsed) -> VertexCounter {
+    pub fn build(vertices: &VertexMap) -> VertexCounter {
         VertexCounter {
-            max: gcode.vertices.keys().len() as u32,
+            max: vertices.0.keys().len() as u32,
         }
     }
 }

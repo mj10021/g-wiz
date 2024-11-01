@@ -2,6 +2,7 @@
 // File, Select, Console, ...
 pub mod console;
 pub mod handlers;
+mod callbacks;
 use bevy::prelude::*;
 use console::*;
 #[derive(Event)]

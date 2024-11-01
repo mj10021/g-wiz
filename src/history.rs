@@ -1,10 +1,17 @@
-use super::{
-    parser::{Parsed, Vertex},
-    GCode, Id, Resource, Tag,
+use crate::{
+    geometry::{GeometryMap, Vertex, VertexMap},
+    GCode, GCodeModel, Id, Resource, Tag,
 };
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::PickSelection;
 use std::collections::{HashMap, HashSet, VecDeque};
+
+trait Diff<T> 
+where 
+    T: Copy + Eq + std::hash::Hash
+{
+    fn diff(&self, other: Self) -> (DiffType, HashSet<T>);
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum DiffType {
@@ -78,45 +85,28 @@ where
     }
     out
 }
-
-struct State {
-    selections: HashSet<Tag>,
-    gcode: Parsed,
+#[derive(Resource)]
+pub struct State {
+    pub selections: HashSet<Tag>,
+    pub geometry: GeometryMap,
+    pub gcode: GCodeModel
 }
 
 impl State {
-    fn build(gcode: &Parsed) -> Self {
+    fn build(geometry: GeometryMap, gcode: GCodeModel) -> Self {
         Self {
             selections: HashSet::new(),
-            gcode: gcode.clone(),
+            geometry,
+            gcode,
         }
     }
-    fn gcode_diff(&self, gcode: &Parsed) -> Diff {
+    fn gcode_diff(&self, gcode: &GCodeModel, vertices: &VertexMap) -> Diff {
         let line_diff = vec_diff(&self.gcode.lines, &gcode.lines);
-        let vertex_diff = map_diff(&self.gcode.vertices, &gcode.vertices);
+        let vertex_diff = map_diff(&self.geometry.vertices.0, &vertices.0);
         Diff::GCode(line_diff, vertex_diff)
     }
     fn selection_diff(&self, selection: HashSet<Tag>) -> Diff {
         Diff::Selection(set_diff(&self.selections, &selection))
-    }
-}
-#[derive(Clone, Debug)]
-pub enum Diff {
-    Init,
-    GCode(
-        (bool, HashSet<(usize, crate::parser::GCodeLine)>),
-        Vec<(DiffType, Id, Vertex)>,
-    ),
-    Selection((HashSet<Tag>, HashSet<Tag>)),
-}
-
-impl Diff {
-    fn is_some(&self) -> bool {
-        match self {
-            Diff::GCode((_, set), vec) => !set.is_empty() || !vec.is_empty(),
-            Diff::Selection((sub, add)) => !sub.is_empty() || !add.is_empty(),
-            Diff::Init => false,
-        }
     }
 }
 
@@ -129,9 +119,9 @@ pub struct History {
 }
 
 impl History {
-    pub fn build(gcode: &Parsed) -> Self {
+    pub fn build(gcode: GCodeModel, geometry: GeometryMap) -> Self {
         Self {
-            state: State::build(gcode),
+            state: State::build(geometry, gcode),
             diff_log: VecDeque::from([Diff::Init]),
             counter: 0,
             counter_cur: 0,
@@ -155,9 +145,9 @@ impl History {
                         DiffType::Remove => forward_or_reverse == false,
                     };
                     if dir {
-                        self.state.gcode.vertices.insert(*id, vertex.clone());
+                        self.state.geometry.vertices.0.insert(*id, vertex.clone());
                     } else {
-                        self.state.gcode.vertices.remove(id);
+                        self.state.geometry.vertices.0.remove(id);
                     }
                 }
             }
@@ -183,7 +173,7 @@ impl History {
             Diff::Init => {}
         }
     }
-    fn apply_to_gcode(&self, gcode: &mut Parsed, forward_or_reverse: bool) {
+    fn apply_to_gcode(&self, gcode: &mut GCodeModel, vertices: &mut VertexMap, forward_or_reverse: bool) {
         let diff = &self.diff_log[self.counter_cur];
         if let Diff::GCode(line_diff, vertex_diff) = diff {
             let (dir, set) = line_diff;
@@ -200,9 +190,9 @@ impl History {
                     DiffType::Remove => forward_or_reverse == false,
                 };
                 if dir {
-                    gcode.vertices.insert(*id, vertex.clone());
+                    vertices.0.insert(*id, vertex.clone());
                 } else {
-                    gcode.vertices.remove(id);
+                    vertices.0.remove(id);
                 }
             }
         }
@@ -212,9 +202,10 @@ impl History {
 pub fn update_history_diff_log(
     mut history: ResMut<History>,
     gcode: Res<GCode>,
+    vertices: Res<VertexMap>,
     selections: Query<(&PickSelection, &Tag)>,
 ) {
-    let gcode_diff = history.state.gcode_diff(&gcode.0);
+    let gcode_diff = history.state.gcode_diff(&gcode.0, &vertices);
     let selections = selections
         .iter()
         .filter_map(|(s, t)| if s.is_selected { Some(*t) } else { None })
@@ -242,16 +233,17 @@ pub fn update_history_diff_log(
 pub fn undo_redo(
     mut history: ResMut<History>,
     mut gcode: ResMut<GCode>,
+    mut vertices: ResMut<VertexMap>,
     mut selections: Query<(&mut PickSelection, &Tag)>,
 ) {
     while history.counter != history.counter_cur {
         if history.counter_cur > history.counter {
             history.apply_current(true);
-            history.apply_to_gcode(&mut gcode.0, true);
+            history.apply_to_gcode(&mut gcode.0, &mut vertices, true);
             history.counter_cur -= 1;
         } else {
             history.apply_current(false);
-            history.apply_to_gcode(&mut gcode.0, false);
+            history.apply_to_gcode(&mut gcode.0, &mut vertices, false);
             history.counter_cur += 1;
         }
         // apply state selections to selection query

@@ -220,14 +220,14 @@ pub fn selection_handler(
         out
     };
     for id in events.0 {
-        if let Some(entity) = map.0.get(&id) {
+        if let Some(entity) = map.id_to_entity.get(&id) {
             if let Ok((mut select_me, _)) = selectables.get_mut(*entity) {
                 select_me.is_selected = true;
             }
         }
     }
     for id in events.1 {
-        if let Some(entity) = map.0.get(&id) {
+        if let Some(entity) = map.id_to_entity.get(&id) {
             if let Ok((mut select_me, _)) = selectables.get_mut(*entity) {
                 select_me.is_selected = false;
             }
