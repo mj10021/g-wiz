@@ -1,8 +1,8 @@
 // TODO: This should be organized by toolbar menu and submenu
 // File, Select, Console, ...
+mod callbacks;
 pub mod console;
 pub mod handlers;
-mod callbacks;
 use bevy::prelude::*;
 use console::*;
 #[derive(Event)]

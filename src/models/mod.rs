@@ -1,8 +1,69 @@
-use crate::{GCodeModel, Id, Resource};
+use crate::{Diff, GCodeModel, Id};
 use g_win::{Command, G1};
-use std::{collections::HashMap, ops::{Index, Sub}, slice::SliceIndex};
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+
+
+#[derive(Resource, Diff)]
+pub struct State {
+    pub selections: HashSet<Tag>,
+    pub geometry: GeometryMap,
+    pub gcode: Vec<String>,
+}
+
+impl State {
+    fn build(geometry: GeometryMap, gcode: GCodeModel) -> Self {
+        Self {
+            selections: HashSet::new(),
+            geometry,
+            gcode: gcode.emit(false).split('\n').map(|s| s.to_string()).collect(),
+        }
+    }
+}
+
+
+
+#[derive(Clone, Diff)]
+pub struct GeometryMap {
+    pub vertices: VertexMap,
+    pub shapes: ShapeMap,
+    pub layers: LayerMap,
+}
+
+#[derive(Clone, Default, Debug, Diff, PartialEq)]
+pub struct VertexMap(pub HashMap<Id, Vertex>);
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct Shape {
+    id: Id,
+    vertices: Vec<Id>,
+}
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct ShapeMap(pub HashMap<Id, Shape>);
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct Layer {
+    id: Id,
+    shapes: Vec<Id>,
+}
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct LayerMap(pub HashMap<Id, Layer>);
+
+impl VertexMap {
+    pub fn build(gcode: &GCodeModel) -> Self {
+        let mut out = Self::default();
+        let mut prev = None;
+        for line in &gcode.lines {
+            if let Command::G1(g1) = &line.command {
+                let vertex = Vertex::build(g1, prev, &out);
+                out.0.insert(line.id, vertex.clone());
+                prev = Some(line.id);
+            }
+        }
+        out
+    }
+}
+
+use std::{collections::HashMap, ops::Index};
+
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Label {
     #[default]
     Uninitialized,
@@ -17,17 +78,21 @@ pub enum Label {
 }
 
 pub trait Pos5<P>
-where P: Index<usize, Output = f32> {
+where
+    P: Index<usize, Output = f32>,
+{
     fn dist_xyz(&self, other: P) -> f32;
     fn flow(&self, other: P) -> f32;
 }
 
 impl<P> Pos5<P> for [f32; 5]
-where P: Index<usize, Output = f32> {
+where
+    P: Index<usize, Output = f32>,
+{
     fn dist_xyz(&self, other: P) -> f32 {
-        let dx:  f32 = self[0] - other[0];
-        let dy:  f32 = self[1] - other[1];
-        let dz:  f32 = self[2] - other[1];
+        let dx: f32 = self[0] - other[0];
+        let dy: f32 = self[1] - other[1];
+        let dz: f32 = self[2] - other[1];
         (dx * dx + dy * dy + dz * dz).sqrt()
     }
     fn flow(&self, other: P) -> f32 {
@@ -36,7 +101,7 @@ where P: Index<usize, Output = f32> {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Vertex {
     /// [x, y, z, e, f]
     pub position: [f32; 5],
@@ -56,7 +121,6 @@ impl Vertex {
         let vals = [x, y, z, e, f];
         for i in 0..5 {
             if let Some(val) = vals[i] {
-                let new: f32 = val.as_str().parse().unwrap_or(init[i]);
                 curr[i] = val.as_str().parse::<f32>().unwrap_or(init[i]);
             } else {
                 curr[i] = init[i];

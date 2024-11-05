@@ -1,16 +1,18 @@
 mod events;
+mod geometry;
 mod history;
 mod pan_orbit;
 mod render;
 mod settings;
 mod ui;
-mod geometry;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
+use diff::Diff;
 use events::{console::*, handlers::*, *};
 use g_win::{GCodeModel, Id};
+use geometry::{Label, Vertex, VertexMap};
 use history::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
@@ -20,7 +22,6 @@ use settings::*;
 use std::collections::HashMap;
 use std::env;
 use ui::*;
-use geometry::{VertexMap, Vertex, Label};
 
 #[derive(Default, Resource)]
 struct IdMap {

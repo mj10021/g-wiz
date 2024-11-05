@@ -1,15 +1,18 @@
+use crate::{geometry::Pos5, GCode, Id, VertexMap};
 use bevy::prelude::*;
-use crate::{Id, VertexMap, GCode, geometry::Pos5, };
 use std::collections::HashSet;
 
 /// delete the selected node and stitch together the previous and following node
-fn merge_delete(mut gcode: ResMut<GCode>, mut vertices: ResMut<VertexMap>, selection: &HashSet<Id>) {
+fn merge_delete(
+    mut gcode: ResMut<GCode>,
+    mut vertices: ResMut<VertexMap>,
+    selection: &HashSet<Id>,
+) {
     for id in selection {
         merge_delete_vertex(&mut gcode, &mut vertices, &id);
     }
 }
 fn merge_delete_vertex(gcode: &mut ResMut<GCode>, vertices: &mut ResMut<VertexMap>, id: &Id) {
-
     // Remove the g1 line from the gcode model
     for (i, line) in gcode.0.lines.iter().enumerate() {
         if line.id == *id {
@@ -41,6 +44,4 @@ fn merge_delete_vertex(gcode: &mut ResMut<GCode>, vertices: &mut ResMut<VertexMa
     vertices.0.remove(id);
 }
 
-fn hole_delete(mut gcode: ResMut<GCode>, mut vertices: ResMut<VertexMap>, id: &Id) {
-
-}
+fn hole_delete(mut gcode: ResMut<GCode>, mut vertices: ResMut<VertexMap>, id: &Id) {}

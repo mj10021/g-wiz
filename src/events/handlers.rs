@@ -23,7 +23,7 @@ pub fn ui_handler(
     mut s_query: Query<(&mut PickSelection, &Tag)>,
     mut pan_orbit: ResMut<PanOrbit>,
     mut history: ResMut<History>,
-    mut gcode: ResMut<GCode>,
+    mut state: ResMut<State>,
 ) {
     let mut selected = s_query
         .iter()
@@ -54,7 +54,7 @@ pub fn ui_handler(
                 pan_orbit.0 = *on;
             }
 
-            UiEvent::MergeDelete => gcode.0.merge_delete(&mut selected),
+            UiEvent::MergeDelete => merge_delete(&state.gcode, &state.vertices, &selected),
             UiEvent::HoleDelete => {
                 gcode.0.hole_delete(&mut selected);
             }

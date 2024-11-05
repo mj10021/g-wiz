@@ -1,6 +1,6 @@
 use crate::{
-    events::handlers::ForceRefresh, settings::*, BoundingBox, GCode, IdMap, PickableBundle, Tag,
-    UiResource, history::State,
+    events::handlers::ForceRefresh, history::State, settings::*, BoundingBox, GCode, IdMap,
+    PickableBundle, Tag, UiResource,
 };
 use bevy::{
     pbr::{MaterialPipeline, MaterialPipelineKey},
