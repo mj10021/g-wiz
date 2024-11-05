@@ -1,13 +1,12 @@
-use crate::{geometry::Pos5, GCode, Id, VertexMap};
+use crate::{models::Pos5, GCode, Id, VertexMap, State};
 use bevy::prelude::*;
 use std::collections::HashSet;
 
 /// delete the selected node and stitch together the previous and following node
 fn merge_delete(
-    mut gcode: ResMut<GCode>,
-    mut vertices: ResMut<VertexMap>,
-    selection: &HashSet<Id>,
+    mut state: ResMut<State>,
 ) {
+    let selection = state.selection
     for id in selection {
         merge_delete_vertex(&mut gcode, &mut vertices, &id);
     }

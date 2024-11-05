@@ -1,4 +1,4 @@
-use crate::{geometry::GeometryMap, Diff, GCode, GCodeModel, Resource, Tag};
+use crate::{models::GeometryMap, Diff, GCode, GCodeModel, Resource, Tag};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::PickSelection;
 use std::collections::HashSet;
@@ -9,24 +9,6 @@ pub struct History {
     pub counter_cur: usize,
     pub diff_log: Vec<usize>,
 }
-
-#[derive(Resource, Diff)]
-pub struct State {
-    pub selections: HashSet<Tag>,
-    pub geometry: GeometryMap,
-    pub gcode: Vec<u32>,
-}
-
-impl State {
-    fn build(geometry: GeometryMap, gcode: GCodeModel) -> Self {
-        Self {
-            selections: HashSet::new(),
-            geometry,
-            gcode,
-        }
-    }
-}
-
 pub fn undo_redo(
     mut history: ResMut<History>,
     mut gcode: ResMut<GCode>,

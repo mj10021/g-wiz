@@ -1,6 +1,6 @@
 use super::{PickSelection, PickingPluginsSettings, Settings};
 use crate::events::{console::*, *};
-use crate::geometry::VertexMap;
+use crate::models::VertexMap;
 use crate::history::State;
 use bevy::input::mouse::MouseMotion;
 use bevy::{prelude::*, window::PrimaryWindow};

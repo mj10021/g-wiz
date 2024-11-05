@@ -1,5 +1,5 @@
 mod events;
-mod geometry;
+mod models;
 mod history;
 mod pan_orbit;
 mod render;
@@ -12,7 +12,7 @@ use bevy_mod_picking::prelude::*;
 use diff::Diff;
 use events::{console::*, handlers::*, *};
 use g_win::{GCodeModel, Id};
-use geometry::{Label, Vertex, VertexMap};
+use models::{Label, State, VertexMap};
 use history::*;
 use pan_orbit::{pan_orbit_camera, PanOrbitCamera};
 use picking_core::PickingPluginsSettings;
